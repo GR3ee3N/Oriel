@@ -1,0 +1,15 @@
+.home { position: absolute; inset: 0; }
+.hero {
+  position: absolute;
+  left: var(--edge);
+  top: 120px;
+  width: 1100px;
+  height: 470px;
+  /* New text relays out and repaints only this box, on its own layer,
+     not the page and the backdrop under it. */
+  contain: strict;
+  will-change: transform;
+}
+.home-error { position: absolute; left: var(--edge); top: 620px; }
+.shelf.home-shelf { top: 600px; }
+.shelf.home-shelf .shelf-inner { top: 24px; }

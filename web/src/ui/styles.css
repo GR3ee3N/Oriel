@@ -1,0 +1,122 @@
+/* The app frame and the screens outside the router: sign-in, user
+   picker, status. The player OSD: osd.css. Tokens: theme.css. */
+
+.app { position: absolute; inset: 0; }
+.browse, .osd { display: none; }
+.app[data-mode="browse"] .browse { display: block; }
+.app[data-mode="osd"] .osd { display: block; }
+
+.browse {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse at 30% 20%, #2b3350 0%, #11141d 55%, var(--bg) 100%);
+}
+.screen-layer { position: absolute; inset: 0; }
+.screen { position: absolute; inset: 0; padding: 80px var(--edge); }
+.screen h1 { font-size: 56px; }
+.lead { margin-top: 24px; font-size: 32px; color: var(--text-2); }
+.screen .error { margin-top: 24px; }
+
+/* Sign-in and the user picker: over the colour field, centred. */
+.signin, .users { z-index: 1; }
+.signin { display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
+.mark { display: block; }
+.mark svg { display: block; width: 100%; height: 100%; }
+.signin .mark { margin-bottom: 36px; }
+.signin .code {
+  margin: 48px 0;
+  font-size: 160px;
+  font-weight: 750;
+  line-height: 1;
+  letter-spacing: 0.25em;
+  color: var(--accent);
+}
+
+.users { display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
+.user-row { margin-top: 64px; display: flex; gap: 56px; }
+.user { width: 240px; display: flex; flex-direction: column; align-items: center; gap: 16px; padding: 20px; border-radius: 16px; }
+.user.focused { background: var(--bg-raise-2); }
+.user .avatar {
+  width: 160px;
+  height: 160px;
+  border-radius: 50%;
+  background: var(--bg-raise-3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 64px;
+  font-weight: 700;
+  outline: var(--ring) solid transparent;
+  outline-offset: var(--ring-gap);
+}
+.user.focused .avatar { outline-color: var(--accent); }
+.user small { color: var(--text-3); font-size: var(--fs-small); }
+/* The PIN pad: who, four dots, the keys. After the fourth digit the dots
+   stay full and pulse while plex.tv checks; a wrong PIN shakes them. */
+.pinpad { display: flex; flex-direction: column; align-items: center; }
+.pinpad .avatar {
+  width: 112px;
+  height: 112px;
+  border-radius: 50%;
+  background: var(--bg-raise-3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 48px;
+  font-weight: 700;
+}
+.pinpad h1 { margin-top: 20px; font-size: var(--fs-title); }
+.pinpad .pin-prompt { margin-top: 6px; font-size: var(--fs-meta); color: var(--text-2); }
+.pin-dots { margin: 36px 0 40px; display: flex; gap: 28px; }
+.pin-dot {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: 3px solid var(--text-2);
+  transition: background-color var(--fast) ease, border-color var(--fast) ease;
+}
+.pin-dot.filled { background: var(--text); border-color: var(--text); }
+.pin-dots.checking .pin-dot { animation: pin-pulse 900ms ease-in-out infinite; }
+.pin-dots.checking .pin-dot:nth-child(2) { animation-delay: 150ms; }
+.pin-dots.checking .pin-dot:nth-child(3) { animation-delay: 300ms; }
+.pin-dots.checking .pin-dot:nth-child(4) { animation-delay: 450ms; }
+@keyframes pin-pulse { 50% { opacity: 0.35; } }
+.pin-dots.wrong { animation: pin-shake 420ms ease; }
+.pin-dots.wrong .pin-dot { border-color: var(--danger); }
+@keyframes pin-shake {
+  20% { transform: translateX(-18px); }
+  40% { transform: translateX(14px); }
+  60% { transform: translateX(-9px); }
+  80% { transform: translateX(5px); }
+}
+.pin-keys { display: grid; grid-template-columns: repeat(3, 150px); gap: 16px; }
+.pin-key {
+  height: 88px;
+  border-radius: 12px;
+  background: var(--bg-raise-2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 40px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.pin-key.label { font-size: var(--fs-meta); }
+.pin-key svg { width: 44px; height: 44px; }
+.pin-key.focused { background: var(--accent); color: var(--accent-text); }
+.pinpad .error { margin-top: 24px; }
+
+/* notice.ts: opaque, as translucent colour blends wrong on the plane; over
+   the splash (a server that did not answer at the start, say). */
+.notice {
+  position: absolute; left: 50%; bottom: 80px; transform: translateX(-50%); z-index: 35;
+  max-width: 1400px; padding: 18px 32px; border-radius: var(--radius);
+  background: var(--bg-raise-2); color: var(--text); font-size: var(--fs-meta);
+}
+
+/* Behind the screens without art: Library, Search, Settings and the grids. */
+.screen-bg {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse at 20% 0%, #232a40 0%, #10131b 55%, var(--bg) 100%);
+}

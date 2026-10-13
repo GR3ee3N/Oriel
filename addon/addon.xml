@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- tools/build.sh fills in the versions from build/versions.env. -->
+<addon id="script.oriel.oriel" name="Oriel" version="@VERSION@" provider-name="Oriel">
+  <requires>
+    <import addon="xbmc.python" version="3.1.0"/>
+    <import addon="script.module.oriel.framework" version="@FRAMEWORK_VERSION@"/>
+  </requires>
+  <extension point="xbmc.python.script" library="default.py">
+    <provides>video</provides>
+  </extension>
+  <extension point="xbmc.addon.metadata">
+    <summary lang="en_GB">A Plex client over Kodi; Kodi plays the media</summary>
+    <platform>linux-aarch64</platform>
+    <license>GPL-3.0-or-later</license>
+    <source>https://github.com/GR3ee3N/Oriel</source>
+    <website>https://github.com/GR3ee3N/Oriel</website>
+    <disclaimer lang="en_GB">Not affiliated with or endorsed by Plex, Inc.</disclaimer>
+    <news>Initial experimental release for CoreELEC 22.</news>
+    <assets>
+      <icon>resources/icon.png</icon>
+      <fanart>resources/fanart.png</fanart>
+    </assets>
+  </extension>
+</addon>

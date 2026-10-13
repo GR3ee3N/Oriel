@@ -1,0 +1,14 @@
+/* Clipped at the top, so sections scrolled past disappear rather than
+   sit over the info (fading them left their headings painted: a WebKit
+   repaint bug); the inset at the top and left leaves room for the focus
+   ring and lift. */
+.shelf { position: absolute; left: 0; right: 0; top: 590px; bottom: 0; overflow: hidden; }
+.shelf-inner {
+  position: absolute;
+  left: var(--edge);
+  right: 0;
+  top: 22px;
+  transition: transform var(--normal) var(--ease);
+  will-change: transform;
+}
+.shelf-inner > * { padding-bottom: 40px; }

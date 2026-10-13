@@ -1,0 +1,13 @@
+.row h2 {
+  font-size: var(--fs-h2);
+  font-weight: 650;
+  color: var(--text-2);
+  margin-bottom: 18px;
+}
+.row .tiles {
+  display: flex;
+  transition: transform var(--normal) var(--ease);
+  /* Its own layer for good: moving it is then compositing only, and the
+     layer isn't torn down and re-rastered after every move. */
+  will-change: transform;
+}

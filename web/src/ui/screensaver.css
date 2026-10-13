@@ -1,0 +1,37 @@
+.screensaver { position: absolute; inset: 0; z-index: 40; background: #000; }
+/* Each picture a layer of its own at its exact size, scaled 2x by the
+   compositor; a slow cross-fade between them. */
+.saver-layer {
+  position: absolute;
+  left: 0;
+  top: 0;
+  opacity: 0;
+  transition: opacity 2s ease;
+  will-change: opacity;
+}
+.saver-layer img { display: block; width: 960px; height: 540px; transform: scale(2); transform-origin: 0 0; }
+/* Dimmed, as a screensaver is, and darker where the text is. */
+.saver-shade {
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(0deg, rgba(0, 0, 0, 0.75) 0%, rgba(0, 0, 0, 0) 45%),
+    rgba(0, 0, 0, 0.42);
+}
+.saver-info, .saver-clock { text-shadow: 0 2px 12px rgba(0, 0, 0, 0.6); }
+.saver-info { position: absolute; left: var(--edge); bottom: 100px; max-width: 900px; }
+.saver-info.right { left: auto; right: var(--edge); text-align: right; }
+.saver-info h1 { font-size: 64px; font-weight: 750; }
+.saver-info p { margin-top: 12px; font-size: var(--fs-meta); color: rgba(255, 255, 255, 0.75); }
+.saver-logo { display: block; max-width: 560px; max-height: 180px; }
+.saver-info.right .saver-logo { margin-left: auto; }
+.saver-clock {
+  position: absolute;
+  top: 60px;
+  right: var(--edge);
+  font-size: 64px;
+  font-weight: 650;
+  color: rgba(255, 255, 255, 0.85);
+  font-variant-numeric: tabular-nums;
+}
+.saver-clock.left { right: auto; left: var(--edge); }

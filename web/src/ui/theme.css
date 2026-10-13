@@ -1,0 +1,75 @@
+/* Design tokens and base styles.
+
+   The page is a fixed 1920×1080 surface (osd1); the meson scaler fits it to
+   the output mode. Performance rules for CPU raster on the box's CPU:
+   animate only transform and opacity, keep composited layers few, size
+   images exactly (photo transcoder), no blur or big shadows. */
+
+:root {
+  --fs-title: 48px;
+  --fs-h2: 30px;
+  --fs-body: 26px;
+  --fs-meta: 22px;
+  --fs-small: 19px;
+
+  --bg: #0b0d12;
+  --bg-raise: #161a24;
+  --bg-raise-2: #222839;
+  /* Raised on --bg-raise-2: the user picker's avatars on a focused card. */
+  --bg-raise-3: #3a4260;
+  --text: #f2f3f7;
+  --text-2: #b4b9c8;
+  --text-3: #737a8c;
+  /* Set by the Accent colour setting (prefs.ts); this is its default. */
+  --accent: #8c9eff;
+  --accent-text: #0b0d12;
+  --danger: #f08a7e;
+
+  /* Focus: an accent ring outside the element, and a small lift. */
+  --ring: 5px;
+  --ring-gap: 4px;
+  --lift: scale(1.05);
+
+  --ease: cubic-bezier(0.2, 0.7, 0.2, 1);
+  --fast: 120ms;
+  --normal: 200ms;
+  --slow: 400ms;
+
+  --edge: 120px;
+  --radius: 10px;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body {
+  width: 1920px;
+  height: 1080px;
+  overflow: hidden;
+  /* Transparent so Kodi's video shows wherever the page draws nothing. */
+  background: transparent;
+  color: var(--text);
+  font: 450 var(--fs-body)/1.35 "Inter Variable", "DejaVu Sans", sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+h1, h2, h3 { font-weight: 700; line-height: 1.15; }
+
+.dim { color: var(--text-3); }
+.error { color: var(--danger); min-height: 1.35em; }
+
+.btn {
+  height: 64px;
+  padding: 0 32px;
+  border-radius: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  background: var(--bg-raise-2);
+  font-size: var(--fs-body);
+  font-weight: 600;
+  white-space: nowrap;
+  transition: transform var(--fast) var(--ease);
+}
+.btn.small { height: 52px; padding: 0 24px; font-size: var(--fs-meta); }
+.btn.focused { background: var(--accent); color: var(--accent-text); transform: var(--lift); }

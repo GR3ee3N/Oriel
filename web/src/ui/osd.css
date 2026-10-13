@@ -1,0 +1,85 @@
+/* Over Kodi's video: neutral translucency only (black and white alpha);
+   opaque colour is fine. */
+.osd { position: absolute; inset: 0; }
+
+.osd-panel {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 460px;
+  padding: 120px var(--edge) 0;
+  background: linear-gradient(rgba(0, 0, 0, 0), rgba(0, 0, 0, 0.88) 45%);
+}
+.osd-head { display: flex; align-items: flex-end; justify-content: space-between; }
+.osd-title { transition: opacity var(--fast) ease; }
+.osd-badges { margin-top: 12px; display: flex; gap: 10px; }
+.osd-clock { text-align: right; }
+.osd-clock b { display: block; font-size: 40px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.osd-clock span { display: block; font-size: var(--fs-meta); color: rgba(255, 255, 255, 0.75); }
+/* The scrub preview takes its place. */
+.osd-title.hidden { opacity: 0; }
+.osd-title b { display: block; font-size: 44px; font-weight: 750; }
+.osd-title span { display: block; margin-top: 4px; font-size: var(--fs-meta); color: rgba(255, 255, 255, 0.75); }
+
+.scrubber { margin-top: 26px; display: flex; align-items: center; gap: 24px; }
+.scrubber .time { font-size: var(--fs-meta); color: rgba(255, 255, 255, 0.8); font-variant-numeric: tabular-nums; }
+.scrubber .bar {
+  position: relative;
+  flex: 1;
+  height: 8px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.25);
+}
+.scrubber .bar.focused { height: 12px; border-radius: 6px; outline: 3px solid var(--text); outline-offset: 4px; }
+.scrubber .fill {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: var(--text);
+  transform-origin: left;
+}
+.scrubber .marker { position: absolute; top: 0; bottom: 0; background: rgba(255, 255, 255, 0.45); }
+.scrubber .target {
+  position: absolute;
+  bottom: 22px;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+.scrubber .target img { width: 320px; height: 180px; border-radius: 6px; border: 3px solid var(--text); background: #000; }
+.scrubber .target span { font-size: var(--fs-meta); font-weight: 650; }
+.scrubber .target::after { content: ''; width: 4px; height: 24px; background: var(--text); }
+
+.osd .buttons { margin-top: 30px; display: flex; gap: 18px; }
+.osd .btn { background: #2a2f3a; }
+.osd .btn.focused { background: var(--accent); color: var(--accent-text); }
+
+/* A prompt alone: a card bottom right. */
+.prompt {
+  position: absolute;
+  right: var(--edge);
+  bottom: 110px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 16px;
+}
+.next-card .countdown { display: block; margin-top: 6px; font-size: var(--fs-small); color: rgba(255, 255, 255, 0.75); }
+/* Drains over the countdown: a transform, eased between Kodi's updates. */
+.countdown-bar { width: 240px; height: 6px; border-radius: 3px; background: rgba(255, 255, 255, 0.25); overflow: hidden; }
+.countdown-bar div { height: 100%; background: #fff; transform-origin: left; transition: transform 1s linear; }
+.prompt .hint { font-size: var(--fs-small); color: rgba(255, 255, 255, 0.7); }
+.next-card {
+  display: flex;
+  gap: 20px;
+  align-items: center;
+  padding: 16px;
+  border-radius: 12px;
+  background: rgba(0, 0, 0, 0.8);
+}
+.next-card img { width: 320px; height: 180px; border-radius: 8px; }
+.next-card small { display: block; font-size: var(--fs-small); color: rgba(255, 255, 255, 0.7); }
+.next-card b { display: block; max-width: 420px; font-size: var(--fs-body); }

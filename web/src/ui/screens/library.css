@@ -1,0 +1,36 @@
+.library { position: absolute; inset: 0; }
+.library-head {
+  position: absolute;
+  left: var(--edge);
+  right: var(--edge);
+  top: 140px;
+  display: flex;
+  align-items: center;
+  gap: 28px;
+}
+.library-head h1 { font-size: var(--fs-title); }
+.library-head .count { font-size: var(--fs-meta); color: var(--text-3); }
+.library-head .tools { margin-left: auto; display: flex; gap: 16px; }
+.az {
+  position: absolute;
+  right: 40px;
+  top: 250px;
+  bottom: 30px;
+  width: 52px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  align-items: center;
+}
+.az .letter {
+  width: 40px;
+  height: 28px;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--text-3);
+}
+.az .letter.focused { background: var(--accent); color: var(--accent-text); font-size: 20px; }

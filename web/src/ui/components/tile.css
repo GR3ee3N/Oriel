@@ -1,0 +1,65 @@
+.tile { flex: none; }
+.tile .art {
+  position: relative;
+  border-radius: var(--radius);
+  background: var(--bg-raise);
+  outline: var(--ring) solid transparent;
+  outline-offset: var(--ring-gap);
+  transition: transform var(--normal) var(--ease);
+}
+.tile .art img { display: block; width: 100%; height: 100%; border-radius: var(--radius); }
+.tile.focused .art { outline-color: var(--accent); transform: var(--lift); }
+.tile .noimg { padding: 20px; font-size: var(--fs-meta); color: var(--text-2); }
+.tile .progress {
+  position: absolute;
+  left: 10px;
+  right: 10px;
+  bottom: 10px;
+  height: 6px;
+  border-radius: 3px;
+  background: rgba(0, 0, 0, 0.6);
+  overflow: hidden;
+}
+.tile .progress div { height: 100%; background: var(--accent); transform-origin: left; }
+.tile .watched {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.7);
+  color: var(--accent);
+  font-size: 20px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.tile .count {
+  position: absolute;
+  top: 0;
+  right: 0;
+  min-width: 40px;
+  height: 36px;
+  padding: 0 10px;
+  border-radius: 0 var(--radius) 0 var(--radius);
+  background: var(--accent);
+  color: var(--accent-text);
+  font-size: 19px;
+  font-weight: 750;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.tile .caption { margin-top: 14px; }
+.tile .caption b,
+.tile .caption span {
+  display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.tile .caption b { font-size: var(--fs-meta); font-weight: 600; color: var(--text-2); }
+.tile .caption span { font-size: var(--fs-small); color: var(--text-3); }
+.tile.focused .caption b { color: var(--text); }
