@@ -16,6 +16,7 @@ STORE = os.path.join(os.path.dirname(__file__), "..", ".cache", "desktop-store.j
 STATE = {
     "mode": "browse",
     "hdrWhite": 203,
+    "cpuRendering": False,
     "screensaver": 0,
     "player": {"state": "idle", "time": 0, "duration": None, "session": None, "meta": None, "ended": None,
                "audio": None, "subtitles": None, "audioIndex": None, "subtitleIndex": None},

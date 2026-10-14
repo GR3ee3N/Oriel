@@ -94,6 +94,17 @@ const ACCENT = setting({
   selected: () => prefs.accent,
   onChoose: (id) => setPref('accent', id),
 });
+// The framework's setting, for every Oriel app on the box; a change reloads the screen.
+const RENDERING = setting({
+  label: 'Rendering',
+  value: () => (state.cpuRendering ? 'CPU' : 'GPU'),
+  options: () => [
+    { label: 'GPU (default)', value: false },
+    { label: 'CPU', value: true },
+  ],
+  selected: () => state.cpuRendering,
+  onChoose: (on) => send({ cmd: 'cpu-rendering', on }),
+});
 
 /** Mounted while the choices have the focus: Back returns to the list. */
 function BackTo(props: { leave: () => void }) {
@@ -187,6 +198,8 @@ export function Settings() {
         <For each={PLAYBACK}>{(s) => <Row setting={s} />}</For>
         <h2>Appearance</h2>
         <Row setting={ACCENT} />
+        <h2>Debug</h2>
+        <Row setting={RENDERING} />
         <p class="settings-version">
           {PRODUCT} {VERSION}
         </p>
