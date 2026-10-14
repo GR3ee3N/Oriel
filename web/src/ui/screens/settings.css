@@ -1,34 +1,84 @@
 .settings { position: absolute; inset: 0; }
-/* Two columns, so it all fits without scrolling: the account, appearance
-   and About on the left, playback on the right. */
-.settings-body {
-  position: absolute;
-  left: var(--edge);
-  right: var(--edge);
-  top: 150px;
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  grid-template-areas: "title title" "account playback" "appearance playback" "about playback";
-  grid-template-rows: auto auto auto 1fr;
-  column-gap: 96px;
-}
-.settings-body h1 { grid-area: title; font-size: var(--fs-title); margin-bottom: 30px; }
-.settings-account { grid-area: account; }
-.settings-playback { grid-area: playback; }
-.settings-appearance { grid-area: appearance; }
-.settings-about { grid-area: about; }
-.settings-body section { margin-bottom: 44px; }
-.settings-body h2 { font-size: var(--fs-h2); color: var(--text-2); margin-bottom: 12px; }
-.settings-body p { font-size: var(--fs-meta); color: var(--text-2); }
-.settings-body p.note { margin-top: 10px; }
-.settings-body p.note + .setting { margin-top: 24px; }
-.row-buttons { margin-top: 20px; display: flex; gap: 20px; }
-.row-buttons + .setting { margin-top: 24px; }
 
+/* The list on the left: it fits without scrolling, with a Server and a
+   Sign in automatically row too (several servers, Home users). */
+.settings-list { position: absolute; left: var(--edge); top: 150px; width: 780px; }
+.settings-list h1 { font-size: var(--fs-title); margin-bottom: 24px; }
+.settings-list h2 {
+  margin: 22px 0 6px 24px;
+  font-size: var(--fs-meta);
+  font-weight: 650;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-3);
+}
+.settings-list h1 + h2 { margin-top: 0; }
 .setting {
   display: flex; align-items: center; justify-content: space-between; gap: 40px;
-  height: 64px; padding: 0 24px; border-radius: var(--radius); font-size: var(--fs-body);
+  height: 56px; padding: 0 24px; border-radius: var(--radius); font-size: var(--fs-body);
 }
-.setting b { font-weight: 500; color: var(--text-2); }
+.setting b { display: flex; align-items: center; gap: 14px; font-weight: 500; color: var(--text-2); }
+/* The row whose choices have the focus. */
+.setting.on { background: var(--bg-raise-2); }
 .setting.focused { background: var(--accent); color: var(--accent-text); }
 .setting.focused b { color: var(--accent-text); }
+.setting.account span { display: flex; align-items: center; gap: 18px; }
+.setting .swatch { width: 26px; height: 26px; border-radius: 50%; box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.12); }
+/* On the focused row the swatch may be the accent itself: a dark ring keeps it apart. */
+.setting.focused .swatch { box-shadow: 0 0 0 3px var(--accent-text); }
+.settings-version { margin: 24px 0 0 24px; font-size: var(--fs-meta); color: var(--text-3); }
+
+.settings .avatar {
+  flex: none;
+  border-radius: 50%;
+  background: var(--bg-raise-2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  object-fit: cover;
+}
+.settings .avatar.small { width: 40px; height: 40px; font-size: 20px; }
+.settings .avatar.large { width: 160px; height: 160px; font-size: 72px; margin-bottom: 26px; }
+
+/* The focused row's choices, right of a divider, level with the list's
+   first heading. */
+.settings-choices {
+  position: absolute;
+  left: 960px;
+  right: var(--edge);
+  top: 229px;
+  bottom: 80px;
+  padding-left: 72px;
+  border-left: 2px solid rgba(255, 255, 255, 0.08);
+  overflow: hidden;
+}
+.settings-choices h3 { font-size: 36px; margin-bottom: 24px; }
+.settings-choices .option {
+  min-height: 60px;
+  padding: 10px 20px;
+  line-height: 1.25;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  font-size: var(--fs-body);
+  color: var(--text-2);
+}
+.settings-choices .option .swatch {
+  flex: none;
+  width: 30px;
+  height: 30px;
+  margin-right: 18px;
+  border-radius: 50%;
+  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.12);
+}
+.settings-choices:not(.inside) .option.selected { background: var(--bg-raise-2); color: var(--text); }
+.settings-choices .option.selected::after { content: '✓'; margin-left: auto; color: var(--accent); }
+.settings-choices .option.focused { background: var(--accent); color: var(--accent-text); }
+.settings-choices .option.focused.selected::after { color: var(--accent-text); }
+
+.settings-account { display: flex; flex-direction: column; align-items: center; text-align: center; padding-top: 30px; }
+.settings-account h3 { font-size: 44px; margin-bottom: 6px; }
+.settings-account p { font-size: var(--fs-body); color: var(--text-2); }
+.settings-account p.dim { font-size: var(--fs-meta); color: var(--text-3); }
+.settings-account .row-buttons { margin-top: 44px; display: flex; gap: 20px; }

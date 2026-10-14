@@ -1,192 +1,256 @@
 // The app's own settings. Kodi's (display, HDR, audio passthrough) stay in
 // Kodi's settings.
+//
+// The settings are a list on the left; the focused one's choices are always
+// shown on the right. Right or Select moves into the choices (their own focus
+// scope); a choice, Left or Back returns to the list.
 
-import { createSignal, type JSX, Show } from 'solid-js';
-import { focusable } from '@oriel/web';
+import { createMemo, createSignal, For, type JSX, onCleanup, Show } from 'solid-js';
+import { activeScope, focusable, onBack, setScope } from '@oriel/web';
 import { send, state } from '../../bridge';
 import { PRODUCT, VERSION } from '../../plex/client';
 import { QUALITIES, quality } from '../../player/quality';
 import { ACCENTS, accent, prefs, setPref } from '../../prefs';
 import { changeUser, chooseServer, currentServer, serverOptions, session, signOut } from '../../session';
-import { Menu, type MenuOption } from '../components/Menu';
+import type { MenuOption } from '../components/Menu';
 import { TopNav } from '../components/TopNav';
 import './settings.css';
 
 const HDR_WHITES = [100, 140, 203, 250, 300, 400];
+const CHOICES = 'settings-choices';
 
-interface Choice {
-  title: string;
-  options: MenuOption<unknown>[];
-  selected: unknown;
+interface Setting {
+  label: string;
+  value: () => string;
+  swatch?: () => string;
+  options: () => MenuOption<unknown>[];
+  selected: () => unknown;
   onChoose: (value: unknown) => void;
 }
 
+const setting = <T,>(s: {
+  label: string;
+  value: () => string;
+  swatch?: () => string;
+  options: () => MenuOption<T>[];
+  selected: () => T;
+  onChoose: (value: T) => void;
+}) => s as Setting;
+
+const onOff = <T,>(label: string, off: [string, T], on: [string, T], get: () => T, set: (value: T) => void) =>
+  setting({
+    label,
+    value: () => (get() === on[1] ? on[0] : off[0]),
+    options: () => [
+      { label: off[0], value: off[1] },
+      { label: on[0], value: on[1] },
+    ],
+    selected: get,
+    onChoose: set,
+  });
+
+const qualitySetting = (label: string, key: 'qualityLocal' | 'qualityRemote') =>
+  setting({
+    label,
+    value: () => quality(prefs[key]).label,
+    options: () => QUALITIES.map((q) => ({ label: q.label, value: q.kbps })),
+    selected: () => prefs[key],
+    onChoose: (kbps) => setPref(key, kbps),
+  });
+
+const SERVER = setting({
+  label: 'Server',
+  value: () => session.serverName ?? '',
+  options: serverOptions,
+  selected: () => session.serverId ?? '',
+  onChoose: (id) => void chooseServer(id),
+});
+const AUTO_SIGN_IN = onOff('Sign in automatically', ['Off', false], ['On', true], () => prefs.autoSignIn, (on) =>
+  setPref('autoSignIn', on),
+);
+const PLAYBACK = [
+  qualitySetting('Quality at home', 'qualityLocal'),
+  qualitySetting('Quality away from home', 'qualityRemote'),
+  setting({
+    label: 'Controls brightness in HDR',
+    value: () => `${state.hdrWhite} nits`,
+    options: () => HDR_WHITES.map((n) => ({ label: `${n} nits${n === 203 ? ' (standard)' : ''}`, value: n })),
+    selected: () => state.hdrWhite,
+    // The framework's setting, for every Oriel app on the box.
+    onChoose: (nits) => send({ cmd: 'hdr-white', nits }),
+  }),
+  onOff('Skip intros', ['With a button', false], ['Automatically', true], () => prefs.autoSkipIntro, (on) =>
+    setPref('autoSkipIntro', on),
+  ),
+  onOff('Skip credits', ['With Up next', false], ['Automatically', true], () => prefs.autoSkipCredits, (on) =>
+    setPref('autoSkipCredits', on),
+  ),
+];
+const ACCENT = setting({
+  label: 'Accent colour',
+  value: () => accent(prefs.accent).label,
+  swatch: () => accent(prefs.accent).color,
+  options: () => ACCENTS.map((a) => ({ label: a.label, value: a.id, swatch: a.color })),
+  selected: () => prefs.accent,
+  onChoose: (id) => setPref('accent', id),
+});
+
+/** Mounted while the choices have the focus: Back returns to the list. */
+function BackTo(props: { leave: () => void }) {
+  onBack(() => props.leave());
+  return null;
+}
+
+function Avatar(props: { class: string }) {
+  return (
+    <Show when={session.user?.thumb} fallback={<span class={`avatar ${props.class}`}>{session.user?.title?.[0]}</span>}>
+      {(src) => <img class={`avatar ${props.class}`} src={src()} alt="" />}
+    </Show>
+  );
+}
+
 export function Settings() {
-  const [choice, setChoice] = createSignal<Choice | null>(null);
+  // The focused row: the account, or a setting.
+  const [shown, setShown] = createSignal<Setting | 'account'>('account');
+  const [inside, setInside] = createSignal(false);
+  let previous = activeScope();
 
-  const choose = <T,>(title: string, options: MenuOption<T>[], selected: T, onChoose: (value: T) => void) =>
-    setChoice({ title, options, selected, onChoose: onChoose as (value: unknown) => void });
+  const enter = () => {
+    previous = activeScope();
+    setInside(true);
+    setScope(CHOICES, true);
+  };
+  const leave = () => {
+    setInside(false);
+    setScope(previous);
+  };
+  onCleanup(() => {
+    if (inside()) setScope(previous);
+  });
 
-  const Row = (props: { label: string; value: string; onSelect: () => void }): JSX.Element => (
-    <div class="setting" ref={(el) => focusable(el, { onSelect: props.onSelect })}>
-      <span>{props.label}</span>
-      <b>{props.value}</b>
+  const row = (target: Setting | 'account', el: HTMLElement, autofocus = false) =>
+    focusable(el, {
+      autofocus,
+      onFocus: () => setShown(() => target),
+      onSelect: enter,
+      onArrow: (d) => d === 'right' && (enter(), true),
+    });
+
+  const Row = (props: { setting: Setting }): JSX.Element => (
+    <div class="setting" classList={{ on: inside() && shown() === props.setting }} ref={(el) => row(props.setting, el)}>
+      <span>{props.setting.label}</span>
+      <b>
+        <Show when={props.setting.swatch}>{(swatch) => <i class="swatch" style={{ background: swatch()() }} />}</Show>
+        {props.setting.value()}
+      </b>
     </div>
   );
 
-  const qualityRow = (label: string, key: 'qualityLocal' | 'qualityRemote') => (
-    <Row
-      label={label}
-      value={quality(prefs[key]).label}
-      onSelect={() =>
-        choose(
-          label,
-          QUALITIES.map((q) => ({ label: q.label, value: q.kbps })),
-          prefs[key],
-          (v) => setPref(key, v),
-        )
-      }
-    />
-  );
+  // New options whenever the row or its value changes, so that the focus
+  // lands on the selected one.
+  const choices = createMemo(() => {
+    const s = shown();
+    if (s === 'account') return [];
+    const selected = s.selected();
+    return s.options().map((o) => ({ ...o, selected: o.value === selected }));
+  });
+  const choose = (value: unknown) => {
+    const s = shown();
+    leave();
+    if (s !== 'account') s.onChoose(value);
+  };
 
   return (
     <div class="settings">
       <div class="screen-bg" />
       <TopNav />
-      <div class="settings-body">
+      <div class="settings-list">
         <h1>Settings</h1>
-        <section class="settings-account">
-          <h2>Account</h2>
-          <p>
-            Watching as <b>{session.user?.title}</b> on <b>{session.serverName}</b>{' '}
-            <span class="dim">via {currentServer().uri}</span>
-          </p>
-          <div class="row-buttons">
-            <div class="btn" ref={(el) => focusable(el, { autofocus: true, onSelect: () => changeUser() })}>
-              Switch user
-            </div>
-            <div class="btn" ref={(el) => focusable(el, { onSelect: () => signOut() })}>
-              Sign out
-            </div>
-          </div>
-          <Show when={session.servers.length > 1}>
-            <Row
-              label="Server"
-              value={session.serverName ?? ''}
-              onSelect={() => choose('Server', serverOptions(), session.serverId ?? '', (id) => void chooseServer(id))}
-            />
-          </Show>
-          <Show when={session.multiUser}>
-            <Row
-              label="Sign in automatically"
-              value={prefs.autoSignIn ? 'On' : 'Off'}
-              onSelect={() =>
-                choose(
-                  'Sign in automatically',
-                  [
-                    { label: 'Off', value: false },
-                    { label: 'On', value: true },
-                  ],
-                  prefs.autoSignIn,
-                  (v) => setPref('autoSignIn', v),
-                )
-              }
-            />
-            <p class="dim note">
-              Off: the app asks who is watching every time it opens. On: it opens as the last user, without asking for
-              a PIN.
-            </p>
-          </Show>
-        </section>
-        <section class="settings-playback">
-          <h2>Playback</h2>
-          {qualityRow('Quality at home', 'qualityLocal')}
-          {qualityRow('Quality away from home', 'qualityRemote')}
-          <Row
-            label="Controls brightness in HDR"
-            value={`${state.hdrWhite} nits`}
-            onSelect={() =>
-              choose(
-                'Controls brightness in HDR',
-                HDR_WHITES.map((n) => ({ label: `${n} nits${n === 203 ? ' (standard)' : ''}`, value: n })),
-                state.hdrWhite,
-                // The framework's setting, for every Oriel app on the box.
-                (v) => send({ cmd: 'hdr-white', nits: v }),
-              )
-            }
-          />
-          <p class="dim note">
-            A file over the quality, or in a video format this box can’t decode, is converted by your Plex server.
-            Original plays every other file as it is.
-          </p>
-          <Row
-            label="Skip intros"
-            value={prefs.autoSkipIntro ? 'Automatically' : 'With a button'}
-            onSelect={() =>
-              choose(
-                'Skip intros',
-                [
-                  { label: 'With a button', value: false },
-                  { label: 'Automatically', value: true },
-                ],
-                prefs.autoSkipIntro,
-                (v) => setPref('autoSkipIntro', v),
-              )
-            }
-          />
-          <Row
-            label="Skip credits"
-            value={prefs.autoSkipCredits ? 'Automatically' : 'With Up next'}
-            onSelect={() =>
-              choose(
-                'Skip credits',
-                [
-                  { label: 'With Up next', value: false },
-                  { label: 'Automatically', value: true },
-                ],
-                prefs.autoSkipCredits,
-                (v) => setPref('autoSkipCredits', v),
-              )
-            }
-          />
-          <p class="dim note">
-            Automatically: intros are skipped as they start. At the closing credits the next episode plays right away,
-            and a movie or a last episode ends; a scene after the credits still plays.
-          </p>
-        </section>
-        <section class="settings-appearance">
-          <h2>Appearance</h2>
-          <Row
-            label="Accent colour"
-            value={accent(prefs.accent).label}
-            onSelect={() =>
-              choose(
-                'Accent colour',
-                ACCENTS.map((a) => ({ label: a.label, value: a.id, swatch: a.color })),
-                prefs.accent,
-                (v) => setPref('accent', v),
-              )
-            }
-          />
-        </section>
-        <section class="settings-about">
-          <h2>About</h2>
-          <p class="dim">
-            {PRODUCT} {VERSION}. Display, HDR and audio settings (passthrough, refresh rate, Dolby Vision) are Kodi’s
-            own, in Kodi’s settings.
-          </p>
-        </section>
+        <h2>Account</h2>
+        <div
+          class="setting account"
+          classList={{ on: inside() && shown() === 'account' }}
+          ref={(el) => row('account', el, true)}
+        >
+          <span>
+            <Avatar class="small" />
+            {session.user?.title}
+          </span>
+        </div>
+        <Show when={session.servers.length > 1}>
+          <Row setting={SERVER} />
+        </Show>
+        <Show when={session.multiUser}>
+          <Row setting={AUTO_SIGN_IN} />
+        </Show>
+        <h2>Playback</h2>
+        <For each={PLAYBACK}>{(s) => <Row setting={s} />}</For>
+        <h2>Appearance</h2>
+        <Row setting={ACCENT} />
+        <p class="settings-version">
+          {PRODUCT} {VERSION}
+        </p>
       </div>
-      <Show when={choice()}>
-        {(c) => (
-          <Menu
-            title={c().title}
-            options={c().options}
-            selected={c().selected}
-            onChoose={c().onChoose}
-            onClose={() => setChoice(null)}
-          />
-        )}
+      <div class="settings-choices" classList={{ inside: inside() }}>
+        <Show
+          when={shown() !== 'account' && (shown() as Setting)}
+          fallback={
+            <div class="settings-account">
+              <Avatar class="large" />
+              <h3>{session.user?.title}</h3>
+              <p>{session.serverName}</p>
+              <p class="dim">{currentServer().uri}</p>
+              <div class="row-buttons">
+                <div
+                  class="btn"
+                  ref={(el) =>
+                    focusable(el, {
+                      scope: CHOICES,
+                      onSelect: () => changeUser(),
+                      onArrow: (d) => d === 'left' && (leave(), true),
+                    })
+                  }
+                >
+                  Switch user
+                </div>
+                <div class="btn" ref={(el) => focusable(el, { scope: CHOICES, onSelect: () => signOut() })}>
+                  Sign out
+                </div>
+              </div>
+            </div>
+          }
+        >
+          {(s) => (
+            <>
+              <h3>{s().label}</h3>
+              <For each={choices()}>
+                {(o) => (
+                  <div
+                    class="option"
+                    classList={{ selected: o.selected }}
+                    ref={(el) =>
+                      focusable(el, {
+                        scope: CHOICES,
+                        autofocus: o.selected,
+                        onFocus: () => el.scrollIntoView({ block: 'nearest' }),
+                        onSelect: () => choose(o.value),
+                        onArrow: (d) => d === 'left' && (leave(), true),
+                      })
+                    }
+                  >
+                    <Show when={o.swatch}>
+                      <span class="swatch" style={{ background: o.swatch }} />
+                    </Show>
+                    {o.label}
+                  </div>
+                )}
+              </For>
+            </>
+          )}
+        </Show>
+      </div>
+      <Show when={inside()}>
+        <BackTo leave={leave} />
       </Show>
     </div>
   );
