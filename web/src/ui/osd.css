@@ -53,9 +53,35 @@
 .scrubber .target span { font-size: var(--fs-meta); font-weight: 650; }
 .scrubber .target::after { content: ''; width: 4px; height: 24px; background: var(--text); }
 
-.osd .buttons { margin-top: 30px; display: flex; gap: 18px; }
 .osd .btn { background: #2a2f3a; }
 .osd .btn.focused { background: var(--accent); color: var(--accent-text); }
+
+/* Playback actions left, track settings right; all on the same dark fill. */
+.osd .buttons { margin-top: 28px; display: flex; align-items: center; }
+.osd-actions, .osd-tracks { display: flex; gap: 14px; align-items: center; }
+.osd-tracks { margin-left: auto; }
+.osd-action, .osd-track {
+  height: 68px;
+  display: inline-flex;
+  align-items: center;
+  background: rgba(0, 0, 0, 0.45);
+  border: 1.5px solid rgba(255, 255, 255, 0.18);
+  white-space: nowrap;
+  transition: transform var(--fast) var(--ease);
+}
+.osd-action.focused, .osd-track.focused { background: var(--accent); border-color: transparent; color: var(--accent-text); transform: var(--lift); }
+.osd-action svg, .osd-track svg { flex: none; width: 26px; height: 26px; }
+/* A circle; focused, a pill with its name. */
+.osd-action { min-width: 68px; padding: 0 20px; border-radius: 34px; justify-content: center; gap: 12px; font-size: var(--fs-meta); font-weight: 650; }
+.osd-action .name { display: none; }
+.osd-action.focused, .osd-action.named { padding: 0 30px 0 24px; }
+.osd-action.focused .name, .osd-action.named .name { display: inline; animation: name-in var(--normal) var(--ease); }
+@keyframes name-in { from { opacity: 0; } }
+.osd-track { padding: 0 18px 0 20px; border-radius: 14px; gap: 14px; }
+.osd-track small { display: block; font-size: 14px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: rgba(255, 255, 255, 0.6); line-height: 1.2; }
+.osd-track b { display: block; font-size: var(--fs-meta); font-weight: 600; line-height: 1.2; }
+.osd-track.focused small { color: rgba(0, 0, 0, 0.6); }
+.osd-track .more { width: 20px; height: 20px; margin-left: 4px; opacity: 0.5; }
 
 /* A prompt alone: a card bottom right. */
 .prompt {
