@@ -1,5 +1,5 @@
 import { createEffect, createSignal, Match, on, onCleanup, onMount, Show, Switch } from 'solid-js';
-import { connect, ready, state } from '../bridge';
+import { connect, ready, send, state } from '../bridge';
 import { refresh } from '../data';
 import { action, back, move, playFocused, select, setScope } from '@oriel/web';
 import { pop, root, tab, top } from '../router';
@@ -72,6 +72,12 @@ export function App() {
     const a = action(e);
     if (!a) return;
     e.preventDefault();
+    // What the add-on does with a key while the page is hidden; the
+    // stand-in can't see keys.
+    if (state.desktop && state.mode === 'video') {
+      send(a === 'back' ? { cmd: 'stop' } : { cmd: 'osd-on' });
+      return;
+    }
     // The add-on sends keys during video only while the OSD is up, so one
     // arriving in 'video' was meant for an OSD that hid meanwhile (its
     // timer): an OSD key still, never Back on Home (which leaves the app).
