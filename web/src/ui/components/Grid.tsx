@@ -7,7 +7,7 @@ import './grid.css';
 
 const COLS = 7;
 const GAP = 24;
-const PITCH = 440;
+const PITCH = 420;
 const PAGE = 70;
 /** Rows rendered above and below the focused one. The rows below the screen
  * load their posters ahead, so there is no preload: decoding a second copy of
