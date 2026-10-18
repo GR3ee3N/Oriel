@@ -197,7 +197,7 @@ export function Osd() {
                     <b>{p().heading}</b>
                     <span>{p().subheading}</span>
                     <div class="osd-badges">
-                      {badges(p().item).map((b) => (
+                      {badges(p().item, p().audio.find((t) => t.id === p().audioId)?.stream).map((b) => (
                         <span class="badge">{b}</span>
                       ))}
                       <Show when={p().transcoded}>

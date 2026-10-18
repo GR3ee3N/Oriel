@@ -71,14 +71,16 @@ export function unwatched(m: Metadata): number {
  * HDR10, HLG, SDR) and the sound (codec, Atmos or DTS:X, channels), e.g.
  * 4K · Dolby Vision · TrueHD Atmos 7.1. The range needs the streams (full
  * metadata); lists only have the media's summary, so it is left out there
- * rather than guessed. */
-export function badges(m: Metadata | undefined): string[] {
+ * rather than guessed. `playing` is the audio track chosen in the player,
+ * which the metadata's `selected` flag doesn't follow. */
+export function badges(m: Metadata | undefined, playing?: Stream): string[] {
   const media = m?.Media?.[0];
   if (!media) return [];
   const streams = media.Part?.[0]?.Stream;
   const video = streams?.find((s) => s.streamType === 1);
   // The track that plays: the user's (or Plex's) choice, else the first.
-  const audio = streams?.find((s) => s.streamType === 2 && s.selected) ?? streams?.find((s) => s.streamType === 2);
+  const audio =
+    playing ?? streams?.find((s) => s.streamType === 2 && s.selected) ?? streams?.find((s) => s.streamType === 2);
   const out: string[] = [];
   const res = media.videoResolution;
   if (res === '4k') out.push('4K');
