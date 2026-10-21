@@ -17,6 +17,8 @@ import {
   chooseQuality,
   chooseSubtitle,
   dismiss,
+  INTRO_AFTER,
+  introIn,
   NEXT_AFTER,
   nextIn,
   playback,
@@ -180,7 +182,19 @@ export function Osd() {
                     })
                   }
                 >
-                  {prompt() === 'intro' ? 'Skip intro' : 'Play now'}
+                  <Show when={prompt() === 'intro' && introIn() !== undefined}>
+                    <div
+                      class="intro-fill"
+                      style={{
+                        'animation-duration': `${INTRO_AFTER}s`,
+                        'animation-play-state': state.player.state === 'playing' ? 'running' : 'paused',
+                      }}
+                    />
+                  </Show>
+                  <span>{prompt() === 'intro' ? 'Skip intro' : 'Play now'}</span>
+                  <Show when={prompt() === 'intro' && introIn() !== undefined}>
+                    <span class="intro-secs">{introIn()}</span>
+                  </Show>
                 </div>
                 <Show when={prompt() === 'next' && p().credits && nextIn() !== undefined}>
                   <div class="countdown-bar">

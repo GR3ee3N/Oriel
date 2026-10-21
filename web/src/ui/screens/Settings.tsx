@@ -70,7 +70,7 @@ const AUTO_SIGN_IN = onOff('Sign in automatically', ['Off', false], ['On', true]
 const PLAYBACK = [
   qualitySetting('Quality at home', 'qualityLocal'),
   qualitySetting('Quality away from home', 'qualityRemote'),
-  onOff('Skip intros', ['With a button', false], ['Automatically', true], () => prefs.autoSkipIntro, (on) =>
+  onOff('Skip intros', ['Manually', false], ['Automatically', true], () => prefs.autoSkipIntro, (on) =>
     setPref('autoSkipIntro', on),
   ),
   onOff('Skip credits', ['With Up next', false], ['Automatically', true], () => prefs.autoSkipCredits, (on) =>

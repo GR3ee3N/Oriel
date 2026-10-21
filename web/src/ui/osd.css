@@ -97,6 +97,22 @@
 /* Drains over the countdown: a transform, eased between Kodi's updates. */
 .countdown-bar { width: 240px; height: 6px; border-radius: 3px; background: rgba(255, 255, 255, 0.25); overflow: hidden; }
 .countdown-bar div { height: 100%; background: #fff; transform-origin: left; transition: transform 1s linear; }
+/* Skip intro skipping by itself: the button fills as it counts down, over
+   INTRO_AFTER (set on it), standing still while paused like the countdown. */
+.prompt .btn { position: relative; overflow: hidden; }
+.prompt .btn > span { position: relative; }
+.intro-fill {
+  position: absolute;
+  inset: 0;
+  background: rgba(255, 255, 255, 0.3);
+  transform: scaleX(0);
+  transform-origin: left;
+  animation-name: intro-fill;
+  animation-timing-function: linear;
+  animation-fill-mode: forwards;
+}
+@keyframes intro-fill { to { transform: scaleX(1); } }
+.intro-secs { min-width: 1ch; font-variant-numeric: tabular-nums; opacity: 0.7; }
 .prompt .hint { font-size: var(--fs-small); color: rgba(255, 255, 255, 0.7); }
 .next-card {
   display: flex;

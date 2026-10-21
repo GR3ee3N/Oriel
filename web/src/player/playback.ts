@@ -52,6 +52,18 @@ export type Prompt = 'intro' | 'next' | null;
 const [prompt, setPrompt] = createSignal<Prompt>(null);
 export { prompt };
 
+/** Seconds Skip intro counts down before skipping by itself, when intros
+ * skip automatically (Settings); paused, the countdown stands still. */
+export const INTRO_AFTER = 5;
+/** Milliseconds of playback left before the skip; while playing, when
+ * they last ran down (performance.now()), and the timer running them. */
+let introLeft: number | undefined;
+let introSince: number | undefined;
+let introTimer: ReturnType<typeof setInterval> | undefined;
+const [introIn, setIntroIn] = createSignal<number>();
+/** Seconds until Skip intro skips, while it counts down. */
+export { introIn };
+
 /** Seconds of the final credits before the next episode starts by itself
  * (Up next counts down; Back cancels it). Without a credits marker the
  * prompt comes 30 s before the end and the next episode follows the end. */
@@ -345,7 +357,8 @@ export function playNextNow(fromCredits = false): void {
   send({ cmd: 'stop' });
 }
 
-/** Back on a prompt: away, and (for Up next) no autoplay either. */
+/** Back on a prompt: away, with Skip intro's countdown; for Up next, no
+ * autoplay either. */
 export function dismiss(): void {
   const which = prompt();
   if (!which) return;
@@ -374,6 +387,20 @@ const dismissed = new Set<Prompt>();
 /** Markers skipped automatically: once each, so seeking back into one
  * watches it. */
 const skipped = new Set<Marker>();
+
+/** Takes the playback since the last call off Skip intro's countdown. */
+function runIntroDown(): void {
+  if (introLeft === undefined || introSince === undefined) return;
+  const now = performance.now();
+  introLeft = Math.max(0, introLeft - (now - introSince));
+  introSince = now;
+}
+
+/** At `t` ms, inside the intro where Skip intro shows: not its last 3 s,
+ * where skipping would save next to nothing. */
+function duringIntro(p: Playback, t: number): boolean {
+  return !!p.intro && t >= p.intro.startTimeOffset && t < p.intro.endTimeOffset - 3000;
+}
 
 /** Credits that run to the end, with nothing after them. */
 function finalCredits(m: Marker, p: Playback): boolean {
@@ -480,18 +507,25 @@ createRoot(() => {
     const p = store.current;
     const t = state.player.time * 1000;
     if (!p || state.player.session !== p.id || state.player.state === 'idle' || state.player.state === 'loading') return;
-    // Skipped automatically instead: no prompt for the intro, nor for the
-    // final credits; credits with more after them are skipped too, so Up
-    // next then comes 30 s before the end.
+    // Credits skipped automatically instead: no prompt for the final
+    // credits; credits with more after them are skipped too, so Up next
+    // then comes 30 s before the end.
     const auto = prefs.autoSkipCredits;
     const autoNext = auto && p.allCredits.some((m) => finalCredits(m, p));
     const credits = auto ? undefined : p.credits;
-    const inIntro = !prefs.autoSkipIntro && !!p.intro && t >= p.intro.startTimeOffset && t < p.intro.endTimeOffset - 3000;
+    const inIntro = duringIntro(p, t);
+    // Skip intro is away (Back, or skipped) only until playback leaves the
+    // intro: back in it, it shows again (and counts down again).
+    if (!inIntro) dismissed.delete('intro');
     const duration = state.player.duration;
     const creditsAt = credits?.startTimeOffset ?? (duration === null ? Infinity : (duration - 30) * 1000);
     const inCredits = !autoNext && !!p.next && duration !== null && t >= creditsAt;
     const want: Prompt = inIntro && !dismissed.has('intro') ? 'intro' : inCredits && !dismissed.has('next') ? 'next' : null;
     if (want === prompt()) return;
+    if (want === 'intro') {
+      introLeft = prefs.autoSkipIntro ? INTRO_AFTER * 1000 : undefined;
+      introSince = undefined;
+    }
     setPrompt(want);
     if (want === 'next') {
       nextOnCredits = !!credits;
@@ -501,20 +535,45 @@ createRoot(() => {
     if (want && state.mode === 'video') send({ cmd: 'osd-on' });
   });
 
-  // Skipping by itself (Settings), as a marker starts playing (not while
-  // paused): to the end of the intro, past credits with more after them;
-  // from the final credits to the next episode at once, or to the end.
+  // Skip intro's countdown, and the skip when it runs out. It counts
+  // playback on the clock, not Kodi's position (whole seconds, and moved
+  // by seeks), so it ends with the button's fill; paused, both stand
+  // still. It skips only from inside the intro, whatever order this and
+  // the prompt run in after a seek out of it.
+  createEffect(() => {
+    const counting = prompt() === 'intro' && introLeft !== undefined;
+    const playing = state.player.state === 'playing';
+    runIntroDown();
+    clearInterval(introTimer);
+    introSince = undefined;
+    if (!counting) {
+      setIntroIn(undefined);
+      return;
+    }
+    setIntroIn(Math.ceil(introLeft! / 1000));
+    if (!playing) return;
+    introSince = performance.now();
+    introTimer = setInterval(() => {
+      runIntroDown();
+      setIntroIn(Math.ceil(introLeft! / 1000));
+      const p = store.current;
+      if (introLeft === 0 && p && duringIntro(p, state.player.time * 1000)) {
+        clearInterval(introTimer);
+        introLeft = undefined;
+        console.log('playback: skipping the intro');
+        acceptPrompt();
+      }
+    }, 100);
+  });
+
+  // Credits skipped by themselves (Settings), as they start playing (not
+  // while paused): past credits with more after them; from the final
+  // credits to the next episode at once, or to the end.
   createEffect(() => {
     const p = store.current;
     const t = state.player.time * 1000;
     if (!p || state.player.session !== p.id || state.player.state !== 'playing') return;
     const inside = (m: Marker) => t >= m.startTimeOffset && t < m.endTimeOffset - 3000 && !skipped.has(m);
-    if (prefs.autoSkipIntro && p.intro && inside(p.intro)) {
-      skipped.add(p.intro);
-      console.log('playback: skipping the intro');
-      seekTo(p.intro.endTimeOffset / 1000);
-      return;
-    }
     const credits = prefs.autoSkipCredits ? p.allCredits.find(inside) : undefined;
     if (!credits) return;
     skipped.add(credits);

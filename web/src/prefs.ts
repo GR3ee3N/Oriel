@@ -11,9 +11,10 @@ export interface Prefs {
   /** Start as the last Home user; otherwise every start of the app asks
    * who is watching (session.ts). */
   autoSignIn: boolean;
-  /** Skip intros and credits without asking (player/playback.ts), rather
-   * than with the Skip intro and Up next prompts. */
+  /** Skip intro counts down and skips by itself, rather than waiting for
+   * the button (player/playback.ts). */
   autoSkipIntro: boolean;
+  /** Skip credits without asking, rather than with the Up next prompt. */
   autoSkipCredits: boolean;
   /** The colour of focus and highlights: an ACCENTS id. */
   accent: string;
