@@ -30,7 +30,6 @@ def player_state(state="idle", time=0, duration=None, session=None, meta=None, e
 
 STATE = {
     "mode": "browse",
-    "hdrWhite": 203,
     "cpuRendering": False,
     "screensaver": 0,
     "player": player_state(),

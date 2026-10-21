@@ -16,7 +16,6 @@ import type { MenuOption } from '../components/Menu';
 import { TopNav } from '../components/TopNav';
 import './settings.css';
 
-const HDR_WHITES = [100, 140, 203, 250, 300, 400];
 const CHOICES = 'settings-choices';
 
 interface Setting {
@@ -71,14 +70,6 @@ const AUTO_SIGN_IN = onOff('Sign in automatically', ['Off', false], ['On', true]
 const PLAYBACK = [
   qualitySetting('Quality at home', 'qualityLocal'),
   qualitySetting('Quality away from home', 'qualityRemote'),
-  setting({
-    label: 'Controls brightness in HDR',
-    value: () => `${state.hdrWhite} nits`,
-    options: () => HDR_WHITES.map((n) => ({ label: `${n} nits${n === 203 ? ' (standard)' : ''}`, value: n })),
-    selected: () => state.hdrWhite,
-    // The framework's setting, for every Oriel app on the box.
-    onChoose: (nits) => send({ cmd: 'hdr-white', nits }),
-  }),
   onOff('Skip intros', ['With a button', false], ['Automatically', true], () => prefs.autoSkipIntro, (on) =>
     setPref('autoSkipIntro', on),
   ),
