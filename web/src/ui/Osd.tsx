@@ -3,7 +3,7 @@
 // is fine.
 //
 // Up for a key, it is the full OSD. Up for a prompt (the page asked: Skip
-// intro, Up next), it is just that card in a corner; Up expands it.
+// intro, Up next), it is just that card in a corner; an arrow expands it.
 
 import { createEffect, createSignal, type JSX, on, onCleanup, onMount, Show } from 'solid-js';
 import { send, state } from '../bridge';
@@ -175,8 +175,8 @@ export function Osd() {
                       scope: 'osd',
                       autofocus: true,
                       onSelect: acceptPrompt,
-                      onArrow: (d) => {
-                        if (d === 'up') setExpanded(true);
+                      onArrow: () => {
+                        setExpanded(true);
                         return true;
                       },
                     })
@@ -201,7 +201,7 @@ export function Osd() {
                     <div style={{ transform: `scaleX(${(nextIn() ?? 0) / NEXT_AFTER})` }} />
                   </div>
                 </Show>
-                <small class="hint">Back to dismiss · Up for more</small>
+                <small class="hint">Back to dismiss</small>
               </div>
             </Show>
             <Show when={!promptOnly()}>
