@@ -4,10 +4,10 @@ import { markHomeReady } from '../../boot';
 import { dataVersion } from '../../data';
 import { homeHubs, metadata } from '../../plex/api';
 import { badges, clean } from '../../plex/format';
-import { imageUrl, preload } from '../../plex/images';
+import { preload } from '../../plex/images';
 import type { Hub, Metadata } from '../../plex/types';
 import { currentServer } from '../../session';
-import { Backdrop } from '../components/Backdrop';
+import { Backdrop, backdropUrl } from '../components/Backdrop';
 import { Info, logoReady, metaFor } from '../components/Info';
 import { Row } from '../components/Row';
 import { Shelf } from '../components/Shelf';
@@ -71,7 +71,7 @@ export function Home() {
         // backdrop then decodes it from the cache, at once).
         if (first) {
           const path = backdropOf(item);
-          const ready = path ? preload(imageUrl(currentServer(), path, 960, 540)) : Promise.resolve();
+          const ready = path ? preload(backdropUrl(path)) : Promise.resolve();
           ready.then(markHomeReady);
         }
       },

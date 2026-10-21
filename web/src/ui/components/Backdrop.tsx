@@ -4,10 +4,13 @@ import type { UltraBlurColors } from '../../plex/types';
 import { currentServer } from '../../session';
 import './backdrop.css';
 
-// Half size, scaled up 2x by the compositor: a quarter of the pixels to
-// fetch and decode, and it fades into the colour field anyway.
-const W = 960;
-const H = 540;
+const W = 1920;
+const H = 1080;
+
+/** The art at the size Backdrop paints it, for preloading. */
+export function backdropUrl(art: string): string {
+  return imageUrl(currentServer(), art, W, H);
+}
 
 // The colour field: Plex's four corner colours of the art (UltraBlurColors),
 // blended over 16×9 pixels and scaled smoothly into the scene. A border of
@@ -19,12 +22,10 @@ const FALLBACK: UltraBlurColors = { topLeft: '1d2338', topRight: '2a3352', botto
 // Darker than Plex's own use: white text sits on it.
 const DIM = 0.62;
 
-// Scratch canvases for painting a scene. On the CPU (willReadFrequently):
-// WPE's GPU canvas on the box got the art's fade masks wrong, leaving light
-// art at full strength under the rows.
+// Scratch canvases for painting a scene.
 const field = Object.assign(document.createElement('canvas'), { width: FW + 2, height: FH + 2 });
 const faded = Object.assign(document.createElement('canvas'), { width: W, height: H });
-const context = (canvas: HTMLCanvasElement) => canvas.getContext('2d', { willReadFrequently: true })!;
+const context = (canvas: HTMLCanvasElement) => canvas.getContext('2d')!;
 
 function paintField(c: UltraBlurColors): void {
   const rgb = (hex: string) => [0, 2, 4].map((i) => parseInt(hex.slice(i, i + 2), 16) || 0);
@@ -89,7 +90,7 @@ export function Backdrop(props: { art?: string; colors?: UltraBlurColors; delay?
     let img: HTMLImageElement | undefined;
     if (art) {
       img = new Image();
-      img.src = imageUrl(currentServer(), art, W, H);
+      img.src = backdropUrl(art);
       try {
         await img.decode();
       } catch {

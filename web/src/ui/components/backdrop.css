@@ -8,18 +8,15 @@
   transition: opacity var(--slow) ease;
   will-change: opacity;
 }
-/* Half size, painted once per item (Backdrop.tsx); the scaling and the
-   scene's cross-fade stay in the compositor. */
+/* Painted once per item (Backdrop.tsx); the scene's cross-fade stays in
+   the compositor. */
 .backdrop canvas {
   position: absolute;
   left: 0;
   top: 0;
   display: block;
-  width: 960px;
-  height: 540px;
-  transform: scale(2);
-  transform-origin: 0 0;
-  will-change: transform;
+  width: 1920px;
+  height: 1080px;
 }
 /* For text: a little darker on the left and under the top bar; static,
    painted once. */

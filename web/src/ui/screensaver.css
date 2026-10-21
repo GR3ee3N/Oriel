@@ -1,6 +1,5 @@
 .screensaver { position: absolute; inset: 0; z-index: 40; background: #000; }
-/* Each picture a layer of its own at its exact size, scaled 2x by the
-   compositor; a slow cross-fade between them. */
+/* Each picture a layer of its own; a slow cross-fade between them. */
 .saver-layer {
   position: absolute;
   left: 0;
@@ -9,7 +8,7 @@
   transition: opacity 2s ease;
   will-change: opacity;
 }
-.saver-layer img { display: block; width: 960px; height: 540px; transform: scale(2); transform-origin: 0 0; }
+.saver-layer img { display: block; width: 1920px; height: 1080px; }
 /* Dimmed, as a screensaver is, and darker where the text is. */
 .saver-shade {
   position: absolute;

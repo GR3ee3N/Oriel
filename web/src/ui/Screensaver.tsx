@@ -59,7 +59,7 @@ export function Screensaver() {
     if (list.length) {
       const m = list[n++ % list.length];
       const img = new Image();
-      img.src = imageUrl(currentServer(), m.art!, 960, 540);
+      img.src = imageUrl(currentServer(), m.art!, 1920, 1080);
       try {
         await img.decode();
         const logo = await logoReady(m);
