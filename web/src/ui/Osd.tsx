@@ -5,7 +5,7 @@
 // Up for a key, it is the full OSD. Up for a prompt (the page asked: Skip
 // intro, Up next), it is just that card in a corner; an arrow expands it.
 
-import { createEffect, createSignal, type JSX, on, onCleanup, onMount, Show } from 'solid-js';
+import { createEffect, createMemo, createSignal, type JSX, on, onCleanup, onMount, Show } from 'solid-js';
 import { send, state } from '../bridge';
 import { focusable } from '@oriel/web';
 import { badges, clean, episodeCode, hhmm } from '../plex/format';
@@ -24,6 +24,7 @@ import {
   playback,
   playNextNow,
   prompt,
+  type Prompt,
   seekTo,
   thumbs,
 } from '../player/playback';
@@ -54,6 +55,17 @@ export function Osd() {
   let lastArrow = 0;
 
   const promptOnly = () => !!prompt() && !expanded();
+  // Up for a prompt that is over, on its way down: nothing shows, not the
+  // full OSD until Kodi has hidden the page.
+  const goingDown = createMemo<{ last: Prompt; down: boolean }>(
+    (was) => {
+      const now = prompt();
+      if (state.mode !== 'osd' || now) return { last: now, down: false };
+      return { last: now, down: was.down || (!!was.last && !expanded()) };
+    },
+    { last: null, down: false },
+  );
+  const going = createMemo(() => goingDown().down);
   // The clock and when it ends, recomputed on Kodi's position updates (a
   // few a second); the text only changes once a minute.
   const now = () => {
@@ -93,11 +105,7 @@ export function Osd() {
   onCleanup(() => clearTimeout(hideTimer));
 
   // The prompt it came up for is over: down again.
-  createEffect(
-    on(prompt, (now, before) => {
-      if (!now && before && state.mode === 'osd' && !expanded()) send({ cmd: 'osd-off' });
-    }),
-  );
+  createEffect(on(going, (down) => down && send({ cmd: 'osd-off' })));
 
   const scrub = (direction: string) => {
     if (direction !== 'left' && direction !== 'right') return false;
@@ -204,7 +212,7 @@ export function Osd() {
                 <small class="hint">Back to dismiss</small>
               </div>
             </Show>
-            <Show when={!promptOnly()}>
+            <Show when={!promptOnly() && !going()}>
               <div class="osd-panel">
                 <div class="osd-head">
                   <div class="osd-title" classList={{ hidden: target() !== null }}>
