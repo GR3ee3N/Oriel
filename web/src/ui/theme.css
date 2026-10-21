@@ -1,6 +1,6 @@
 /* Design tokens and base styles.
 
-   The page is a fixed 1920×1080 surface (osd1); the meson scaler fits it to
+   The page is a fixed 1920×1080 surface; Kodi scales it with its GUI to
    the output mode. Performance rules for CPU raster on the box's CPU:
    animate only transform and opacity, keep composited layers few, size
    images exactly (photo transcoder), no blur or big shadows. */

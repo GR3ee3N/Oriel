@@ -35,6 +35,4 @@ No support is provided.
 5. Open **Oriel** from your video add-ons. The first start takes a few
    seconds to unpack; then sign in with the code it shows.
 
-Kodi keeps Oriel up to date from the repository like any other add-on.
-
 See [DEVELOPMENT.md](DEVELOPMENT.md) for working on Oriel.

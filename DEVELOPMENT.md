@@ -37,8 +37,8 @@ export BOX=root@coreelec.local
 `npm ci` installs `@oriel/web` from the framework's GitHub release given in
 `web/package.json`; `web/.npmrc` allows that URL dependency.
 
-The box needs Oriel WebKit and the Oriel framework first. Deploy them from
-checkouts of those repositories (`tools/deploy.sh` in each). The
+The box needs Oriel WebKit, the Oriel framework and Oriel display first.
+Deploy them from checkouts of those repositories (`tools/deploy.sh` in each). The
 framework's deploy also installs its box tools in `/storage/oriel/tools/box`,
 which `tools/deploy.sh` here uses.
 
@@ -57,11 +57,15 @@ which `tools/deploy.sh` here uses.
 The logs are in `/storage/.kodi/userdata/addon_data/script.oriel.oriel/`
 on the box: `addon.log` for the add-on and the framework, `shell.log` for
 WebKit with the page's console. They start over each time Oriel opens.
-The framework's `fbgrab.py` saves what Oriel shows as a PNG:
+Kodi draws Oriel in its own GUI, so Kodi's screenshot captures what Oriel
+shows (set a folder in Kodi's settings under System → Logging first):
 
 ```sh
-ssh "$BOX" python3 /storage/oriel/tools/box/fbgrab.py /dev/fb1 > oriel.png
+ssh "$BOX" kodi-send --action=TakeScreenshot
 ```
+
+Over HDR or Dolby Vision video a capture can differ from the screen; check
+the TV there.
 
 ## Working without a box
 
@@ -124,6 +128,6 @@ source.
 
 `tools/make-art.py` draws the icon, the fanart, `mark.png` and the page's
 `web/src/ui/mark.svg` from one definition of the mark. Run it after changing
-the mark. The framework shows `mark.png` in its start
+the mark. The display add-on shows `mark.png` in its browse
 window until the page's first frame, and the splash draws the SVG at the
 same place, so the start looks like one picture.

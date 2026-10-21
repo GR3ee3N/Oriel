@@ -1,5 +1,5 @@
 // The start: the app's mark over its colour field, what is happening, and
-// a progress bar, from the very first frame (osd1 is turned on with it)
+// a progress bar, from the very first frame Kodi draws
 // until Home is complete; then it fades into Home. Errors get the same
 // screen with Try again.
 
