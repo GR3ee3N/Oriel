@@ -53,6 +53,8 @@ const deferred = <T,>() => {
 
 const settle = () => new Promise((r) => setTimeout(r, 0));
 const played = () => bridge.call.mock.calls.map(([c]) => c).filter((c) => c.cmd === 'play');
+/** The played paths without their query (the playback session). */
+const paths = () => played().map((c) => c.path.split('?')[0]);
 
 beforeEach(() => {
   bridge.call.mockClear();
@@ -72,7 +74,7 @@ test('an older choice whose metadata comes late does not replace the newer playb
   slow.resolve(movie('A', 1000));
   await first;
   expect(playback()?.item.ratingKey).toBe('B');
-  expect(played().map((c) => c.path)).toEqual(['/B']);
+  expect(paths()).toEqual(['/B']);
 });
 
 test("a track saved after another item started doesn't restart that item", async () => {
@@ -98,9 +100,8 @@ test.each([1000, 20000])('resuming a %i kbps item starts at the saved movie posi
   const command = played()[0];
   expect(command).toMatchObject({ position: 600, subtitle: -1 });
   if (kbps === 1000) {
-    expect(command.path).toBe('/A');
+    expect(paths()).toEqual(['/A']);
     expect(command).not.toHaveProperty('streamOffset');
-    expect(server.get).not.toHaveBeenCalled();
   } else {
     const stream = new URL(command.path, 'http://plex.example');
     expect(stream.pathname).toBe('/video/:/transcode/universal/start.mkv');
@@ -110,6 +111,35 @@ test.each([1000, 20000])('resuming a %i kbps item starts at the saved movie posi
     expect(stream.searchParams.has('X-Plex-Token')).toBe(false);
     expect(command).toMatchObject({ streamOffset: 600, duration: 5400 });
   }
+});
+
+test('a direct play is declared to Plex, and Kodi plays the file in its session', async () => {
+  const item = movie('A', 1000);
+  Object.assign(item.Media![0], { container: 'mkv', videoCodec: 'hevc', audioCodec: 'eac3' });
+  api.metadata.mockResolvedValue(item);
+  await startPlayback(item);
+  const [path, params] = server.get.mock.calls[0];
+  expect(path).toBe('/video/:/transcode/universal/decision');
+  expect(params).toMatchObject({ path: '/library/metadata/A', directPlay: '1', 'X-Plex-Session-Identifier': playback()!.id });
+  expect(params['X-Plex-Client-Profile-Extra']).toMatch(/^add-settings\(DirectPlayStreamSelection=true\)\+add-direct-play-profile\(type=videoProfile&container=mkv&videoCodec=hevc&audioCodec=[^&]*eac3/);
+  const command = played()[0];
+  const stream = new URL(command.path, 'http://plex.example');
+  expect(stream.pathname).toBe('/A');
+  expect(stream.searchParams.get('X-Plex-Session-Identifier')).toBe(command.session);
+  expect(stream.searchParams.has('X-Plex-Client-Identifier')).toBe(true);
+  expect(stream.searchParams.has('X-Plex-Token')).toBe(false);
+});
+
+test.each([
+  ['declined', () => server.get.mockResolvedValueOnce({ generalDecisionCode: 2000, generalDecisionText: 'No' })],
+  ['failed', () => server.get.mockRejectedValueOnce(new Error('HTTP 400'))],
+])('a direct play Plex %s still plays the file', async (_, decide) => {
+  const item = movie('A', 1000);
+  api.metadata.mockResolvedValue(item);
+  decide();
+  await startPlayback(item);
+  expect(paths()).toEqual(['/A']);
+  expect(playback()?.transcoded).toBe(false);
 });
 
 test('a Plex transcode refusal leaves nothing playing and the user can retry', async () => {
@@ -148,5 +178,5 @@ test('a late transcode decision cannot replace a newer item', async () => {
   decision.resolve({ generalDecisionCode: 1000 });
   await first;
   expect(playback()?.item.ratingKey).toBe('B');
-  expect(played().map((c) => c.path)).toEqual(['/B']);
+  expect(paths()).toEqual(['/B']);
 });

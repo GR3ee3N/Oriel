@@ -80,6 +80,7 @@ export interface Media {
   id: number;
   duration?: number;
   bitrate?: number;
+  container?: string;
   videoCodec?: string;
   videoResolution?: string;
   audioCodec?: string;

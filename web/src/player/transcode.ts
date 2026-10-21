@@ -3,8 +3,10 @@
 // and request Plex's decision first so refusals include its reason.
 // Kodi's clock starts at zero for each stream; the framework adds `offset`.
 // Seeking or changing tracks replaces the stream under the same session.
+// A direct play gets a decision too, for its playback session.
 
 import { identity, PlexError, type Server } from '../plex/client';
+import type { Media } from '../plex/types';
 import { type Quality } from './quality';
 
 /** Video codecs the box's hardware may decode; the state's `decoders` says
@@ -78,6 +80,41 @@ export async function transcode(
   const burnt = streams.some((s) => s.streamType === 3 && s.selected && s.decision === 'burn');
   const query = new URLSearchParams({ ...params, ...identity() });
   return { path: `/video/:/transcode/universal/start.mkv?${query}`, burnt, decision: `${code} ${text}` };
+}
+
+/** Asks Plex to direct play `media` in playback `session`. Plex keeps a
+ * user's streams of different files apart by their sessions: a part
+ * requested outside one gets an ad-hoc decision, which ends when the user
+ * requests another file. The profile allows the file as it is, as the app
+ * chose to play it so, with any of its tracks (Kodi switches them).
+ * Resolves with Plex's summary when Plex declined. */
+export async function directPlay(server: Server, ratingKey: string, session: string, media?: Media): Promise<string | undefined> {
+  const audio = media?.audioCodec && !AUDIO.split(',').includes(media.audioCodec) ? `${AUDIO},${media.audioCodec}` : AUDIO;
+  const profile =
+    'add-settings(DirectPlayStreamSelection=true)+' +
+    `add-direct-play-profile(type=videoProfile&container=${media?.container ?? 'mkv'}` +
+    `&videoCodec=${media?.videoCodec ?? HARDWARE_CODECS.join(',')}&audioCodec=${audio}&subtitleCodec=${SUBTITLES})`;
+  const d = (await server.get<never>('/video/:/transcode/universal/decision', {
+    path: `/library/metadata/${ratingKey}`,
+    mediaIndex: '0',
+    partIndex: '0',
+    protocol: 'http',
+    directPlay: '1',
+    directStream: '1',
+    location: server.local ? 'lan' : 'wan',
+    'X-Plex-Session-Identifier': session,
+    'X-Plex-Client-Profile-Name': 'Generic',
+    'X-Plex-Client-Profile-Extra': profile,
+  })) as unknown as Decision | undefined;
+  const code = d?.generalDecisionCode ?? 0;
+  return code === 1000 ? undefined : `${code} ${d?.generalDecisionText ?? ''}`.trim();
+}
+
+/** `path` on the server in playback `session`, for Kodi (no token: the
+ * proxy adds it). */
+export function inSession(path: string, session: string): string {
+  const query = new URLSearchParams({ 'X-Plex-Session-Identifier': session, ...identity() });
+  return `${path}${path.includes('?') ? '&' : '?'}${query}`;
 }
 
 /** Ends the session's transcode on the server, so it no longer counts as a

@@ -15,7 +15,7 @@ import type { Marker, Metadata, Part } from '../plex/types';
 import { currentServer } from '../session';
 import { Bif } from './bif';
 import { ORIGINAL, QUALITIES, quality } from './quality';
-import { HARDWARE_CODECS, stopTranscode, transcode } from './transcode';
+import { directPlay, HARDWARE_CODECS, inSession, stopTranscode, transcode } from './transcode';
 import { audioTracks, kodiSubtitle, subtitleTracks, SUBTITLES_OFF, type Track } from './tracks';
 import { uuid } from '@oriel/web';
 
@@ -202,16 +202,21 @@ async function launch(at: number): Promise<void> {
   if (direct) {
     setStore('current', 'transcoded', false);
     tracksChecked = undefined;
+    // Without the session, Plex ends this stream when the same user
+    // streams another file. Declined, the file still plays.
+    const declined = await directPlay(server, p.item.ratingKey, p.id, media).catch((e) => String(e));
+    if (declined) console.warn(`playback: Plex declined the direct play: ${declined}`);
+    if (store.current?.id !== p.id || overtaken()) return;
     await call({
       cmd: 'play',
-      path: p.part.key,
+      path: inSession(p.part.key, p.id),
       session: p.id,
       meta: { ratingKey: p.item.ratingKey, quality: p.quality, transcoded: false },
       title,
       position: at,
       audio: p.audio.find((t) => t.id === p.audioId)?.kodi,
       subtitle: s ? s.kodi : -1,
-      subtitleFile: s?.file,
+      subtitleFile: s?.file && inSession(s.file, p.id),
     });
     return;
   }
@@ -393,7 +398,7 @@ function report(
     .call('/:/timeline', {
       ratingKey: p.item.ratingKey,
       key: `/library/metadata/${p.item.ratingKey}`,
-      // Ties the report to the transcode session, if there is one.
+      // Ties the report to the playback's session (its decision).
       'X-Plex-Session-Identifier': p.id,
       state: plexState,
       // Plex refuses a time past the end (HTTP 400), which Kodi's clock
