@@ -82,6 +82,8 @@ export function Backdrop(props: { art?: string; colors?: UltraBlurColors; delay?
   const scenes: { root: HTMLDivElement; canvas: HTMLCanvasElement }[] = [];
   let shown = -1;
   let showing = '';
+  // What the shown scene was painted from.
+  let painted: [UltraBlurColors, HTMLImageElement | undefined] | undefined;
   let timer: ReturnType<typeof setTimeout> | undefined;
 
   const show = async (art: string | undefined, colors: UltraBlurColors | undefined) => {
@@ -100,7 +102,8 @@ export function Backdrop(props: { art?: string; colors?: UltraBlurColors; delay?
     }
     const next = shown === 0 ? 1 : 0;
     const scene = scenes[next];
-    paintScene(scene.canvas, colors ?? FALLBACK, img);
+    painted = [colors ?? FALLBACK, img];
+    paintScene(scene.canvas, ...painted);
     scene.root.style.opacity = '1';
     if (shown >= 0) scenes[shown].root.style.opacity = '0';
     shown = next;
@@ -121,7 +124,16 @@ export function Backdrop(props: { art?: string; colors?: UltraBlurColors; delay?
       },
     ),
   );
-  onCleanup(() => clearTimeout(timer));
+  // While the page is hidden (over Kodi's video, say) WebKit drops the
+  // canvases' contents: paint the shown scene again when it comes back.
+  const onVisibility = () => {
+    if (!document.hidden && painted) paintScene(scenes[shown].canvas, ...painted);
+  };
+  document.addEventListener('visibilitychange', onVisibility);
+  onCleanup(() => {
+    clearTimeout(timer);
+    document.removeEventListener('visibilitychange', onVisibility);
+  });
 
   const scene = (i: number) => (
     <div class="scene" ref={(el) => (scenes[i] = { ...scenes[i], root: el })}>
