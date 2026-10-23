@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, expect, test, vi } from 'vitest';
 import type { Metadata } from '../src/plex/types';
 
-// The player's state as a store, so the playback effects follow it.
+// Use a reactive player store so state changes trigger playback effects.
 vi.mock('../src/bridge', async () => {
   const { createMutable } = await import('solid-js/store');
   return {
@@ -27,7 +27,7 @@ const bridge = await import('../src/bridge');
 const { dismiss, introIn, playback, prompt, startPlayback } = await import('../src/player/playback');
 const send = vi.mocked(bridge.send);
 
-/** An episode with its intro from 0:10 to 1:10. */
+/** Episode fixture with an intro marker from 10 s to 70 s. */
 const episode = (ratingKey: string) =>
   ({
     ratingKey,
@@ -41,13 +41,13 @@ const episode = (ratingKey: string) =>
 const player = bridge.state.player as { session: string | null; state: string; time: number; duration: number | null };
 const seeks = () => send.mock.calls.map(([c]) => c).filter((c) => c.cmd === 'seek-to');
 
-/** Where Kodi is, to the fraction; it reports whole seconds. */
+/** Fractional playback position; Kodi reports its whole-second value. */
 let position = 0;
 function seek(to: number): void {
   position = to;
   player.time = to;
 }
-/** Plays on for `seconds` of the clock (Kodi's position with it, unless paused). */
+/** Advance the clock by `seconds`; advance playback only while playing. */
 function playFor(seconds: number): void {
   for (let i = 0; i < Math.round(seconds * 10); i++) {
     vi.advanceTimersByTime(100);
@@ -100,7 +100,7 @@ test('automatically, Skip intro skips after 5 s of playback, standing still whil
   expect(prompt()).toBe(null);
   seek(70);
   expect(prompt()).toBe(null);
-  // Back into the intro: Skip intro again, counting down again.
+  // Seeking back into the intro starts a new Skip intro countdown.
   seek(20);
   expect(prompt()).toBe('intro');
   expect(introIn()).toBe(5);
@@ -135,7 +135,7 @@ test('automatically, the countdown running out just as the intro ends does not s
   await play(true);
   seek(62.5);
   expect(introIn()).toBe(5);
-  // The intro's last 3 s start at 67 s, a moment before the 5 s are up.
+  // At 67 s, the final 3 s exclusion begins before the 5 s countdown expires.
   playFor(10);
   expect(seeks()).toEqual([]);
   expect(prompt()).toBe(null);

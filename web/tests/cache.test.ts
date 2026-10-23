@@ -15,7 +15,7 @@ test('browse data is reused for a minute, then loaded again', async () => {
   vi.advanceTimersByTime(30_000);
   await metadata(server, 'b');
   vi.advanceTimersByTime(31_000);
-  // a is 61 s old and dropped, b (31 s) is kept.
+  // Evict a at 61 s; retain b at 31 s.
   await metadata(server, 'b');
   await metadata(server, 'a');
   await metadata(server, 'a');

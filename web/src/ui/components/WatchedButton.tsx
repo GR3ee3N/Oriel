@@ -5,7 +5,7 @@ import { isWatched } from '../../plex/format';
 import type { Metadata } from '../../plex/types';
 import { currentServer } from '../../session';
 
-/** Marks the item (movie, episode, show) watched or unwatched. */
+/** Toggle watched state for a movie, episode or show. */
 export function WatchedButton(props: { item: Metadata; group?: string }) {
   const watched = () => isWatched(props.item);
   return (

@@ -5,8 +5,8 @@
   top: 120px;
   width: 1100px;
   height: 470px;
-  /* New text relays out and repaints only this box, on its own layer,
-     not the page and the backdrop under it. */
+  /* Confine text layout and painting to the hero's layer to keep metadata
+     changes from invalidating the page and backdrop. */
   contain: strict;
   will-change: transform;
 }

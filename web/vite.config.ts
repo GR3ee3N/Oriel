@@ -8,11 +8,11 @@ const version = versions.match(/^VERSION=(.+)$/m)![1];
 export default defineConfig({
   plugins: [solid()],
   define: { 'import.meta.env.VITE_APP_VERSION': JSON.stringify(version) },
-  // The app and @oriel/web must share Solid's reactive runtime.
+  // Share one Solid reactive runtime between the app and @oriel/web.
   resolve: { dedupe: ['solid-js'] },
-  // WPE WebKit 2.52 on the box.
+  // Target the WPE WebKit 2.52 runtime.
   build: { target: 'safari18', assetsInlineLimit: 0 },
-  // WebKit on the box connects to this server over the LAN.
+  // Accept LAN connections from WebKit on the box.
   server: { host: true, port: 5173, strictPort: true },
   test: { environment: 'node' },
 });

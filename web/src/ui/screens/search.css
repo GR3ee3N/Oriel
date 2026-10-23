@@ -28,7 +28,7 @@
 }
 .keyboard .key.wide { grid-column: span 2; text-transform: none; font-size: var(--fs-meta); }
 .keyboard .key.focused { background: var(--accent); color: var(--accent-text); }
-/* Rows scrolled past are clipped at the top (see shelf.css). */
+/* Clip scrolled rows above the results viewport, as in shelf.css. */
 .results { position: absolute; left: 700px; right: 0; top: 130px; bottom: 0; overflow: hidden; }
 .results > p, .search-hint { margin-left: 20px; margin-top: 20px; }
 .shelf.results-shelf { top: 0; }

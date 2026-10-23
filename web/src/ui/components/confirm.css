@@ -1,4 +1,4 @@
-/* Above the splash (30) and notices (35), under the screensaver (40). */
+/* Stack above splash z-index 30 and notices 35, below screensaver 40. */
 .confirm-shade {
   position: absolute;
   inset: 0;

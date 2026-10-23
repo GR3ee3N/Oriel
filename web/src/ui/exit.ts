@@ -1,4 +1,4 @@
-// Leaving the app with Back asks first.
+// Confirm before Back exits the app.
 
 import { createSignal } from 'solid-js';
 import { send } from '../bridge';
@@ -7,7 +7,7 @@ const [asking, setAsking] = createSignal(false);
 
 export const exitAsked = asking;
 
-/** Back with nowhere left to go: shows the question (App.tsx). */
+/** Request the exit confirmation rendered by App.tsx. */
 export function askExit(): void {
   setAsking(true);
 }

@@ -1,9 +1,7 @@
-// The app's own screensaver, in place of Kodi's (the add-on holds Kodi's
-// off while our screens are up, as it would show Kodi's menu): after
-// Kodi's delay without a key, art from the library cross-fades every
-// 15 s with its title and the time, in alternating corners against
-// burn-in. Fades only, nothing that moves all the time: between fades no
-// frame is drawn at all.
+// The add-on suppresses Kodi's screensaver because it would reveal Kodi's menu.
+// After Kodi's configured idle delay, cross-fade library artwork every 15 s.
+// Alternate title and clock corners to reduce burn-in risk. Keep scenes static
+// between fades so the page does not require continuous rendering.
 
 import { createResource, createSignal, onCleanup, onMount, Show } from 'solid-js';
 import { homeHubs } from '../plex/api';
@@ -22,7 +20,7 @@ interface Slide {
   line: string;
 }
 
-/** Items with art from the home hubs, shuffled. */
+/** Shuffle Home hub items that have artwork. */
 async function pictures(): Promise<Metadata[]> {
   const hubs = await homeHubs(currentServer());
   const seen = new Set<string>();
@@ -51,7 +49,7 @@ export function Screensaver() {
   let shown = -1;
   let n = 0;
   let timer: ReturnType<typeof setTimeout> | undefined;
-  // A picture can finish loading after the screensaver closed.
+  // Ignore image loads that complete after the screensaver unmounts.
   let disposed = false;
 
   const next = async () => {
@@ -72,7 +70,7 @@ export function Screensaver() {
         setSlide({ title: clean(m.title), logo, line: [m.year, clean(m.tagline)].filter(Boolean).join(' · ') });
         setCorner((c) => (c + 1) % 2);
       } catch {
-        // skip a picture that fails
+        // Continue to another item if artwork cannot load.
       }
     }
     if (disposed) return;

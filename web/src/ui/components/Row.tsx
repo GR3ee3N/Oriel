@@ -11,19 +11,18 @@ export interface RowProps {
   title: string;
   items: Metadata[];
   shape?: TileShape;
-  /** A unique name in the screen: the row remembers its focus under it. */
+  /** Screen-unique key used to restore row focus. */
   group: string;
   autofocus?: boolean;
-  /** The ratingKey of a tile to take the focus (and scroll to) at first. */
+  /** Initial tile ratingKey to focus and scroll into view. */
   focusKey?: string;
   onFocus?: (item: Metadata) => void;
   onSelect: (item: Metadata) => void;
-  /** Caption lines per tile (Tile's `lines`). */
+  /** Number of caption lines passed to Tile. */
   lines?: (m: Metadata) => [string, string];
 }
 
-/** A titled row of tiles that scrolls sideways with the focus, keeping one
- * tile of context to the left. */
+/** Scroll tiles with focus, retaining one tile of context on the left. */
 export function Row(props: RowProps) {
   const [col, setCol] = createSignal(Math.max(0, props.items.findIndex((m) => m.ratingKey === props.focusKey)));
   const shape = () => props.shape ?? 'poster';
@@ -34,8 +33,7 @@ export function Row(props: RowProps) {
   const focused = (i: number, item: Metadata) => {
     setCol(i);
     props.onFocus?.(item);
-    // Keep the next few images decoded ahead of the focus, once the slide
-    // is over (loading and decoding them during it costs it frames).
+    // Decode nearby images after scrolling settles to keep loading work out of the animation.
     clearTimeout(preloadTimer);
     preloadTimer = setTimeout(() => {
       const { w, h } = SIZES[shape()];

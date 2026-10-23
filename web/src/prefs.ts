@@ -1,27 +1,26 @@
-// The app's own settings (the Settings screen), kept in the add-on's store.
+// Persist Settings screen preferences in the add-on's store.
 
 import { createStore } from 'solid-js/store';
 import { type Saved, save } from './store';
 
 export interface Prefs {
-  /** Maximum bitrate in kbps on the local network and away from it; 0 plays
-   * the original file (player/quality.ts). */
+  /** Local and remote bitrate limits in kbps; 0 requests the original file
+   * (player/quality.ts). */
   qualityLocal: number;
   qualityRemote: number;
-  /** Start as the last Home user; otherwise every start of the app asks
-   * who is watching (session.ts). */
+  /** Reuse the last Plex Home profile at startup without asking for its PIN
+   * (session.ts). */
   autoSignIn: boolean;
-  /** Skip intro counts down and skips by itself, rather than waiting for
-   * the button (player/playback.ts). */
+  /** Skip intros after the countdown unless dismissed (player/playback.ts). */
   autoSkipIntro: boolean;
-  /** Skip credits without asking, rather than with the Up next prompt. */
+  /** Skip credits automatically, including credits followed by another scene. */
   autoSkipCredits: boolean;
-  /** The colour of focus and highlights: an ACCENTS id. */
+  /** ACCENTS id used for focus rings and highlights. */
   accent: string;
 }
 
-/** For --accent (theme.css); each keeps --accent-text readable on it. The
- * first is the default. */
+/** Colours for --accent in theme.css, chosen for contrast with --accent-text.
+ * The first entry is the default. */
 export const ACCENTS = [
   { id: 'periwinkle', label: 'Periwinkle', color: '#8c9eff' },
   { id: 'sky', label: 'Sky', color: '#6ec6ff' },

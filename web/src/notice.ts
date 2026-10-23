@@ -1,5 +1,4 @@
-// A short message at the bottom of the screen (a playback that can't
-// start, say), shown for a few seconds.
+// Show transient messages at the bottom of the screen for six seconds.
 
 import { createSignal } from 'solid-js';
 

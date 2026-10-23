@@ -1,16 +1,12 @@
-// Who is signed in and which server we talk to: from start-up through the
-// plex.tv/link code and the Home user picker to a connected server.
+// Sign-in, Plex Home profile selection and server connection.
+// Startup uses the saved account token or requests a plex.tv/link code.
+// A Home with several profiles opens the picker unless automatic sign-in
+// or a reload within the same app run restores the last profile.
 //
-//   loading → signin (no or rejected account token)
-//           → users (a Home with several users, at every start of the
-//             app unless it signs in automatically)
-//           → connecting → ready
-//   any step → error (with a retry)
-//
-// A user with several servers gets the one they chose last (per user),
-// else one of their own, else the first plex.tv lists; one that doesn't
-// answer is passed over for the next that does. Another can be chosen in
-// the top bar's account menu, in Settings, and on the error screen.
+// Server preference: the user's last choice, an owned server, then plex.tv's
+// order. Unreachable servers fall through to the next available server.
+// Explicit server choices in the account menu, Settings or error screen
+// fail without falling back to another server.
 
 import { createStore } from 'solid-js/store';
 import { call } from './bridge';
@@ -34,17 +30,17 @@ interface Session {
   pin?: Pin;
   users: HomeUser[];
   user?: Pick<User, 'uuid' | 'title' | 'thumb'>;
-  /** The user's servers, and the one connected (or being connected). */
+  /** Available servers and the selected server id. */
   servers: ServerChoice[];
   serverId?: string;
-  /** The Home has several users (Settings offers signing in automatically). */
+  /** Multiple Plex Home profiles are available; enables automatic sign-in settings. */
   multiUser: boolean;
-  /** The user picker's focus: the last user. */
+  /** Last profile UUID, used for initial focus in the picker. */
   lastUser?: string;
   serverName?: string;
-  /** While connecting: to which server. */
+  /** Server name shown while connecting. */
   connectingTo?: string;
-  /** The movie and show libraries, for the top bar. */
+  /** Movie and show libraries displayed in the top bar. */
   sections: Directory[];
   error?: string;
 }
@@ -52,7 +48,7 @@ interface Session {
 export interface ServerChoice {
   id: string;
   name: string;
-  /** Whose it is, for a server shared with the user. */
+  /** Owner name for a shared server. */
   owner?: string;
 }
 
@@ -67,14 +63,14 @@ export { session };
 
 let saved: Saved = {};
 let server: Server | undefined;
-/** The user connected or being connected, for choosing another server. */
+/** Current user retained for server switching, including during connection. */
 let who: User | undefined;
 let resources: Resource[] = [];
-/** What Try again on the error screen does. */
+/** Retry action for the failed sign-in or connection step. */
 let again: () => Promise<void> = () => start();
 let signin: AbortController | undefined;
 
-/** The connected server; only valid in the 'ready' phase. */
+/** Valid only while the session is 'ready'. */
 export function currentServer(): Server {
   if (!server) throw new Error('no server');
   return server;
@@ -110,10 +106,8 @@ async function afterAccount(account: User): Promise<void> {
   const users = await homeUsers(saved.accountToken!);
   if (users.length < 2) return useUser(account);
   setSession({ multiUser: true, lastUser: saved.userUuid });
-  // Every start of the app asks who is watching, as in Plex's own apps,
-  // unless it signs in automatically: then the last user carries on,
-  // without a PIN. So does a page loaded again in the same start (the
-  // shell restarted).
+  // Automatic sign-in reuses the last profile token without asking for a PIN.
+  // Reloads within the same app run also preserve the selected profile.
   const sameRun = !!saved.run && saved.userRun === saved.run;
   if ((saved.autoSignIn || sameRun) && saved.userUuid && saved.userToken) {
     const user = await whoAmI(saved.userToken);
@@ -128,8 +122,7 @@ async function afterAccount(account: User): Promise<void> {
   setSession({ phase: 'users', users });
 }
 
-/** Shows a plex.tv/link code and waits for it to be entered, renewing
- * the code when it expires. */
+/** Wait for plex.tv/link authorization, renewing expired codes. */
 export async function signIn(): Promise<void> {
   signin?.abort();
   const abort = (signin = new AbortController());
@@ -154,7 +147,7 @@ export async function signIn(): Promise<void> {
   }
 }
 
-/** Throws PlexError on a wrong PIN, for the caller to show. */
+/** A wrong PIN throws PlexError for the picker to display. */
 export async function pickUser(user: HomeUser, pin?: string): Promise<void> {
   const switched = await switchUser(saved.accountToken!, user, pin);
   saved.userUuid = switched.uuid;
@@ -162,7 +155,7 @@ export async function pickUser(user: HomeUser, pin?: string): Promise<void> {
   saved.userRun = saved.run;
   setSession({ lastUser: switched.uuid });
   await save({ userUuid: switched.uuid, userToken: switched.authToken, userRun: saved.run });
-  // Another user can see other libraries: start again from Home.
+  // Return to Home because library access differs between profiles.
   tab({ screen: 'home' });
   await useUser(switched);
 }
@@ -175,7 +168,7 @@ export async function changeUser(): Promise<void> {
   }
 }
 
-/** Forgets the account and the user, and shows a new plex.tv/link code. */
+/** Clear account and profile credentials, then request a new sign-in code. */
 export function signOut(): Promise<void> {
   server = undefined;
   who = undefined;
@@ -185,30 +178,29 @@ export function signOut(): Promise<void> {
   return signIn();
 }
 
-/** Back out of the user picker to the library, if one was open. */
+/** Return from the profile picker to the existing library session. */
 export function keepUser(): boolean {
   if (!server || session.phase !== 'users') return false;
   setSession({ phase: 'ready' });
   return true;
 }
 
-/** The error screen's Try again: what failed, once more. */
+/** Retry the step that failed. */
 export function retry(): Promise<void> {
   return again();
 }
 
-/** Connects to another of the user's servers (the account menu, Settings,
- * the error screen); it is remembered for the user once it answers. */
+/** Switch servers and save the choice for this user after connection succeeds. */
 export async function chooseServer(id: string): Promise<void> {
   if (!who || (id === session.serverId && session.phase === 'ready')) return;
   tab({ screen: 'home' });
   await useUser(who, id);
 }
 
-/** `want`: a server the user chose, which is not passed over. */
+/** An explicit `want` disables fallback to other servers. */
 async function useUser(user: User, want?: string): Promise<void> {
   const sameUser = who?.uuid === user.uuid;
-  // Cached browse data is the last user's (keyed by server only).
+  // Browse caches use server keys, so clear data from the previous profile.
   if (!sameUser) invalidate();
   who = user;
   again = () => useUser(user, want);
@@ -230,7 +222,7 @@ async function useUser(user: User, want?: string): Promise<void> {
       saved.servers = { ...saved.servers, [user.uuid]: server.id };
       await save({ servers: saved.servers });
     }
-    // Kodi plays through the add-on's proxy to this server.
+    // Configure the proxy with this server and its token for Kodi playback.
     await call({ cmd: 'media-source', base: server.uri, headers: { 'X-Plex-Token': server.token } });
     const libraries = await sections(server);
     console.log(`session: ${user.title} on ${server.name} via ${server.uri}`);
@@ -240,8 +232,7 @@ async function useUser(user: User, want?: string): Promise<void> {
   }
 }
 
-/** The user's servers as menu options (the account menu, Settings, the
- * error screen). */
+/** Server choices shared by the account menu, Settings and error screen. */
 export function serverOptions(): MenuOption<string>[] {
   return session.servers.map((s) => ({ label: s.owner ? `${s.name} · ${s.owner}` : s.name, value: s.id }));
 }
@@ -261,9 +252,8 @@ async function connectTo(user: User, id: string): Promise<Server> {
   }
 }
 
-/** The chosen server, else the user's own, else plex.tv's order; when the
- * first doesn't answer, all the others are tried at once and the first of
- * them in that order that answers is taken. */
+/** Try the saved server, then owned servers, then plex.tv's order. If the
+ * first fails, probe the rest in parallel and take the highest-priority success. */
 async function connectFirst(user: User, chosen: string | undefined): Promise<Server> {
   const rank = (r: Resource) => (r.clientIdentifier === chosen ? 0 : r.owned ? 1 : 2);
   const order = resources.map((r, i) => ({ r, i })).sort((a, b) => rank(a.r) - rank(b.r) || a.i - b.i).map((x) => x.r);

@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- tools/build.sh fills in the versions from build/versions.env. -->
+<!-- tools/build.sh replaces version placeholders using build/versions.env. -->
 <addon id="script.oriel.oriel" name="Oriel" version="@VERSION@" provider-name="Oriel">
   <requires>
     <import addon="xbmc.python" version="3.1.0"/>

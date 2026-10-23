@@ -22,7 +22,7 @@ vi.mock('../src/player/bif', () => ({ Bif: {} }));
 
 const { chooseAudio, playback, startPlayback } = await import('../src/player/playback');
 
-/** A movie at `kbps`: over the 4000 kbps setting, it is transcoded. */
+/** Movie fixture with bitrate `kbps`; values above the 4000 kbps limit require transcoding. */
 const movie = (ratingKey: string, kbps: number) =>
   ({
     ratingKey,
@@ -53,7 +53,7 @@ const deferred = <T,>() => {
 
 const settle = () => new Promise((r) => setTimeout(r, 0));
 const played = () => bridge.call.mock.calls.map(([c]) => c).filter((c) => c.cmd === 'play');
-/** The played paths without their query (the playback session). */
+/** Played paths with session query parameters removed. */
 const paths = () => played().map((c) => c.path.split('?')[0]);
 
 beforeEach(() => {

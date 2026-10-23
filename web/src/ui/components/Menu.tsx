@@ -5,14 +5,13 @@ import './menu.css';
 export interface MenuOption<T> {
   label: string;
   value: T;
-  /** A colour shown before the label. */
+  /** Optional colour swatch preceding the label. */
   swatch?: string;
 }
 
 let menus = 0;
 
-/** A list over the screen in its own focus scope; Back or a choice closes
- * it and returns the focus to where it was. */
+/** Isolate menu focus; Back or selection closes it and restores previous focus. */
 export function Menu<T>(props: {
   title: string;
   options: MenuOption<T>[];

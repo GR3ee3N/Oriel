@@ -1,21 +1,15 @@
-// Finding the user's servers through plex.tv and the best way to reach one.
-//
-// plex.tv lists every address a server knows for itself, including ones
-// that never work from here (Docker bridges, other subnets). All of them are
-// tried at once against /identity, and the best kind that answers wins:
-// local plain HTTP (when the server allows it: no TLS for the box's CPU to
-// pay on every request and image), then local HTTPS, then remote, then Plex's
-// relay.
-// The answer must come from the same server (machineIdentifier), since a
-// private address can reach some other machine.
+// Discover servers through plex.tv and probe their addresses at /identity
+// in parallel. Addresses can include unreachable Docker bridges or subnets.
+// Prefer local HTTP when allowed to reduce TLS work on the box, then local
+// advertised connections, remote connections and Plex relay. Verify the
+// machineIdentifier because a private address can reach a different server.
 
 import { PlexError, request, plexTv, Server } from './client';
 import type { Resource } from './types';
 
 export async function servers(token: string): Promise<Resource[]> {
-  // plex.tv rate-limits the list right after a sign-in or a user switch
-  // (HTTP 429, without CORS headers, so the page sees only a failed load):
-  // tried again a little later before giving up.
+  // Retry transient failures after sign-in or profile changes. plex.tv can
+  // return HTTP 429 without CORS headers, which appears as a network failure.
   for (const wait of [2000, 5000, 0]) {
     try {
       const all = await plexTv<Resource[]>('/api/v2/resources', {
@@ -54,7 +48,7 @@ function candidates(resource: Resource): Candidate[] {
 
 export class Unreachable extends Error {}
 
-/** Connects to `resource`, or throws Unreachable. */
+/** Resolve the preferred reachable connection, or reject with Unreachable. */
 export function connect(resource: Resource, userToken: string, signal?: AbortSignal): Promise<Server> {
   const token = resource.accessToken ?? userToken;
   const list = candidates(resource);
@@ -64,8 +58,7 @@ export function connect(resource: Resource, userToken: string, signal?: AbortSig
     let done = false;
     const decide = () => {
       if (done) return;
-      // An answer wins once nothing of a better rank is still pending;
-      // equal ranks do not wait for each other.
+      // Wait only for higher-priority probes; equal ranks can resolve immediately.
       const pending = Math.min(...list.map((c, i) => (settled[i] ? Infinity : c.rank)));
       const best = answered.reduce<Candidate | null>((b, c) => (c && (!b || c.rank < b.rank) ? c : b), null);
       if (best && best.rank <= pending) {

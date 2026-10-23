@@ -14,8 +14,8 @@ export const SIZES: Record<TileShape, { w: number; h: number }> = {
   wide: { w: 400, h: 225 },
 };
 
-/** The image a tile shows: a poster (an episode's show poster), or for
- * wide tiles the episode still or the item's art. */
+/** Use posters for portrait tiles, including the show's poster for episodes.
+ * Wide tiles use episode stills or item artwork. */
 export function tileImage(m: Metadata, shape: TileShape): string | undefined {
   if (shape === 'wide') return m.type === 'episode' ? (m.thumb ?? m.art) : (m.art ?? m.thumb);
   if (m.type === 'episode') return m.grandparentThumb ?? m.parentThumb ?? m.thumb;
@@ -24,13 +24,12 @@ export function tileImage(m: Metadata, shape: TileShape): string | undefined {
 }
 
 export interface TileProps {
-  /** Undefined while it loads: an empty tile that can hold the focus. */
+  /** Undefined items render focusable placeholders while loading. */
   item?: Metadata;
   shape?: TileShape;
   group?: string;
   autofocus?: boolean;
-  /** The two caption lines, instead of the item's title and year (or
-   * show and episode). */
+  /** Override the default title/year or show/episode caption pair. */
   lines?: (m: Metadata) => [string, string];
   index?: number;
   onFocus?: () => void;

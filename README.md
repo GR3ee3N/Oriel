@@ -4,35 +4,38 @@
 
 # Oriel
 
-**A Plex client for CoreELEC 22 on Amlogic.**
+**A Plex client for CoreELEC 22 on Amlogic devices.**
 
 </div>
 
 ## Status
 
 > [!WARNING]
-> **Oriel is highly experimental.** It is a personal project, tested on only
-> a few boxes, and it relies on CoreELEC and Kodi internals that are outside its control.
-> Any update to those can break it, and it could stop working at any time.
-> Use it at your own risk.
+> **Experimental software.** CoreELEC or Kodi updates can break it.
 
 No support is provided.
 
-## Requirements
+## Hardware
 
-- An Amlogic box with a Mali GPU running **CoreELEC 22** (Kodi 22, 64-bit).
-  Tested on a Ugoos AM9 Pro (S905X5M) and an AM6B+ (S922X).
+Requires an Amlogic device with a Mali GPU running CoreELEC 22
+(Kodi 22, 64-bit). Tested on:
+
+- Ugoos AM9 Pro (S905X5M, Mali-G310)
+- Ugoos AM6B+ (S922X, Mali-G52)
+
+Other devices and CoreELEC versions have not been tested.
 
 ## Installation
 
-1. In Kodi, turn on Settings → System → Add-ons → **Unknown sources**.
-2. Settings → File manager → **Add source**: enter
+1. In Kodi, enable **Settings → System → Add-ons → Unknown sources**.
+2. Go to **Settings → File manager → Add source**, enter
    `https://gr3ee3n.github.io/oriel-repository/` and name it **Oriel**.
-3. Add-ons → **Install from zip file** → Oriel →
+3. Go to **Add-ons → Install from zip file → Oriel** and select
    `repository.oriel.zip`.
-4. Add-ons → **Install from repository** → Oriel repository → Video add-ons →
-   **Oriel** → Install. Kodi fetches what Oriel needs with it.
-5. Open **Oriel** from your video add-ons. The first start takes a few
-   seconds to unpack; then sign in with the code it shows.
+4. Go to **Add-ons → Install from repository → Oriel repository → Video add-ons**,
+   select **Oriel**, then **Install**. Kodi also installs its dependencies.
+5. Open **Oriel** from your video add-ons and wait for setup to finish.
+6. Open **plex.tv/link** on your phone or computer and enter the code shown
+   on the TV to sign in to Plex.
 
-See [DEVELOPMENT.md](DEVELOPMENT.md) for working on Oriel.
+See [DEVELOPMENT.md](DEVELOPMENT.md) for setup, builds and device testing.

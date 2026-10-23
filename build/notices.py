@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
-"""Third-party notices for the npm packages the page carries at run time;
-tools/build.sh runs it.
+"""Collect license notices for npm packages shipped with the page.
+
+Called by tools/build.sh:
 
     build/notices.py <package dir> <out>
 
-Each component gets its name, version, declared license, and the full text
-of every license, copyright or notice file it carries. devDependencies are
-left out, as they only build the page. Stops if a component carries no
-license file.
+Include each component's name, version, declared license and full license,
+copyright and notice files. Exclude devDependencies, which only build the
+page. Fail if any component has no license file.
 """
 import json
 import pathlib
@@ -24,7 +24,7 @@ def license_files(directory):
 
 
 def npm(package_dir):
-    """The run-time dependency tree, resolved as Node would."""
+    """Resolve runtime dependencies using Node's package lookup order."""
     start = pathlib.Path(package_dir).resolve()
 
     def find(name, base):

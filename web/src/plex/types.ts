@@ -1,5 +1,4 @@
-// The parts of Plex's JSON this client reads. Plex returns much more; fields
-// are added here as the UI needs them.
+// Plex response fields used by this client; other server fields are omitted.
 
 export interface MediaContainer<T = Metadata> {
   size: number;
@@ -20,7 +19,7 @@ export interface Metadata {
   year?: number;
   thumb?: string;
   art?: string;
-  /** Episodes: the show's poster and art. */
+  /** Show poster and artwork for episodes. */
   grandparentThumb?: string;
   grandparentArt?: string;
   grandparentTitle?: string;
@@ -46,9 +45,9 @@ export interface Metadata {
   librarySectionID?: number;
   Media?: Media[];
   Marker?: Marker[];
-  /** Artwork by kind (includeImages): 'clearLogo', 'background', … */
+  /** Artwork from includeImages, labelled by kind such as 'clearLogo' or 'background'. */
   Image?: Image[];
-  /** Plex's four corner colours of the art, as hex without '#'. */
+  /** Four artwork corner colours as hex values without '#'. */
   UltraBlurColors?: UltraBlurColors;
 }
 
@@ -72,7 +71,7 @@ export interface Role extends Tag {
   id?: number;
   role?: string;
   thumb?: string;
-  /** The library filter for this person, e.g. 'actor=184505'. */
+  /** Person filter for library queries, e.g. 'actor=184505'. */
   filter?: string;
 }
 
@@ -93,32 +92,31 @@ export interface Part {
   id: number;
   key: string;
   duration?: number;
-  /** 'sd' when the server has preview thumbnails (BIF) for it. */
+  /** 'sd' indicates available BIF preview thumbnails. */
   indexes?: string;
   Stream?: Stream[];
 }
 
 export interface Stream {
   id: number;
-  /** 1 video, 2 audio, 3 subtitle. */
+  /** Plex stream kind: 1 video, 2 audio, 3 subtitles. */
   streamType: 1 | 2 | 3;
   codec?: string;
-  /** Position in the container; Kodi lists streams in this order. */
+  /** Container position used to derive Kodi track indexes. */
   index?: number;
   languageCode?: string;
   languageTag?: string;
   title?: string;
   displayTitle?: string;
   channels?: number;
-  /** Audio: "lc", "ma", "hra", "ma + dts:x", "dolby truehd + dolby atmos". */
+  /** Plex audio profile, e.g. "lc", "ma", "hra" or "dolby truehd + dolby atmos". */
   profile?: string | null;
   selected?: boolean;
   forced?: boolean;
-  /** Sidecar subtitle files: their path on the server. */
+  /** Server path for sidecar subtitles. */
   key?: string;
   hearingImpaired?: boolean;
-  /** Video: Dolby Vision, and the transfer (smpte2084 is PQ, arib-std-b67
-   * HLG). */
+  /** Dolby Vision flag and transfer function: smpte2084 is PQ, arib-std-b67 is HLG. */
   DOVIPresent?: boolean;
   colorTrc?: string;
 }
@@ -131,7 +129,7 @@ export interface Marker {
   final?: boolean;
 }
 
-/** A library section, from /library/sections. */
+/** Library section returned by /library/sections. */
 export interface Directory {
   key: string;
   type: MetadataType;
@@ -147,13 +145,13 @@ export interface Hub {
   Metadata?: Metadata[];
 }
 
-/** A server from plex.tv's /api/v2/resources. */
+/** Server resource returned by plex.tv at /api/v2/resources. */
 export interface Resource {
   name: string;
   clientIdentifier: string;
   provides: string;
   owned: boolean;
-  /** The owner's name, for a server shared with the user. */
+  /** Owner name for a shared server. */
   sourceTitle?: string | null;
   home?: boolean;
   accessToken?: string;
@@ -171,7 +169,7 @@ export interface Connection {
   IPv6?: boolean;
 }
 
-/** A Plex Home user, from /api/v2/home/users. */
+/** Plex Home profile returned by /api/v2/home/users. */
 export interface HomeUser {
   id: number;
   uuid: string;
@@ -180,7 +178,7 @@ export interface HomeUser {
   protected: boolean;
 }
 
-/** The signed-in account or user, from /api/v2/user or a user switch. */
+/** Account or profile returned by /api/v2/user or a profile switch. */
 export interface User {
   id: number;
   uuid: string;

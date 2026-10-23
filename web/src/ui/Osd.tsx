@@ -1,9 +1,6 @@
-// The player OSD over Kodi's video. Translucency stays neutral (black and
-// white only): the hardware blend gets coloured alpha wrong. Opaque colour
-// is fine.
-//
-// Up for a key, it is the full OSD. Up for a prompt (the page asked: Skip
-// intro, Up next), it is just that card in a corner; an arrow expands it.
+// Hardware blending over Kodi video requires black or white for translucent
+// elements; opaque colours render correctly. Keys open the full OSD. Playback
+// prompts open a corner card, which an arrow key expands to the full controls.
 
 import { createEffect, createMemo, createSignal, type JSX, on, onCleanup, onMount, Show } from 'solid-js';
 import { send, state } from '../bridge';
@@ -39,11 +36,10 @@ function clock(seconds: number): string {
   return (hms[0] ? hms : hms.slice(1)).map((n, i) => (i ? String(n).padStart(2, '0') : n)).join(':');
 }
 
-/** The OSD goes after this long without a key while playing (not while
- * paused, in a menu, scrubbing, or up for a prompt). */
+/** Idle timeout in ms; disabled while paused, scrubbing, in a menu or showing a prompt. */
 const HIDE_AFTER = 5000;
 
-// Scrub steps in seconds, longer the longer an arrow is held.
+// Increase scrub steps, in seconds, while an arrow is held.
 const STEPS = [10, 10, 10, 30, 30, 60, 60, 120];
 
 export function Osd() {
@@ -55,8 +51,8 @@ export function Osd() {
   let lastArrow = 0;
 
   const promptOnly = () => !!prompt() && !expanded();
-  // Up for a prompt that is over, on its way down: nothing shows, not the
-  // full OSD until Kodi has hidden the page.
+  // Keep the page blank after a prompt closes until Kodi hides it, preventing
+  // a flash of the full OSD.
   const goingDown = createMemo<{ last: Prompt; down: boolean }>(
     (was) => {
       const now = prompt();
@@ -66,8 +62,7 @@ export function Osd() {
     { last: null, down: false },
   );
   const going = createMemo(() => goingDown().down);
-  // The clock and when it ends, recomputed on Kodi's position updates (a
-  // few a second); the text only changes once a minute.
+  // Playback updates refresh the current and estimated end times at minute precision.
   const now = () => {
     void state.player.time;
     return hhmm(new Date());
@@ -75,7 +70,7 @@ export function Osd() {
   const endsAt = () => hhmm(new Date(Date.now() + (duration() - state.player.time) * 1000));
   const duration = () => state.player.duration ?? (playback()?.item.duration ?? 0) / 1000;
 
-  // A fresh OSD each time it comes up.
+  // Reset transient controls when leaving OSD mode.
   createEffect(
     on(
       () => state.mode,
@@ -87,8 +82,7 @@ export function Osd() {
       },
     ),
   );
-  // Down by itself after a while: any key, a resume or a closed menu starts
-  // the wait again.
+  // Restart the hide timer after a key, playback resume or menu closure.
   const [keyAt, setKeyAt] = createSignal(0);
   const onKey = () => {
     if (state.mode === 'osd') setKeyAt(Date.now());
@@ -104,7 +98,7 @@ export function Osd() {
   });
   onCleanup(() => clearTimeout(hideTimer));
 
-  // The prompt it came up for is over: down again.
+  // Hide the page when its unexpanded prompt ends.
   createEffect(on(going, (down) => down && send({ cmd: 'osd-off' })));
 
   const scrub = (direction: string) => {
@@ -131,14 +125,14 @@ export function Osd() {
   const trackOption = (t: Track) => ({ label: t.detail ? `${t.label} · ${t.detail}` : t.label, value: t });
   const focus = (onSelect: () => void, autofocus = false) => (el: HTMLElement) =>
     focusable(el, { scope: 'osd', group: 'osd-buttons', autofocus, onSelect, onFocus: () => setTarget(null) });
-  // Playback: an icon, named when focused (or always, for one that comes and goes).
+  // Show action labels on focus; temporary actions can keep their labels visible.
   const action = (icon: JSX.Element, name: () => string, onSelect: () => void, opts: { named?: boolean; autofocus?: boolean } = {}) => (
     <div class="osd-action" classList={{ named: opts.named }} ref={focus(onSelect, opts.autofocus)}>
       {icon}
       <span class="name">{name()}</span>
     </div>
   );
-  // A track setting: what, then which; Select opens its menu.
+  // Show the track category and selection; Select opens the choices.
   const track = (icon: JSX.Element, what: string, which: () => string, onSelect: () => void) => (
     <div class="osd-track" ref={focus(onSelect)}>
       {icon}
@@ -319,7 +313,7 @@ export function Osd() {
   );
 }
 
-/** Back on the OSD: a prompt is dismissed (and Up next's autoplay off). */
+/** Hide the OSD and dismiss any prompt, including Up next autoplay. */
 export function osdBack(): void {
   if (prompt()) dismiss();
   send({ cmd: 'osd-off' });
@@ -334,7 +328,7 @@ const SUBTITLES = 'M4.5 5h15a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2h-15a2 2 0 0 1-2-2V7a
 const QUALITY = 'M12 14.5l4-4.5M3.4 19a10 10 0 1 1 17.2 0';
 const CHEVRONS = 'm7 9 5-5 5 5M7 15l5 5 5-5';
 
-/** A 24×24 icon: outlined, or filled for the playback ones. */
+/** Render a 24×24 icon, filled for playback actions or outlined for settings. */
 function Icon(props: { d: string; fill?: boolean; class?: string }) {
   return (
     <svg

@@ -1,24 +1,24 @@
-// The app's saved settings, kept by the add-on (@oriel/web's store.ts).
+// Persist app settings through @oriel/web's add-on store.
 
 import { type BaseSaved, load as loadStore, save as saveStore } from '@oriel/web';
 
 export interface Saved extends BaseSaved {
   clientId?: string;
-  /** The plex.tv account that signed in; switches between Home users. */
+  /** Account token used to switch Plex Home profiles. */
   accountToken?: string;
   userUuid?: string;
   userToken?: string;
-  /** The add-on start (`run`) in which that user was chosen. */
+  /** Add-on run id in which the profile was selected. */
   userRun?: string;
-  /** The server each user chose last, by user uuid. */
+  /** Last selected server for each user UUID. */
   servers?: Record<string, string>;
-  /** Settings (prefs.ts). */
+  /** Persisted preferences from prefs.ts. */
   qualityLocal?: number;
   qualityRemote?: number;
   autoSignIn?: boolean;
   autoSkipIntro?: boolean;
   autoSkipCredits?: boolean;
-  /** An ACCENTS id (prefs.ts). */
+  /** Accent colour id from prefs.ts. */
   accent?: string;
 }
 

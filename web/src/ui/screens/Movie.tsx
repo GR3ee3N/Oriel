@@ -13,8 +13,7 @@ import { Shelf } from '../components/Shelf';
 import { WatchedButton } from '../components/WatchedButton';
 import './details.css';
 
-/** A movie: its art, logo, facts and summary, Resume/Play and watched;
- * below, the cast and more like it. */
+/** Movie details, playback and watched controls, followed by cast and recommendations. */
 export function Movie(props: { ratingKey: string }) {
   const [meta] = createResource(
     () => [props.ratingKey, dataVersion()] as const,

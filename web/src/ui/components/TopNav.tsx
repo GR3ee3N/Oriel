@@ -7,7 +7,7 @@ import { changeUser, chooseServer, serverOptions, session } from '../../session'
 import { Menu, type MenuOption } from './Menu';
 import './topnav.css';
 
-// One clock for every top bar, ticking on the minute.
+// Share one minute-aligned clock across mounted top bars.
 const [now, setNow] = createSignal(new Date());
 let clockTimer: ReturnType<typeof setTimeout> | undefined;
 let clockUsers = 0;
@@ -24,11 +24,9 @@ function useClock() {
   return () => hhmm(now());
 }
 
-/** The bar on every tab: Home, Search, the libraries, Settings; the user
- * and the time on the right. Up from a screen always lands on the active
- * tab (the bar keeps no focus of its own), and so does the focus while a
- * new tab's content loads. With several servers or Home users, the user
- * opens the account menu: the servers and Switch user. */
+/** Shared tabs, account menu and clock. Entering the bar always focuses the
+ * active tab, including while tab content loads. The account menu offers
+ * server and profile switching when multiple choices exist. */
 export function TopNav() {
   const tabs = (): { label: string; route: Route }[] => [
     { label: 'Home', route: { screen: 'home' } },

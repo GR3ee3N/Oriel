@@ -4,8 +4,7 @@ import './confirm.css';
 
 let confirms = 0;
 
-/** A question in the middle of the screen with two answers, in its own
- * focus scope like a Menu; Back is No. The focus starts on Yes. */
+/** Isolate a two-choice confirmation with initial focus on Yes; Back selects No. */
 export function Confirm(props: {
   title: string;
   yes: string;

@@ -16,7 +16,7 @@ import './home.css';
 
 const PLAYABLE_HUBS = ['movie', 'show', 'episode', 'season', 'mixed', 'collection'];
 
-// Plex can send the same item in Continue Watching and On Deck.
+// Continue Watching and On Deck can contain the same item; deduplicate by ratingKey.
 function homeRows(hubs: Hub[]): Hub[] {
   const rows = hubs.filter((h) => h.Metadata?.length && PLAYABLE_HUBS.includes(h.type));
   const started = new Set(rows.find((h) => h.hubIdentifier === 'home.continue')?.Metadata?.map((m) => m.ratingKey));
@@ -34,13 +34,13 @@ const backdropOf = (m: Metadata | undefined) => (m?.type === 'episode' ? (m.gran
 export function Home() {
   const [hubs] = createResource(dataVersion, () => homeHubs(currentServer()));
   const rows = () => homeRows(hubs() ?? []);
-  // Nothing to wait for: no rows, or no Home at all.
+  // Release the splash when Home has no rows or another root tab is active.
   createEffect(() => {
     if (hubs.error || (hubs() && !rows().length)) markHomeReady();
   });
 
-  // Delay metadata layout until the row stops sliding to avoid dropped frames.
-  // Decode the logo before swapping the hero; hubs omit the streams needed for HDR badges.
+  // Keep metadata layout out of the row animation to prevent dropped frames.
+  // Wait for logo decoding before changing the hero. Fetch full metadata for HDR badges.
   const [hero, setHero] = createSignal<{ item: Metadata; logo?: string; full?: Metadata; late?: boolean }>();
   let wanted: Metadata | undefined;
   let heroTimer: ReturnType<typeof setTimeout> | undefined;
@@ -59,16 +59,16 @@ export function Home() {
         if (wanted !== item) return;
         setHero({ item, logo, full });
         if (!full) {
-          // Late: its badges fade in when it comes.
+          // Fade in badges when full metadata arrives after the hero.
           pending.then((f) => {
             const h = hero();
             if (f && h?.item === item) setHero({ ...h, full: f, late: true });
           });
         }
-        // The neighbours', so moving on finds them in the cache (a minute).
+        // Cache neighbouring metadata for the next focus move; entries last one minute.
         for (const m of around) void fullOf(m);
-        // The splash goes once the first item's picture is in too (the
-        // backdrop then decodes it from the cache, at once).
+        // Release the splash after the first backdrop is decoded so it can reuse
+        // the cached image when Home appears.
         if (first) {
           const path = backdropOf(item);
           const ready = path ? preload(backdropUrl(path)) : Promise.resolve();

@@ -1,5 +1,5 @@
 #!/bin/sh
-# Development settings take effect the next time Oriel opens.
+# Reopen Oriel to apply development settings.
 set -eu
 BOX="${BOX:?set BOX to your box, e.g. BOX=root@coreelec.local}"
 FILE=/storage/oriel/dev/script.oriel.oriel.json

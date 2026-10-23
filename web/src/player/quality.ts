@@ -1,10 +1,9 @@
-// Playback quality: the original file, or a transcode at most this many
-// kbps (Plex's own ladder, as in PM4K and Plex's apps).
+// Original playback or a transcode bitrate limit in kbps, using Plex's quality ladder.
 
 export interface Quality {
   kbps: number;
   label: string;
-  /** The largest picture for the transcoder. */
+  /** Maximum transcode resolution. */
   resolution: string;
 }
 

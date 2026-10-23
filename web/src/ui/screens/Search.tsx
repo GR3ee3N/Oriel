@@ -12,8 +12,7 @@ import './search.css';
 const KEYS = [...'abcdefghijklmnopqrstuvwxyz1234567890'];
 const TITLES: Record<string, string> = { movie: 'Movies', show: 'Shows', episode: 'Episodes', collection: 'Collections' };
 
-/** An on-screen keyboard on the left, results as rows on the right,
- * searching as you type (after a short pause). */
+/** Debounce typed searches and show result rows beside the on-screen keyboard. */
 export function Search() {
   const [query, setQuery] = createSignal('');
   const [settled, setSettled] = createSignal('');
@@ -31,8 +30,7 @@ export function Search() {
   );
 
   const type = (k: string) => setQuery((q) => (k === 'del' ? q.slice(0, -1) : k === 'clear' ? '' : q + k));
-  // A keyboard on the remote types straight in, while this screen is the
-  // one in front.
+  // Accept remote keyboard input only while Search is the active screen.
   const scope = useScope();
   const onKey = (e: KeyboardEvent) => {
     if (activeScope() !== scope) return;

@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
-"""Local /api stand-in on 127.0.0.1:32499 for browser UI development.
+"""Serve a simulated add-on API at 127.0.0.1:32499 for browser development.
 
 Run alongside `npm run dev` in web/ and open http://localhost:5173/.
-Browsing uses real Plex servers. Playback is simulated: nothing plays, but
-the player's state runs as the add-on's would (addon/lib/oriel/video.py in
-oriel-framework), so the OSD shows, hides, pauses, seeks and reaches the
-end. Settings, including tokens, are in .cache/desktop-store.json.
+Browsing uses real Plex servers. No media plays; simulated player state
+supports OSD visibility, pause, seek and end-of-playback testing. The state
+follows addon/lib/oriel/video.py in oriel-framework. Settings, including
+Plex tokens, are stored in .cache/desktop-store.json.
 """
 import json
 import os
@@ -19,7 +19,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 PORT = 32499
 STORE = os.path.join(os.path.dirname(__file__), "..", ".cache", "desktop-store.json")
 FAILURES = {"invalid": 400, "unavailable": 409, "failed": 500}
-# How long a file takes to start.
+# Simulated loading delay in seconds.
 LOADING = 1.5
 
 
@@ -34,16 +34,16 @@ STATE = {
     "screensaver": 0,
     "player": player_state(),
     "decoders": None,
-    # The page takes keys during video itself (App.tsx): the add-on would.
+    # App.tsx handles video keys here because no add-on receives them.
     "desktop": True,
 }
 RUN = uuid.uuid4().hex
 LOCK = threading.RLock()
 CLIENTS = set()
-# The media source, for the duration Kodi would read from the file.
+# Query this source for the duration Kodi would read from the file.
 SOURCE = {"base": None, "headers": {}}
 plays = 0
-# Where the stream begins in the item's timeline.
+# Stream start in seconds on the item's timeline.
 stream_offset = 0
 
 
@@ -109,7 +109,7 @@ def plex_duration(meta):
 
 
 def start(play, duration, meta, paused):
-    # Kodi knows a file's duration; the page gives a transcode's.
+    # The page supplies transcode duration; query Plex for direct-play duration.
     duration = duration or plex_duration(meta)
     time.sleep(LOADING)
     with LOCK:
@@ -215,7 +215,7 @@ class Handler(BaseHTTPRequestHandler):
             return self.json(store(data))
         if self.path != "/api/cmd":
             return self.send_error(404)
-        # Only the command's name: some carry tokens.
+        # Log command names only; fields can contain tokens.
         print(f"page: {data.get('cmd')}", flush=True)
         try:
             with LOCK:

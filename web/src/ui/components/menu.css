@@ -21,8 +21,7 @@
   font-size: var(--fs-body);
   color: var(--text-2);
 }
-/* A colour choice (Settings, Accent colour): a ring keeps it apart from
-   the focused option's background, which may be the same colour. */
+/* Outline swatches so they remain visible against a matching focus colour. */
 .menu .swatch {
   flex: none;
   width: 30px;

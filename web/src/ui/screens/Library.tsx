@@ -16,10 +16,10 @@ const SORTS: MenuOption<string>[] = [
   { label: 'Recently watched', value: 'lastViewedAt:desc' },
 ];
 
-// Per library, for the session: coming back keeps the order.
+// Retain each library's sort order for this session.
 const remembered = new Map<string, { sort: string; unwatched: boolean }>();
 
-/** A whole library as a grid, with sort and an unwatched filter. */
+/** Browse a library grid with sorting and an unwatched filter. */
 export function Library(props: { section: string; title: string }) {
   const start = remembered.get(props.section) ?? { sort: 'titleSort', unwatched: false };
   const [sort, setSort] = createSignal(start.sort);
@@ -27,7 +27,7 @@ export function Library(props: { section: string; title: string }) {
   const [menu, setMenu] = createSignal(false);
   const [total, setTotal] = createSignal<number>();
   const save = () => remembered.set(props.section, { sort: sort(), unwatched: unwatched() });
-  // The A–Z rail, when sorted by title: each letter's first index.
+  // For title sorting, map each A–Z rail character to its first item index.
   const [letters] = createResource(
     () => (sort() === 'titleSort' ? ([props.section, unwatched()] as const) : null),
     async ([section, unwatchedOnly]) => {

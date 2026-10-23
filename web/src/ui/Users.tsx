@@ -13,8 +13,8 @@ export function Users() {
   const [busy, setBusy] = createSignal(false);
   const [error, setError] = createSignal('');
 
-  // Opened with "Switch user": Back returns to the library. At start-up
-  // there is none, and Back leaves the app.
+  // Back returns to the library during a profile switch, or exits at startup
+  // when no library session exists.
   onBack(() => keepUser() || askExit());
 
   const choose = async (user: HomeUser, pin?: string) => {
@@ -46,7 +46,7 @@ export function Users() {
                       class="user"
                       ref={(el) =>
                         focusable(el, {
-                          // The last user, else the first.
+                          // Focus the last profile, falling back to the first.
                           autofocus: session.users.some((u) => u.uuid === session.lastUser)
                             ? user.uuid === session.lastUser
                             : i() === 0,
@@ -96,7 +96,7 @@ function PinPad(props: {
 }) {
   const [pin, setPin] = createSignal('');
   const [wrong, setWrong] = createSignal(false);
-  // A wrong PIN: the dots shake, then empty for the next try.
+  // Keep rejected PIN dots visible through the shake, then clear them for retry.
   let shake: ReturnType<typeof setTimeout> | undefined;
   createEffect(
     on(
@@ -116,7 +116,7 @@ function PinPad(props: {
 
   const press = (key: string) => {
     if (key === 'cancel') return props.onCancel();
-    // The full PIN stays on screen while it is checked.
+    // Keep all four dots filled while plex.tv checks the PIN.
     if (props.busy || wrong()) return;
     if (key === 'del') return setPin((p) => p.slice(0, -1));
     const next = (pin() + key).slice(0, PIN_LENGTH);
@@ -124,7 +124,7 @@ function PinPad(props: {
     if (next.length === PIN_LENGTH) props.onDone(next);
   };
   onBack(props.onCancel);
-  // Remotes with digits type straight in.
+  // Accept digit keys directly from the remote.
   const onKey = (e: KeyboardEvent) => {
     if (/^[0-9]$/.test(e.key)) press(e.key);
   };
@@ -162,7 +162,7 @@ function PinPad(props: {
   );
 }
 
-/** Delete: a key cap pointing left with a cross (Inter has no ⌫). */
+/** Draw the backspace key because Inter lacks the ⌫ glyph. */
 function BackspaceIcon() {
   return (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true">

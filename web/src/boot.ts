@@ -1,6 +1,5 @@
-// Whether Home is complete enough to show: the splash (ui/Splash.tsx)
-// stays over it until its rows, the first item's info and its picture are
-// in, so Home appears whole rather than piece by piece.
+// Keep the splash visible until Home's rows and the first item's metadata
+// and artwork are ready, so the screen appears together.
 
 import { createSignal } from 'solid-js';
 
@@ -11,7 +10,7 @@ export function markHomeReady(): void {
   setHomeReady(true);
 }
 
-/** A new session (another user, a new sign-in): Home loads again. */
+/** Wait for Home to load after sign-in or a user change. */
 export function resetHomeReady(): void {
   setHomeReady(false);
 }

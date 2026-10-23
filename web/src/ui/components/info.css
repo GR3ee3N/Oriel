@@ -1,12 +1,11 @@
-/* The head has a fixed height with the logo or title on its bottom line,
-   so the lines under it stay put from item to item. */
+/* Bottom-align titles and logos in a fixed-height header so metadata stays
+   at the same position when the item changes. */
 .info-head { display: flex; align-items: flex-end; height: 210px; }
 .info-page .info-head { height: 170px; }
 .info-logo { display: block; max-width: 720px; max-height: 200px; }
 .info-page .info-logo { max-width: 620px; max-height: 160px; }
-/* The clamp clips at the line box: Inter's descenders need 1.2 to fit
-   (at 1.05 a "g" was cut off). The margin keeps the baseline where 1.05
-   put it, so the lines under it don't move. */
+/* Inter's descenders need 1.2 line height to fit within the clamped line box.
+   The negative margin compensates for the extra height to preserve alignment. */
 .info-title {
   font-weight: 750;
   letter-spacing: -0.015em;

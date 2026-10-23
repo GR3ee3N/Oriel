@@ -1,133 +1,147 @@
 # Developing Oriel
 
 Oriel is a Kodi add-on (`script.oriel.oriel`) built on the
-[Oriel framework](https://github.com/GR3ee3N/oriel-framework). Kodi plays Plex
-media through the framework's proxy. WPE WebKit renders the TypeScript/Solid
-interface over Kodi's video; Vite builds the page. WebKit comes from
-[Oriel WebKit](https://github.com/GR3ee3N/oriel-webkit).
+[Oriel framework](https://github.com/GR3ee3N/oriel-framework). Kodi plays
+media from Plex through the framework's proxy. WPE WebKit, supplied by
+[Oriel WebKit](https://github.com/GR3ee3N/oriel-webkit), renders the
+TypeScript/Solid interface over Kodi's video. Vite builds the page.
 
 ## Layout
 
 ```
-addon/          the Kodi add-on
-  addon.xml     metadata; tools/build.sh fills in the versions
-  default.py    the app: the framework's VideoApp
-  resources/    icon, fanart and mark.png (the start window's mark)
-web/            the page
-  src/plex/     the Plex API: sign-in, servers, library, images
-  src/player/   playback: tracks, transcodes, timeline, Skip intro, Up next
+addon/          Kodi add-on
+  addon.xml     metadata and version placeholders
+  default.py    VideoApp subclass and entry point
+  resources/    icon, fanart and startup mark
+web/            web interface
+  src/plex/     Plex API: sign-in, servers, libraries and images
+  src/player/   playback, tracks, transcoding and episode prompts
   src/ui/       screens and components
-build/          what the build uses
+build/          packaging, license notices and version settings
   versions.env  VERSION and FRAMEWORK_VERSION
-tools/          the commands below
+tools/          build, deployment and development scripts
 ```
 
 ## Setup
 
-You need Linux or macOS with Bash, Python 3.11 or newer, rsync, ShellCheck
-and a Node.js version allowed by `web/package.json`.
-Working on a box needs a CoreELEC 22 box you can reach as root over
-SSH; releasing needs the GitHub CLI (`gh`).
+Use Linux or macOS with Bash, Python 3.11 or newer, rsync, ShellCheck and a
+Node.js version supported by `web/package.json`. Device testing requires
+root SSH access to a CoreELEC 22 box. Releases require the GitHub CLI (`gh`).
 
 ```sh
 (cd web && npm ci)
 export BOX=root@coreelec.local
 ```
 
-`npm ci` installs `@oriel/web` from the framework's GitHub release given in
-`web/package.json`; `web/.npmrc` allows that URL dependency.
+`npm ci` installs `@oriel/web` from the framework release specified in
+`web/package.json`. `web/.npmrc` permits this URL dependency.
 
-The box needs Oriel WebKit, the Oriel framework and Oriel display first.
-Deploy them from checkouts of those repositories (`tools/deploy.sh` in each). The
-framework's deploy also installs its box tools in `/storage/oriel/tools/box`,
-which `tools/deploy.sh` here uses.
+Before deploying Oriel, install Oriel WebKit, Oriel display and the Oriel
+framework on the box. Each repository has a `tools/deploy.sh` script. The
+framework's script also installs `/storage/oriel/tools/box`, which Oriel's
+deployment script requires.
 
-## Working on the box
+## Device development
 
-- `tools/deploy.sh` builds Oriel and installs it on `$BOX`, waiting for Kodi
-  to register and enable it, including on retries. A running Oriel keeps its
-  old code until it is opened again.
-- `tools/dev.sh on` makes Oriel on the box load the page from Vite's dev
-  server on your computer, with hot reload on the TV, and turns on WebKit's
-  remote inspector at `http://<box>:9226`. Run `npm run dev` in `web/`
-  first. `tools/dev.sh off` goes back to the built page. Both take effect
-  the next time Oriel opens. `DEV_HOST` overrides the address the box
-  connects to.
+`tools/deploy.sh` builds Oriel and installs it on `$BOX`. It waits for Kodi
+to register and enable the add-on, including when retrying an installation.
+Exit and reopen Oriel to load the installed code.
 
-The logs are in `/storage/.kodi/userdata/addon_data/script.oriel.oriel/`
-on the box: `addon.log` for the add-on and the framework, `shell.log` for
-WebKit with the page's console. They start over each time Oriel opens.
-Kodi draws Oriel in its own GUI, so Kodi's screenshot captures what Oriel
-shows (set a folder in Kodi's settings under System → Logging first):
+For hot reload on the TV, run `npm run dev` in `web/`, then
+`tools/dev.sh on`. Oriel will load the page from your computer's Vite
+server. WebKit's remote inspector is available at `http://<box>:9226`.
+Set `DEV_HOST` if the box needs a different address for your computer.
+`tools/dev.sh off` restores the bundled page. Both commands take effect
+when Oriel next opens.
+
+Logs are in `/storage/.kodi/userdata/addon_data/script.oriel.oriel/`:
+
+- `addon.log`: add-on and framework messages.
+- `shell.log`: WebKit output and the page's console.
+
+Both logs are overwritten each time Oriel opens.
+
+To capture Oriel's interface, set a screenshot folder in Kodi under
+**System → Logging**, then run:
 
 ```sh
 ssh "$BOX" kodi-send --action=TakeScreenshot
 ```
 
-Over HDR or Dolby Vision video a capture can differ from the screen; check
-the TV there.
+The video layer appears black in screenshots. With HDR or Dolby Vision
+playback, the captured interface can also differ from what the TV shows;
+check the TV directly.
 
-## Working without a box
+## Browser development
 
-`tools/desktop.py` stands in for the add-on's API on your computer, so the
-page runs in a desktop browser. Run it, and `npm run dev` in `web/` in a
-second terminal, then open `http://localhost:5173/` at 1920×1080 (the
-browser's device mode).
-Arrows, Enter and Escape are the remote. Signing in, browsing, art and
-settings work against your Plex servers; nothing plays, and commands meant
-for Kodi are only printed. The settings, tokens included, are kept in
+Run `tools/desktop.py` and, in a second terminal, run `npm run dev` in
+`web/`. Open `http://localhost:5173/` and set the browser's device viewport
+to 1920×1080. Arrows, Enter and Escape act as remote keys.
+
+Sign-in, browsing, artwork and settings use your Plex servers. Playback
+is simulated: the player state advances so you can test the OSD, pause,
+seek and end of playback, but no media plays. The server logs command
+names. Settings, including Plex tokens, are stored in
 `.cache/desktop-store.json`.
 
-## Building
+## Checks and builds
 
 ```sh
-tools/check.sh            # shell checks, Python tests, TypeScript and Vitest
-tools/build.sh            # the add-on in .cache/runtime/script.oriel.oriel
+tools/check.sh
+tools/build.sh
 ```
 
-The build checks that `web/package.json` installs `FRAMEWORK_VERSION`'s
-`@oriel/web`, installs locked dependencies, bundles the page, and copies
-`addon/` with the versions filled in, the page in `resources/web`,
-`LICENSE.txt` and `THIRD-PARTY-NOTICES.txt`. `build/notices.py` writes the
-notices for the npm packages the page ships. Building does not run tests or
-typechecking; run `tools/check.sh` before submitting a change. Both commands
-work without Git metadata.
+`tools/check.sh` runs ShellCheck, Python tests, TypeScript checking and
+Vitest. Run it before submitting a change. For individual test suites, use
+`python3 -m unittest tests.test_package -v` or run `npm test` in `web/`.
+Playback, remote input and overlays also require device testing.
 
-For individual tests, run `python3 -m unittest tests.test_package -v` or
-`cd web && npm test`.
-Playback, remote input and overlays still need device QA.
+`tools/build.sh` checks that `web/package.json` installs the `@oriel/web`
+release specified by `FRAMEWORK_VERSION`, installs locked dependencies and
+bundles the page. It stages the add-on in
+`.cache/runtime/script.oriel.oriel`, fills in version placeholders, and
+includes the page in `resources/web`, `LICENSE.txt` and
+`THIRD-PARTY-NOTICES.txt`. `build/notices.py` collects the notices for npm
+packages shipped with the page.
+
+The build does not run tests or TypeScript checking. Both scripts work
+without Git metadata.
 
 ## Versions
 
-`build/versions.env` holds `VERSION`, Oriel's version, and
-`FRAMEWORK_VERSION`, the oldest framework release Oriel works with. Raise
-the framework version only when Oriel needs something newer, and install
-that release's `@oriel/web` with it:
+`build/versions.env` defines `VERSION`, Oriel's version, and
+`FRAMEWORK_VERSION`, the minimum required framework version. Raise
+`FRAMEWORK_VERSION` when Oriel requires a newer framework, and install the
+matching `@oriel/web` release:
 
 ```sh
 (cd web && npm install https://github.com/GR3ee3N/oriel-framework/releases/download/v<version>/oriel-web-<version>.tgz)
 ```
 
-## Releasing
+## Releases
 
-Bump `VERSION`, set the news in `addon/addon.xml`, and commit. Then, from a
-clean working tree, with `gh` signed in to an account that can publish
-releases:
+Bump `VERSION`, write release notes in the `<news>` element of
+`addon/addon.xml`, and commit. From a clean working tree, with `gh`
+authenticated to an account that can publish releases, run:
 
 ```sh
 tools/release.sh
 ```
 
-It checks and builds a snapshot of the committed source, packages and
-validates the zip, Kodi index, art and checksums, then tags `v<version>` and
-uploads a draft GitHub release with the news as the release notes.
-The files are in `.cache/release/files`; `.cache/release/COMMIT` records their
-source.
+The script checks and builds a snapshot of the committed source. It
+packages and validates the add-on ZIP, Kodi index, artwork and checksums,
+then tags `v<version>` and uploads a draft GitHub release. The `<news>`
+text becomes the release notes.
 
-## Art
+Release files are in `.cache/release/files`.
+`.cache/release/COMMIT` records the source commit.
 
-`tools/make-art.py` draws the icon, the fanart, `mark.png` and the page's
-`web/src/ui/mark.svg` from one definition of the mark. Run it after changing
-the mark. The display add-on shows `mark.png` in its browse
-window until the page's first frame, and the splash draws the SVG at the
-same place, so the start looks like one picture.
+## Artwork
+
+`tools/make-art.py` generates the icon, fanart, startup `mark.png` and
+`web/src/ui/mark.svg` from one shape definition. Run it after changing the
+mark and commit the generated files.
+
+Oriel display shows `mark.png` until the page draws its first frame. The
+page's splash screen draws the SVG at the same position and size to keep
+the mark in place during startup.

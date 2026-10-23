@@ -1,5 +1,4 @@
-/* Over Kodi's video: neutral translucency only (black and white alpha);
-   opaque colour is fine. */
+/* Hardware blending over video supports black/white translucency and opaque colours. */
 .osd { position: absolute; inset: 0; }
 
 .osd-panel {
@@ -17,7 +16,7 @@
 .osd-clock { text-align: right; }
 .osd-clock b { display: block; font-size: 40px; font-weight: 700; font-variant-numeric: tabular-nums; }
 .osd-clock span { display: block; font-size: var(--fs-meta); color: rgba(255, 255, 255, 0.75); }
-/* The scrub preview takes its place. */
+/* Hide the title while the scrub preview occupies its space. */
 .osd-title.hidden { opacity: 0; }
 .osd-title b { display: block; font-size: 44px; font-weight: 750; }
 .osd-title span { display: block; margin-top: 4px; font-size: var(--fs-meta); color: rgba(255, 255, 255, 0.75); }
@@ -56,7 +55,7 @@
 .osd .btn { background: #2a2f3a; }
 .osd .btn.focused { background: var(--accent); color: var(--accent-text); }
 
-/* Playback actions left, track settings right; all on the same dark fill. */
+/* Align playback actions left and track settings right with a shared dark background. */
 .osd .buttons { margin-top: 28px; display: flex; align-items: center; }
 .osd-actions, .osd-tracks { display: flex; gap: 14px; align-items: center; }
 .osd-tracks { margin-left: auto; }
@@ -71,7 +70,7 @@
 }
 .osd-action.focused, .osd-track.focused { background: var(--accent); border-color: transparent; color: var(--accent-text); transform: var(--lift); }
 .osd-action svg, .osd-track svg { flex: none; width: 26px; height: 26px; }
-/* A circle; focused, a pill with its name. */
+/* Expand focused action icons to reveal their labels. */
 .osd-action { min-width: 68px; padding: 0 20px; border-radius: 34px; justify-content: center; gap: 12px; font-size: var(--fs-meta); font-weight: 650; }
 .osd-action .name { display: none; }
 .osd-action.focused, .osd-action.named { padding: 0 30px 0 24px; }
@@ -83,7 +82,7 @@
 .osd-track.focused small { color: rgba(0, 0, 0, 0.6); }
 .osd-track .more { width: 20px; height: 20px; margin-left: 4px; opacity: 0.5; }
 
-/* A prompt alone: a card bottom right. */
+/* Position unexpanded playback prompts at the bottom right. */
 .prompt {
   position: absolute;
   right: var(--edge);
@@ -94,11 +93,11 @@
   gap: 16px;
 }
 .next-card .countdown { display: block; margin-top: 6px; font-size: var(--fs-small); color: rgba(255, 255, 255, 0.75); }
-/* Drains over the countdown: a transform, eased between Kodi's updates. */
+/* Interpolate countdown width with a transform between Kodi position updates. */
 .countdown-bar { width: 240px; height: 6px; border-radius: 3px; background: rgba(255, 255, 255, 0.25); overflow: hidden; }
 .countdown-bar div { height: 100%; background: #fff; transform-origin: left; transition: transform 1s linear; }
-/* Skip intro skipping by itself: the button fills as it counts down, over
-   INTRO_AFTER (set on it), standing still while paused like the countdown. */
+/* Fill the intro button over INTRO_AFTER seconds, set by the component.
+   Pause the animation with the countdown. */
 .prompt .btn { position: relative; overflow: hidden; }
 .prompt .btn > span { position: relative; }
 .intro-fill {

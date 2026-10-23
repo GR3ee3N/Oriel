@@ -1,9 +1,6 @@
-// The app's own settings. Kodi's (display, HDR, audio passthrough) stay in
-// Kodi's settings.
-//
-// The settings are a list on the left; the focused one's choices are always
-// shown on the right. Right or Select moves into the choices (their own focus
-// scope); a choice, Left or Back returns to the list.
+// App settings only; display mode, HDR and audio passthrough are configured in Kodi.
+// Focus on the left selects the choices shown on the right. Right or Select
+// enters the choices' focus scope; selection, Left or Back returns to the list.
 
 import { createMemo, createSignal, For, type JSX, onCleanup, Show } from 'solid-js';
 import { activeScope, focusable, onBack, setScope } from '@oriel/web';
@@ -85,7 +82,7 @@ const ACCENT = setting({
   selected: () => prefs.accent,
   onChoose: (id) => setPref('accent', id),
 });
-// The framework's setting, for every Oriel app on the box; a change reloads the screen.
+// Shared framework setting: changing it reloads the page and affects all Oriel apps.
 const RENDERING = setting({
   label: 'Rendering',
   value: () => (state.cpuRendering ? 'CPU' : 'GPU'),
@@ -97,7 +94,7 @@ const RENDERING = setting({
   onChoose: (on) => send({ cmd: 'cpu-rendering', on }),
 });
 
-/** Mounted while the choices have the focus: Back returns to the list. */
+/** Register Back only while choices have focus so it returns to the settings list. */
 function BackTo(props: { leave: () => void }) {
   onBack(() => props.leave());
   return null;
@@ -112,7 +109,7 @@ function Avatar(props: { class: string }) {
 }
 
 export function Settings() {
-  // The focused row: the account, or a setting.
+  // Track the selected row independently of focus inside its choices.
   const [shown, setShown] = createSignal<Setting | 'account'>('account');
   const [inside, setInside] = createSignal(false);
   let previous = activeScope();
@@ -148,8 +145,7 @@ export function Settings() {
     </div>
   );
 
-  // New options whenever the row or its value changes, so that the focus
-  // lands on the selected one.
+  // Recreate options when the row or value changes so focus starts on the selected choice.
   const choices = createMemo(() => {
     const s = shown();
     if (s === 'account') return [];

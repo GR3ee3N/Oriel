@@ -1,12 +1,11 @@
-// When browse data may be stale: after playback (watch state, progress)
-// the cached responses are dropped and screens reload what they show.
+// Clear cached browse data after playback so screens reload watch state and progress.
 
 import { createSignal } from 'solid-js';
 import { invalidate } from './plex/api';
 
 const [version, setVersion] = createSignal(0);
 
-/** Read it in a resource's source to reload when data changes. */
+/** Read in a resource source to reload it when browse data changes. */
 export const dataVersion = version;
 
 export function refresh(): void {

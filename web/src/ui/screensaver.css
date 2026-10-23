@@ -1,5 +1,5 @@
 .screensaver { position: absolute; inset: 0; z-index: 40; background: #000; }
-/* Each picture a layer of its own; a slow cross-fade between them. */
+/* Composite each picture separately for opacity-only cross-fades. */
 .saver-layer {
   position: absolute;
   left: 0;
@@ -9,7 +9,7 @@
   will-change: opacity;
 }
 .saver-layer img { display: block; width: 1920px; height: 1080px; }
-/* Dimmed, as a screensaver is, and darker where the text is. */
+/* Dim artwork, with extra shading beneath text for readability. */
 .saver-shade {
   position: absolute;
   inset: 0;

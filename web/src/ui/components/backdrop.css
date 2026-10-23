@@ -1,6 +1,6 @@
 .backdrop { position: absolute; inset: 0; background: var(--bg); overflow: hidden; }
-/* A scene is the colour field with the art over it, in one canvas; two of
-   them cross-fade. Each is a layer of its own: the fade is compositing. */
+/* Each scene combines artwork and colour in one canvas. Separate layers
+   keep the two-scene cross-fade in the compositor. */
 .backdrop .scene {
   position: absolute;
   inset: 0;
@@ -8,8 +8,7 @@
   transition: opacity var(--slow) ease;
   will-change: opacity;
 }
-/* Painted once per item (Backdrop.tsx); the scene's cross-fade stays in
-   the compositor. */
+/* Backdrop.tsx paints each item once; opacity changes do not repaint the canvas. */
 .backdrop canvas {
   position: absolute;
   left: 0;
@@ -18,8 +17,7 @@
   width: 1920px;
   height: 1080px;
 }
-/* For text: a little darker on the left and under the top bar; static,
-   painted once. */
+/* Static shading improves text contrast on the left and beneath the top bar. */
 .backdrop .shade {
   position: absolute;
   inset: 0;

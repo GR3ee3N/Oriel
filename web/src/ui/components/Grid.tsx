@@ -9,39 +9,33 @@ const COLS = 7;
 const GAP = 24;
 const PITCH = 420;
 const PAGE = 70;
-/** Rows rendered above and below the focused one. The rows below the screen
- * load their posters ahead, so there is no preload: decoding a second copy of
- * a poster already on screen blanked it for a frame. */
+/** Render extra rows above and below focus so tiles load posters in advance.
+ * Avoid separate preloads: decoding a second copy can blank a visible poster. */
 const BEFORE = 2;
 const AFTER = 3;
 
 export interface GridProps {
-  /** Loads `size` items from `start`; must report totalSize. */
+  /** Load `size` items at offset `start`; the response must include totalSize. */
   load: (start: number, size: number) => Promise<MediaContainer>;
-  /** Changes when the content changes (sort, filter), to start over. */
+  /** Reset pagination and focus when sort or filter changes this key. */
   key: string;
   onSelect: (item: Metadata) => void;
   onTotal?: (total: number) => void;
-  /** Set to move the focus to an item (the A–Z rail); `n` makes the same
-   * index a new request. */
+  /** Jump to an item from the A–Z rail; increment `n` to repeat the same index. */
   jump?: { index: number; n: number };
 }
 
-/** A poster grid over a whole library. Only the rows around the focus are
- * in the DOM, positioned absolutely; pages of items load as the focus gets
- * near them. The focused row sits on the grid's top line. */
+/** Virtualize library posters around the focused row, aligned at the top.
+ * Load pages as focus approaches them and position tiles absolutely. */
 export function Grid(props: GridProps) {
-  // Plain objects, not a store: wrapping Plex's deep metadata in a store cost
-  // tens of milliseconds per page on the box.
+  // Keep metadata in plain objects to avoid deep reactive-store wrapping overhead.
   const [items, setItems] = createSignal<(Metadata | undefined)[]>([]);
   const [total, setTotal] = createSignal<number>();
   const [row, setRow] = createSignal(0);
   const [error, setError] = createSignal('');
 
-  // The rows in the DOM follow the focused row once its slide is over:
-  // making a row of tiles (layout, paint) in the middle of it costs the
-  // slide frames on the box's CPU. At once only if the focus would run out
-  // of rendered rows.
+  // Defer row creation until scrolling settles to keep layout and painting
+  // out of the animation. Update immediately if focus would leave the rendered rows.
   const [around, setAround] = createSignal(0);
   let aroundTimer: ReturnType<typeof setTimeout> | undefined;
   createEffect(
@@ -98,7 +92,7 @@ export function Grid(props: GridProps) {
     ),
   );
 
-  // The pages under the rendered rows, and the next one ahead.
+  // Load pages covering rendered rows and the next rows ahead.
   const loadAround = () => {
     const t = total();
     if (t === undefined) return;
@@ -108,8 +102,7 @@ export function Grid(props: GridProps) {
   };
   createEffect(loadAround);
 
-  // Watch state changed (back from playback): the same place, new marks.
-  // Tiles keep their elements, so the focus stays.
+  // Reload watched state in place after playback; retain tile elements to preserve focus.
   createEffect(
     on(
       dataVersion,
@@ -122,8 +115,7 @@ export function Grid(props: GridProps) {
     ),
   );
 
-  // A jump: the target row comes into view, then its tile takes the focus
-  // once rendered.
+  // Render the jump target's row before focusing its tile on the next frame.
   createEffect(
     on(
       () => props.jump,

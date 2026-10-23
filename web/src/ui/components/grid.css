@@ -1,6 +1,5 @@
-/* Clipped at the top so rows scrolled past don't show under the header, and
-   at the bottom so exactly two rows show (Grid's PITCH); the inset leaves
-   room for the focus ring and lift. */
+/* Clip scrolled rows beneath the header and limit the viewport to two rows
+   at Grid's PITCH. Insets leave room for focus rings and scaling. */
 .grid { position: absolute; left: calc(var(--edge) - 20px); right: 0; top: 210px; bottom: 20px; overflow: hidden; }
 .grid-body { position: absolute; left: 20px; right: 0; top: 20px; bottom: 0; transition: transform var(--normal) var(--ease); will-change: transform; }
 .grid .cell { position: absolute; }

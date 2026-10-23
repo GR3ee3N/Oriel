@@ -8,8 +8,7 @@ import './people.css';
 const SIZE = 150;
 const GAP = 36;
 
-/** Cast as a row of portraits with names and roles; OK on one lists what
- * else of theirs is in the library. */
+/** Show cast portraits, names and roles; Select lists their titles in this library. */
 export function People(props: { title: string; people: Role[]; group: string; onSelect: (person: Role) => void }) {
   const [col, setCol] = createSignal(0);
   return (

@@ -1,49 +1,49 @@
-// Text for the UI, mostly from Plex metadata.
+// Format Plex metadata for the interface.
 
 import type { Metadata, Stream } from './types';
 
-// Zero-width and bidi marks: tools such as Kometa hide them in collection
-// titles to keep them unique.
+// Strip invisible characters used by tools such as Kometa to distinguish
+// collection titles, including zero-width and bidirectional marks.
 const INVISIBLE = /[​-‏‪-‮⁠-⁤﻿]/g;
 
 export function clean(text: string | undefined): string {
   return (text ?? '').replace(INVISIBLE, '').trim();
 }
 
-/** 1 h 52 min, 48 min. */
+/** Format milliseconds as hours and minutes, e.g. "1 h 52 min" or "48 min". */
 export function duration(ms: number | undefined): string {
   if (!ms) return '';
   const min = Math.round(ms / 60000);
   return min >= 60 ? `${Math.floor(min / 60)} h ${min % 60} min` : `${min} min`;
 }
 
-/** 41 min left, 1 h 52 min left */
+/** Remaining duration, e.g. "41 min left"; blank for items without progress. */
 export function remaining(m: Metadata): string {
   if (!m.viewOffset || !m.duration) return '';
   return `${duration(Math.max(60000, m.duration - m.viewOffset))} left`;
 }
 
-/** 3 seasons */
+/** Season count with singular or plural wording, e.g. "3 seasons". */
 export function seasonCount(m: Metadata): string {
   return m.childCount ? `${m.childCount} season${m.childCount === 1 ? '' : 's'}` : '';
 }
 
-/** 21:05 */
+/** Local time in 24-hour HH:MM format. */
 export function hhmm(d: Date): string {
   return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
 }
 
-/** S2 · E5 */
+/** Season and episode code, e.g. "S2 · E5". */
 export function episodeCode(m: Metadata): string {
   return m.parentIndex !== undefined && m.index !== undefined ? `S${m.parentIndex} · E${m.index}` : '';
 }
 
-/** The title a tile shows: the show for an episode, else the item. */
+/** Use the show title for episodes and seasons, otherwise the item title. */
 export function tileTitle(m: Metadata): string {
   return clean(m.type === 'episode' ? m.grandparentTitle : m.type === 'season' ? m.parentTitle : m.title);
 }
 
-/** The line under a tile's title. */
+/** Tile caption: episode code and title, season title, season count or year. */
 export function tileSubtitle(m: Metadata): string {
   if (m.type === 'episode') return [episodeCode(m), clean(m.title)].filter(Boolean).join(' · ');
   if (m.type === 'season') return clean(m.title);
@@ -60,25 +60,22 @@ export function progress(m: Metadata): number {
   return m.viewOffset && m.duration ? Math.min(1, m.viewOffset / m.duration) : 0;
 }
 
-/** Unwatched episodes of a show or season. */
+/** Count unwatched episodes for a show or season. */
 export function unwatched(m: Metadata): number {
   if (m.type !== 'show' && m.type !== 'season') return 0;
   return Math.max(0, (m.leafCount ?? 0) - (m.viewedLeafCount ?? 0));
 }
 
-/** The picture and sound of an item's first version, always in this
- * order: resolution (4K, HD, SD), dynamic range (Dolby Vision, HDR10+,
- * HDR10, HLG, SDR) and the sound (codec, Atmos or DTS:X, channels), e.g.
- * 4K · Dolby Vision · TrueHD Atmos 7.1. The range needs the streams (full
- * metadata); lists only have the media's summary, so it is left out there
- * rather than guessed. `playing` is the audio track chosen in the player,
- * which the metadata's `selected` flag doesn't follow. */
+/** Badges for the first media version: resolution, dynamic range, then audio
+ * codec, spatial format and channels, e.g. 4K · Dolby Vision · TrueHD Atmos 7.1.
+ * Dynamic range requires stream metadata and is omitted from summary-only lists.
+ * `playing` overrides Plex's selected audio flag, which does not track Kodi changes. */
 export function badges(m: Metadata | undefined, playing?: Stream): string[] {
   const media = m?.Media?.[0];
   if (!media) return [];
   const streams = media.Part?.[0]?.Stream;
   const video = streams?.find((s) => s.streamType === 1);
-  // The track that plays: the user's (or Plex's) choice, else the first.
+  // Prefer the active track, then Plex's selection, then the first audio stream.
   const audio =
     playing ?? streams?.find((s) => s.streamType === 2 && s.selected) ?? streams?.find((s) => s.streamType === 2);
   const out: string[] = [];
@@ -105,9 +102,9 @@ function dynamicRange(video: Stream): string {
   return 'SDR';
 }
 
-/** "TrueHD Atmos 7.1", "DD+ 5.1", "AAC 2.0". `profile` is Plex's: "dolby
- * truehd + dolby atmos", "ma + dts:x", "hra", "lc"; `title` its own
- * display title ("Deutsch (EAC3 5.1 + Atmos)"), not the file's track name. */
+/** Format audio as "TrueHD Atmos 7.1", "DD+ 5.1" or "AAC 2.0".
+ * `profile` is Plex's codec profile, e.g. "ma + dts:x" or "lc"; `title` is
+ * Plex's displayTitle, e.g. "Deutsch (EAC3 5.1 + Atmos)", not the file's track name. */
 function soundOf(codec?: string, profile?: string | null, title?: string, channels?: string): string {
   if (!codec) return '';
   const p = (profile ?? '').toLowerCase();
@@ -145,8 +142,8 @@ function soundOf(codec?: string, profile?: string | null, title?: string, channe
   return channels ? `${name} ${channels}` : name;
 }
 
-/** The channel layout as Plex's display title has it ("Stereo", "5.1"),
- * which is right more often than the bare count (DTS reports none). */
+/** Prefer the layout in Plex's display title, such as "Stereo" or "5.1";
+ * the numeric channel count can be missing for DTS. */
 function channelsOf(audio: Stream): string {
   const named = audio.displayTitle?.match(/\b(Mono|Stereo|\d\.\d)\b/)?.[1];
   if (named === 'Mono') return '1.0';

@@ -1,7 +1,7 @@
 .settings { position: absolute; inset: 0; }
 
-/* The list on the left: it fits without scrolling, with a Server and a
-   Sign in automatically row too (several servers, Home users). */
+/* Fit all rows without scrolling, including optional server and automatic
+   sign-in settings. */
 .settings-list { position: absolute; left: var(--edge); top: 150px; width: 780px; }
 .settings-list h1 { font-size: var(--fs-title); margin-bottom: 24px; }
 .settings-list h2 {
@@ -18,13 +18,13 @@
   height: 56px; padding: 0 24px; border-radius: var(--radius); font-size: var(--fs-body);
 }
 .setting b { display: flex; align-items: center; gap: 14px; font-weight: 500; color: var(--text-2); }
-/* The row whose choices have the focus. */
+/* Retain the selected row highlight while focus moves into its choices. */
 .setting.on { background: var(--bg-raise-2); }
 .setting.focused { background: var(--accent); color: var(--accent-text); }
 .setting.focused b { color: var(--accent-text); }
 .setting.account span { display: flex; align-items: center; gap: 18px; }
 .setting .swatch { width: 26px; height: 26px; border-radius: 50%; box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.12); }
-/* On the focused row the swatch may be the accent itself: a dark ring keeps it apart. */
+/* Outline the swatch when its colour matches the focused row. */
 .setting.focused .swatch { box-shadow: 0 0 0 3px var(--accent-text); }
 .settings-version { margin: 24px 0 0 24px; font-size: var(--fs-meta); color: var(--text-3); }
 
@@ -41,8 +41,7 @@
 .settings .avatar.small { width: 40px; height: 40px; font-size: 20px; }
 .settings .avatar.large { width: 160px; height: 160px; font-size: 72px; margin-bottom: 26px; }
 
-/* The focused row's choices, right of a divider, level with the list's
-   first heading. */
+/* Align the choices pane with the list's first heading, separated by a divider. */
 .settings-choices {
   position: absolute;
   left: 960px;

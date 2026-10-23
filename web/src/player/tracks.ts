@@ -1,27 +1,22 @@
-// Plex's audio and subtitle streams as tracks Kodi can select.
+// Map Plex streams to Kodi track indexes. Embedded streams are grouped by
+// kind and sorted by Plex's container `index`. Sidecar subtitles have a `key`
+// and are loaded by URL.
 //
-// Kodi lists a file's streams of each kind in container order, which is
-// Plex's `index`; so a track's Kodi index is its position among the
-// embedded streams of its kind sorted by `index`. Sidecar subtitle files
-// (they have a `key`) are not in the file: Kodi loads them by URL.
-//
-// Kodi's audio list is in that order too. Its subtitle list can differ (Kodi
-// lists external subtitles first), so once the file plays, Kodi's own list
-// (the player state) confirms a subtitle's index: a track that matches
-// exactly one of Kodi's is that one; with no match or several, container
-// order stands.
+// Kodi can list external subtitles before embedded ones. After playback starts,
+// use a unique match in Kodi's reported list to confirm the subtitle index.
+// Fall back to container order when the match is missing or ambiguous.
 
 import type { SubtitleTrack } from '@oriel/web';
 import type { Part, Stream } from '../plex/types';
 
 export interface Track {
-  /** Plex's stream id (0: subtitles off). */
+  /** Plex stream id; 0 disables subtitles. */
   id: number;
   label: string;
   detail: string;
-  /** Kodi's index among its streams of this kind; -1 for none or a file. */
+  /** Index within Kodi's tracks of this kind; -1 for off or sidecar subtitles. */
   kodi: number;
-  /** A sidecar subtitle file's path on the server. */
+  /** Server path for a sidecar subtitle file. */
   file?: string;
   selected: boolean;
   stream?: Stream;
@@ -35,8 +30,8 @@ const languages = (() => {
   }
 })();
 
-/** "German" from "de"; language names in the UI's language rather than
- * Plex's titles in the track's own script, which the UI font may lack. */
+/** Localize language names, e.g. "de" to "German", to avoid track scripts
+ * the interface font cannot display. */
 function language(s: Stream): string {
   const tag = s.languageTag ?? s.languageCode;
   if (tag && languages) {
@@ -44,7 +39,7 @@ function language(s: Stream): string {
       const name = languages.of(tag);
       if (name && name !== tag) return name;
     } catch {
-      // not a valid tag
+      // Invalid language tags fall through to the track title.
     }
   }
   return s.displayTitle?.replace(/\s*\(.*\)$/, '') || 'Unknown';
@@ -53,9 +48,8 @@ function language(s: Stream): string {
 const plain = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, '');
 
 function audioDetail(s: Stream): string {
-  // Plex's "Deutsch (EAC3 5.1 + Atmos)": the part in brackets, and the
-  // stream's own title; only the title when it says the format again
-  // ("E-AC3 5.1 @ 640 kbps", "TrueHD 7.1 (Atmos)").
+  // Combine the format in Plex's display title with the track title, unless
+  // the track title already contains it, e.g. "TrueHD 7.1 (Atmos)".
   const format = s.displayTitle?.match(/\(([^)]*)\)\s*$/)?.[1] ?? s.codec?.toUpperCase() ?? '';
   if (s.title && plain(s.title).startsWith(plain(format))) return s.title;
   return [format, s.title].filter(Boolean).join(' · ');
@@ -67,8 +61,7 @@ function subtitleDetail(s: Stream): string {
     .join(' · ');
 }
 
-/** Tracks that would read the same ("English · PGS" twice) get their
- * number in the file, so they can be told apart. */
+/** Append file track numbers to otherwise identical labels. */
 function distinct(tracks: Track[]): Track[] {
   const seen = new Map<string, number>();
   for (const t of tracks) seen.set(`${t.label}|${t.detail}`, (seen.get(`${t.label}|${t.detail}`) ?? 0) + 1);
@@ -116,7 +109,7 @@ export function subtitleTracks(part: Part): Track[] {
 
 export const SUBTITLES_OFF: Track = { id: 0, label: 'Off', detail: '', kodi: -1, selected: false };
 
-/** Kodi's and Plex's language tags: "de", "pt-BR". */
+/** Normalize Kodi and Plex language tags such as "de" and "pt-BR". */
 const sameLanguage = (kodi: string, s: Stream) =>
   kodi.split('-')[0].toLowerCase() === (s.languageTag ?? '').split('-')[0].toLowerCase();
 
@@ -124,8 +117,8 @@ function only<T extends { index: number }>(matches: T[]): number | undefined {
   return matches.length === 1 ? matches[0].index : undefined;
 }
 
-/** Kodi's index for an embedded subtitle track, if exactly one of Kodi's
- * matches. Kodi doesn't say the codec; its name is the stream's title. */
+/** Match an embedded subtitle to exactly one Kodi track. Kodi reports the
+ * stream title as its name and does not report the codec. */
 export function kodiSubtitle(track: Track, kodi: SubtitleTrack[]): number | undefined {
   const s = track.stream;
   if (!s || track.file) return undefined;

@@ -3,8 +3,7 @@ import type { MediaContainer } from '../../plex/types';
 import { Grid } from '../components/Grid';
 import './library.css';
 
-/** Titles as a grid under a heading: a collection's items, or a person's
- * titles in one library. */
+/** Grid of collection items or titles featuring a person within one library. */
 export function Titles(props: { title: string; key: string; load: (start: number, size: number) => Promise<MediaContainer> }) {
   return (
     <div class="library">

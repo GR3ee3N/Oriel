@@ -1,5 +1,7 @@
-"""Oriel's Plex client: the framework's VideoApp. The page (resources/web)
-sets the Plex server as the media source, with the token as a header."""
+"""Run the Plex client with the framework's VideoApp.
+
+The page in resources/web sets the Plex media source and token header.
+"""
 from oriel import run
 from oriel.video import VideoApp
 

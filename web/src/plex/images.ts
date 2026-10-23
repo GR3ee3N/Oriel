@@ -1,18 +1,18 @@
-// Request bounded image dimensions to reduce transfer and decoding work.
+// Limit requested image dimensions to reduce transfer size and decoding work.
 
 import type { Server } from './client';
 
-/** A transcoded image of `path` (a thumb or art key) at w×h pixels. */
+/** Request a Plex thumbnail or artwork key transcoded to w×h pixels. */
 export function imageUrl(server: Server, path: string, w: number, h: number): string {
   return server.url('/photo/:/transcode', { url: path, width: w, height: h, minSize: 1, upscale: 1 });
 }
 
-/** A logo (clearLogo, with transparency) fitted inside w×h, as PNG. */
+/** Fit a clearLogo inside w×h pixels as a transparent PNG. */
 export function logoUrl(server: Server, path: string, w: number, h: number): string {
   return server.url('/photo/:/transcode', { url: path, width: w, height: h, format: 'png' });
 }
 
-/** The item's title logo, if it has one (includeImages). */
+/** Extract the clearLogo URL supplied by includeImages. */
 export function logoOf(m: { Image?: { type: string; url: string }[] } | undefined): string | undefined {
   return m?.Image?.find((i) => i.type === 'clearLogo')?.url;
 }
@@ -20,8 +20,8 @@ export function logoOf(m: { Image?: { type: string; url: string }[] } | undefine
 const MAX = 200;
 const cache = new Map<string, HTMLImageElement>();
 
-/** Resolves after the decode attempt, including failures. Cached images stay
- * alive so nearby items can reuse them. */
+/** Wait for a decode attempt without rejecting on failure. Retain images
+ * in an LRU cache so nearby items can reuse decoded artwork. */
 export function preload(url: string): Promise<void> {
   const hit = cache.get(url);
   if (hit) {

@@ -7,22 +7,21 @@ import './backdrop.css';
 const W = 1920;
 const H = 1080;
 
-/** The art at the size Backdrop paints it, for preloading. */
+/** Use the painted backdrop dimensions when preloading artwork. */
 export function backdropUrl(art: string): string {
   return imageUrl(currentServer(), art, W, H);
 }
 
-// The colour field: Plex's four corner colours of the art (UltraBlurColors),
-// blended over 16×9 pixels and scaled smoothly into the scene. A border of
-// the edge colours, one pixel wide, keeps the scaling from fading the outer
-// pixels.
+// Interpolate Plex's UltraBlurColors across a 16×9 field and scale it to
+// the scene. Duplicate edge colours in a one-pixel border to keep scaling
+// from fading the outer pixels.
 const FW = 16;
 const FH = 9;
 const FALLBACK: UltraBlurColors = { topLeft: '1d2338', topRight: '2a3352', bottomRight: '0d1018', bottomLeft: '121624' };
-// Darker than Plex's own use: white text sits on it.
+// Dim the colour field to keep white text readable.
 const DIM = 0.62;
 
-// Scratch canvases for painting a scene.
+// Reuse scratch canvases across scene paints.
 const field = Object.assign(document.createElement('canvas'), { width: FW + 2, height: FH + 2 });
 const faded = Object.assign(document.createElement('canvas'), { width: W, height: H });
 const context = (canvas: HTMLCanvasElement) => canvas.getContext('2d')!;
@@ -48,10 +47,10 @@ function paintField(c: UltraBlurColors): void {
   ctx.putImageData(img, 0, 0);
 }
 
-/** Bakes the field and the art with its fades into one canvas, once per
- * item: WebKit rasterizes a scaled layer at its size on screen, so each
- * extra layer costs a screenful of painting. CSS masks inside an opacity
- * transition also retain full-screen GPU surfaces on WPE/Mali. */
+/** Paint the colour field and faded artwork into one canvas per item.
+ * WebKit rasterizes scaled layers at screen size, so each extra layer adds
+ * a full-screen paint. CSS masks in opacity transitions also retain
+ * full-screen GPU surfaces on WPE/Mali. */
 function paintScene(canvas: HTMLCanvasElement, colors: UltraBlurColors, img: HTMLImageElement | undefined): void {
   paintField(colors);
   const ctx = context(canvas);
@@ -73,16 +72,14 @@ function paintScene(canvas: HTMLCanvasElement, colors: UltraBlurColors, img: HTM
   ctx.drawImage(faded, 0, 0);
 }
 
-/** The screen behind a page: the item's colour field, and its art over the
- * right and top, fading into the field. A new item waits until the focus
- * has settled (a fast scroll doesn't fetch every backdrop), its art is
- * decoded off-screen, and then the two scenes cross-fade: opacity only, so
- * the compositor does the fade. */
+/** Blend artwork into the item's colour field at the top and right.
+ * Wait for focus to settle before fetching artwork, decode it off-screen,
+ * then cross-fade scenes with compositor-only opacity transitions. */
 export function Backdrop(props: { art?: string; colors?: UltraBlurColors; delay?: number }) {
   const scenes: { root: HTMLDivElement; canvas: HTMLCanvasElement }[] = [];
   let shown = -1;
   let showing = '';
-  // What the shown scene was painted from.
+  // Retain the current scene inputs for repainting after visibility changes.
   let painted: [UltraBlurColors, HTMLImageElement | undefined] | undefined;
   let timer: ReturnType<typeof setTimeout> | undefined;
 
@@ -115,7 +112,7 @@ export function Backdrop(props: { art?: string; colors?: UltraBlurColors; delay?
       () => [props.art, props.colors] as const,
       ([art, colors]) => {
         clearTimeout(timer);
-        // The first scene at once, without art if there is none yet.
+        // Show the initial colour field immediately while artwork is unavailable.
         if (shown < 0 && !art) {
           void show(undefined, colors);
           return;
@@ -124,8 +121,7 @@ export function Backdrop(props: { art?: string; colors?: UltraBlurColors; delay?
       },
     ),
   );
-  // While the page is hidden (over Kodi's video, say) WebKit drops the
-  // canvases' contents: paint the shown scene again when it comes back.
+  // WebKit discards canvas contents while hidden; repaint on visibility restoration.
   const onVisibility = () => {
     if (!document.hidden && painted) paintScene(scenes[shown].canvas, ...painted);
   };

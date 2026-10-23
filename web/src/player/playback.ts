@@ -1,6 +1,5 @@
-// Plex derives resume points and watched state from timeline reports.
-// Scrobbling every completed item as well can count a play twice; check
-// Plex's view count before marking an uncounted completion watched.
+// Timeline reports update Plex's resume position and watched state.
+// Check viewCount before marking a completion watched to prevent double counting.
 
 import { createEffect, createRoot, createSignal, on } from 'solid-js';
 import { createStore } from 'solid-js/store';
@@ -23,7 +22,7 @@ export interface Playback {
   id: string;
   item: Details;
   part: Part;
-  /** "Show · S1 · E2" or the movie's title, and the episode's title. */
+  /** Show or movie title; episodes also have a code and title in subheading. */
   heading: string;
   subheading: string;
   audio: Track[];
@@ -31,15 +30,14 @@ export interface Playback {
   audioId: number;
   subtitleId: number;
   intro?: Marker;
-  /** The final credits (else the first), for Up next. */
+  /** Up next uses the final credits marker, falling back to the first. */
   credits?: Marker;
-  /** All of them, for skipping: credits can come before a scene. */
+  /** Include every credits marker so skipping preserves scenes after credits. */
   allCredits: Marker[];
   next?: Metadata;
-  /** Preview thumbnails, loaded on the first scrub. */
+  /** Whether BIF previews are available; fetched on the first scrub. */
   hasThumbs: boolean;
-  /** The quality chosen (kbps, 0 for the original), and whether Kodi is
-   * playing a transcode. */
+  /** Selected bitrate limit in kbps; 0 requests the original file. */
   quality: number;
   transcoded: boolean;
 }
@@ -47,34 +45,31 @@ export interface Playback {
 const [store, setStore] = createStore<{ current?: Playback; nextCancelled: boolean }>({ nextCancelled: false });
 export const playback = () => store.current;
 
-/** What the OSD shows when it is up for a prompt rather than by a key. */
+/** Prompt displayed when playback opens the OSD without a key press. */
 export type Prompt = 'intro' | 'next' | null;
 const [prompt, setPrompt] = createSignal<Prompt>(null);
 export { prompt };
 
-/** Seconds Skip intro counts down before skipping by itself, when intros
- * skip automatically (Settings); paused, the countdown stands still. */
+/** Automatic intro skip delay in seconds; pausing also pauses the countdown. */
 export const INTRO_AFTER = 5;
-/** Milliseconds of playback left before the skip; while playing, when
- * they last ran down (performance.now()), and the timer running them. */
+/** Remaining playback milliseconds, last performance.now() tick and countdown timer. */
 let introLeft: number | undefined;
 let introSince: number | undefined;
 let introTimer: ReturnType<typeof setInterval> | undefined;
 const [introIn, setIntroIn] = createSignal<number>();
-/** Seconds until Skip intro skips, while it counts down. */
+/** Remaining intro countdown in seconds, undefined when inactive. */
 export { introIn };
 
-/** Seconds of the final credits before the next episode starts by itself
- * (Up next counts down; Back cancels it). Without a credits marker the
- * prompt comes 30 s before the end and the next episode follows the end. */
+/** Up next delay in seconds during credits; Back cancels autoplay.
+ * Without a credits marker, show the prompt 30 s before the end and wait
+ * for playback to finish before starting the next episode. */
 export const NEXT_AFTER = 10;
 let nextAt: number | undefined;
-/** Up next is on credits: the next episode starts when it runs out, not
- * after the end. */
+/** A credits countdown starts the next episode before this episode ends. */
 let nextOnCredits = false;
 let nextStarted = false;
 const [nextIn, setNextIn] = createSignal<number>();
-/** Seconds until Up next plays the next episode, while it counts down. */
+/** Remaining Up next countdown in seconds, undefined when inactive. */
 export { nextIn };
 
 let bif: Promise<Bif | undefined> | undefined;
@@ -87,36 +82,33 @@ export async function startPlayback(item: Metadata, fromStart = false): Promise<
   try {
     await launch(fromStart ? 0 : (p.item.viewOffset ?? 0) / 1000);
   } catch (e) {
-    // Nothing plays (Plex refused a transcode, say).
+    // Clear the pending item if launch failed and no newer item replaced it.
     if (store.current?.id === p.id) setStore('current', undefined);
     throw e;
   }
 }
 
-/** What the add-on keeps of a playback for a page loaded again during it
- * (the shell restarted after a crash): enough to pick it up. */
+/** Metadata retained by the add-on to restore playback after a page reload. */
 export interface PlaybackNote {
   ratingKey: string;
   quality: number;
   transcoded: boolean;
 }
 
-/** Picks up the playback Kodi is on, without starting anything. */
+/** Restore page state for the existing Kodi playback without restarting it. */
 export async function adoptPlayback(note: PlaybackNote, id: string): Promise<void> {
   server = currentServer();
   const p = await prepare(server, note.ratingKey, id, note.quality);
   if (!p) return;
   setStore('current', 'transcoded', note.transcoded);
-  // The report effect sends the state on the next position update.
+  // The next position update triggers a timeline report for the restored session.
   console.log(`playback: picked up ${p.heading} (${id})`);
 }
 
-/** Counts preparations: one whose metadata comes after a newer one's
- * started must not replace it (another item chosen meanwhile). */
+/** Reject metadata from requests superseded by a newer item selection. */
 let prepares = 0;
 
-/** Sets up the playback of `ratingKey` as the current one; undefined when
- * a newer one overtook it. */
+/** Prepare the current item; return undefined if a newer request supersedes it. */
 async function prepare(server: Server, ratingKey: string, id: string, quality: number): Promise<Playback | undefined> {
   const ours = ++prepares;
   const meta = await metadata(server, ratingKey);
@@ -165,14 +157,11 @@ async function prepare(server: Server, ratingKey: string, id: string, quality: n
   return store.current!;
 }
 
-/** Counts launches: one that a newer launch overtook while it waited on the
- * server must not send its play after the newer one's (two quick seeks in a
- * transcode, say). */
+/** Prevent a launch waiting on Plex from replacing a newer launch, such as a seek. */
 let launches = 0;
 
-/** Starts Kodi on the playback at `at` seconds: the file itself, or a
- * transcode when the file is over the chosen quality. Also restarts a
- * playback (Kodi switches files without a stop in between). */
+/** Start or replace Kodi playback at `at` seconds. Request a transcode when
+ * the file exceeds the bitrate limit or the box lacks a decoder for its video codec. */
 async function launch(at: number): Promise<void> {
   const p = store.current;
   if (!p || !server) return;
@@ -186,8 +175,8 @@ async function launch(at: number): Promise<void> {
   const media = p.item.Media?.[0];
   const bitrate = media?.bitrate ?? Infinity;
   if (!decodes(media?.videoCodec)) {
-    // Kodi would decode it in software, far too slowly for 4K. Converted
-    // instead, at the best of the transcodes for the original.
+    // Software decoding is too slow for 4K. For Original quality, fall back
+    // to the highest configured transcode bitrate when hardware decoding is absent.
     if (q.kbps === ORIGINAL) {
       q = QUALITIES[1];
       setStore('current', 'quality', q.kbps);
@@ -201,9 +190,8 @@ async function launch(at: number): Promise<void> {
   const s = p.subtitles.find((t) => t.id === p.subtitleId);
   const direct = decodes(media?.videoCodec) && (q.kbps === ORIGINAL || bitrate <= q.kbps);
   if (p.transcoded === direct && state.player.session === p.id && state.player.state !== 'idle') {
-    // From a transcode to the file or back: the old stream is ended on the
-    // server first. On a one-stream limit the server refuses the new one
-    // while the old (and the playback session reported for it) runs.
+    // End the old stream and report it stopped before switching playback type;
+    // Plex can reject the replacement under a one-stream limit.
     await Promise.all([
       p.transcoded ? stopTranscode(server, p.id) : undefined,
       report(p, 'stopped', state.player.time, state.player.duration),
@@ -214,8 +202,8 @@ async function launch(at: number): Promise<void> {
   if (direct) {
     setStore('current', 'transcoded', false);
     tracksChecked = undefined;
-    // Without the session, Plex ends this stream when the same user
-    // streams another file. Declined, the file still plays.
+    // A session keeps Plex from ending this stream when the user opens another
+    // file. A declined decision does not prevent Kodi from requesting the file.
     const declined = await directPlay(server, p.item.ratingKey, p.id, media).catch((e) => String(e));
     if (declined) console.warn(`playback: Plex declined the direct play: ${declined}`);
     if (store.current?.id !== p.id || overtaken()) return;
@@ -242,8 +230,8 @@ async function launch(at: number): Promise<void> {
   if (store.current?.id !== p.id || overtaken()) return;
   console.log(`playback: transcode from ${Math.floor(at)} s at ${q.label}: ${t.decision}`);
   setStore('current', 'transcoded', true);
-  // The stream has only the chosen tracks: audio and subtitles are its
-  // first (or the subtitles are in the picture).
+  // Transcodes contain only the selected tracks, so subtitles use index 0
+  // unless Plex burns them into the video.
   await call({
     cmd: 'play',
     path: t.path,
@@ -257,31 +245,30 @@ async function launch(at: number): Promise<void> {
   });
 }
 
-/** Whether the box can play `codec` as it is: a hardware decoder, or a
- * codec light enough for software (old, SD ones), or a box that doesn't
- * say. */
+/** Allow direct playback for hardware-supported codecs, codecs outside
+ * HARDWARE_CODECS, or unknown codec and decoder information. */
 function decodes(codec: string | undefined): boolean {
   const hw = state.decoders;
   return !hw || !codec || !HARDWARE_CODECS.includes(codec) || hw.includes(codec);
 }
 
-/** The playback whose start subtitles were checked against Kodi's list. */
+/** Session id whose initial subtitle selection has been matched against Kodi. */
 let tracksChecked: string | undefined;
 
-/** Kodi's subtitle list for the file playing now, if it is this playback's. */
+/** Use Kodi's subtitle list only for this session's direct playback. */
 function kodiSubtitles(p: Playback) {
   const { session, subtitles } = state.player;
   return !p.transcoded && session === p.id ? subtitles : undefined;
 }
 
-/** Seeks, by a new transcode when transcoding. */
+/** Transcoded playback needs a new stream for each seek. */
 export function seekTo(seconds: number): void {
   const p = store.current;
   if (p?.transcoded) launch(seconds).catch(warn('seek'));
   else send({ cmd: 'seek-to', seconds });
 }
 
-/** Plays on at another quality (kbps, 0 for the original), from here. */
+/** Apply a bitrate limit in kbps at the current position; 0 requests Original. */
 export function chooseQuality(kbps: number): void {
   const p = store.current;
   if (!p || p.quality === kbps) return;
@@ -299,7 +286,7 @@ async function nextEpisode(server: Server, episode: Metadata): Promise<Metadata 
   return season ? (await children(server, season.ratingKey))[0] : undefined;
 }
 
-/** The preview thumbnails, fetched once per playback. */
+/** Fetch BIF previews once per playback session. */
 export function thumbs(): Promise<Bif | undefined> {
   const p = store.current;
   if (!p?.hasThumbs || !server) return Promise.resolve(undefined);
@@ -313,7 +300,7 @@ export function chooseAudio(track: Track): void {
   setStore('current', 'audioId', track.id);
   const saved = server.call(`/library/parts/${p.part.id}`, { audioStreamID: track.id, allParts: 1 }, 'PUT');
   saved.catch(warn('save audio'));
-  // A transcode takes the server's choice, so it restarts once that is saved.
+  // Save the selected track before restarting; Plex uses that choice in the transcode.
   if (p.transcoded) saved.then(() => restart(p)).catch(warn('audio'));
   else send({ cmd: 'audio', index: track.kodi });
 }
@@ -332,12 +319,12 @@ export function chooseSubtitle(track: Track): void {
   }
 }
 
-/** Restarts `p` from here, unless another playback took its place. */
+/** Restart at the current position only if `p` is still the active session. */
 function restart(p: Playback): Promise<void> | undefined {
   return store.current?.id === p.id ? launch(state.player.time) : undefined;
 }
 
-/** Skips to the end of the intro, or plays the next episode now. */
+/** Accept the active prompt: skip the intro or start the next episode. */
 export function acceptPrompt(): void {
   const p = store.current;
   const which = prompt();
@@ -347,8 +334,7 @@ export function acceptPrompt(): void {
   if (which === 'next') playNextNow(true);
 }
 
-/** Stops this episode and plays the next one; `fromCredits`: this one
- * counts as watched to the end. */
+/** Queue the next episode after stopping; `fromCredits` reports this one complete. */
 export function playNextNow(fromCredits = false): void {
   const next = store.current?.next;
   if (!next) return;
@@ -357,8 +343,7 @@ export function playNextNow(fromCredits = false): void {
   send({ cmd: 'stop' });
 }
 
-/** Back on a prompt: away, with Skip intro's countdown; for Up next, no
- * autoplay either. */
+/** Dismiss the prompt and cancel its countdown; Up next also cancels autoplay. */
 export function dismiss(): void {
   const which = prompt();
   if (!which) return;
@@ -369,8 +354,7 @@ export function dismiss(): void {
 
 const warn = (what: string) => (e: unknown) => console.error(`playback: ${what}: ${e}`);
 
-/** After a finished item's last report: marks it watched if the server
- * did not count the play (checked first, so it is not counted twice). */
+/** After the final report, mark the item watched only if Plex did not count it. */
 async function ensureWatched(s: Server, p: Playback): Promise<void> {
   await new Promise((r) => setTimeout(r, 1500));
   const mc = await s.get<Metadata>(`/library/metadata/${p.item.ratingKey}`);
@@ -378,17 +362,16 @@ async function ensureWatched(s: Server, p: Playback): Promise<void> {
   if (now > (p.item.viewCount ?? 0)) return;
   console.log(`playback: the server did not count ${p.heading}; marking it watched`);
   await setWatched(s, p.item.ratingKey, true);
-  // The screens reloaded when playback ended, before this.
+  // Refresh again because the initial post-playback reload preceded this update.
   refresh();
 }
 
 let lastReport = { state: '', at: 0 };
 const dismissed = new Set<Prompt>();
-/** Markers skipped automatically: once each, so seeking back into one
- * watches it. */
+/** Skip each marker once so seeking back allows it to play. */
 const skipped = new Set<Marker>();
 
-/** Takes the playback since the last call off Skip intro's countdown. */
+/** Subtract elapsed playing time from the intro countdown. */
 function runIntroDown(): void {
   if (introLeft === undefined || introSince === undefined) return;
   const now = performance.now();
@@ -396,20 +379,19 @@ function runIntroDown(): void {
   introSince = now;
 }
 
-/** At `t` ms, inside the intro where Skip intro shows: not its last 3 s,
- * where skipping would save next to nothing. */
+/** Show Skip intro within the marker, excluding its last 3 s. `t` is in ms. */
 function duringIntro(p: Playback, t: number): boolean {
   return !!p.intro && t >= p.intro.startTimeOffset && t < p.intro.endTimeOffset - 3000;
 }
 
-/** Credits that run to the end, with nothing after them. */
+/** Treat a final flag or a marker ending within 5 s of the duration as final credits. */
 function finalCredits(m: Marker, p: Playback): boolean {
   const end = (p.item.duration ?? 0) - 5000;
   return !!m.final || (end > 0 && m.endTimeOffset >= end);
 }
 let playNextAfterStop: Metadata | undefined;
-/** The stop leaves the closing credits: reported as the end, so the server
- * marks it watched (it does past ~90 %, which long credits can be under). */
+/** Report a stop during final credits as completion; long credits can start
+ * before Plex's watched threshold. */
 let stopFinished = false;
 
 function report(
@@ -425,11 +407,10 @@ function report(
     .call('/:/timeline', {
       ratingKey: p.item.ratingKey,
       key: `/library/metadata/${p.item.ratingKey}`,
-      // Ties the report to the playback's session (its decision).
+      // Associate timeline reports with the session used for the Plex decision.
       'X-Plex-Session-Identifier': p.id,
       state: plexState,
-      // Plex refuses a time past the end (HTTP 400), which Kodi's clock
-      // can run to when the decoder falls behind.
+      // Clamp Kodi's clock to the duration; Plex rejects later positions with HTTP 400.
       time: Math.round((total ? Math.min(time, total) : time) * 1000),
       duration: Math.round(total * 1000),
     })
@@ -437,8 +418,7 @@ function report(
 }
 
 createRoot(() => {
-  // Once Kodi lists the file's subtitles: the chosen ones by Kodi's index,
-  // if container order picked others.
+  // Correct the initial subtitle selection once Kodi reports its track order.
   createEffect(() => {
     const p = store.current;
     const kodi = p && kodiSubtitles(p);
@@ -452,12 +432,11 @@ createRoot(() => {
     }
   });
 
-  // State changes go out at once, progress every 10 s.
+  // Report state changes immediately and playback progress every 10 s.
   createEffect(() => {
     const p = store.current;
     const player = state.player;
-    // Read up front: the effect must run on every position update, not
-    // only when it happens to report.
+    // Read position before branching so every update remains a reactive dependency.
     const { time, duration } = player;
     if (!p || player.session !== p.id) return;
     if (player.state === 'playing' || player.state === 'paused') {
@@ -467,8 +446,7 @@ createRoot(() => {
     }
   });
 
-  // The end: final position, then the next episode after a natural end
-  // (or when Up next was taken).
+  // Report the final position before starting a queued or automatically selected episode.
   createEffect(
     on(
       () => state.player.state,
@@ -486,8 +464,8 @@ createRoot(() => {
           reported.then(() => ensureWatched(s, p)).catch(warn('watched'));
         }
         setPrompt(null);
-        // Not at once: the UI goes back before Kodi has let go of the
-        // stream, and Kodi reconnecting to a stopped transcode starts it again.
+        // Delay transcode cleanup until Kodi releases the stream; a late reconnect
+        // would otherwise start the stopped transcode again.
         const ending = server;
         const stopped =
           p.transcoded && ending
@@ -501,21 +479,19 @@ createRoot(() => {
     ),
   );
 
-  // Prompts from the markers: Skip intro while in the intro, Up next in
-  // the final credits (or the last 30 s) when there is a next episode.
+  // Use markers for Skip intro and Up next; without credits, offer the next
+  // episode during the final 30 s.
   createEffect(() => {
     const p = store.current;
     const t = state.player.time * 1000;
     if (!p || state.player.session !== p.id || state.player.state === 'idle' || state.player.state === 'loading') return;
-    // Credits skipped automatically instead: no prompt for the final
-    // credits; credits with more after them are skipped too, so Up next
-    // then comes 30 s before the end.
+    // Automatic final-credit skipping replaces Up next. If only intermediate
+    // credits exist, offer Up next during the final 30 s.
     const auto = prefs.autoSkipCredits;
     const autoNext = auto && p.allCredits.some((m) => finalCredits(m, p));
     const credits = auto ? undefined : p.credits;
     const inIntro = duringIntro(p, t);
-    // Skip intro is away (Back, or skipped) only until playback leaves the
-    // intro: back in it, it shows again (and counts down again).
+    // Leaving the intro clears dismissal, so seeking back shows a fresh prompt.
     if (!inIntro) dismissed.delete('intro');
     const duration = state.player.duration;
     const creditsAt = credits?.startTimeOffset ?? (duration === null ? Infinity : (duration - 30) * 1000);
@@ -535,11 +511,9 @@ createRoot(() => {
     if (want && state.mode === 'video') send({ cmd: 'osd-on' });
   });
 
-  // Skip intro's countdown, and the skip when it runs out. It counts
-  // playback on the clock, not Kodi's position (whole seconds, and moved
-  // by seeks), so it ends with the button's fill; paused, both stand
-  // still. It skips only from inside the intro, whatever order this and
-  // the prompt run in after a seek out of it.
+  // Use elapsed playing time so the countdown matches the button animation;
+  // Kodi's whole-second position jumps on seeks. Pause freezes both timers.
+  // Recheck the marker before skipping because seek effects can run in either order.
   createEffect(() => {
     const counting = prompt() === 'intro' && introLeft !== undefined;
     const playing = state.player.state === 'playing';
@@ -566,9 +540,8 @@ createRoot(() => {
     }, 100);
   });
 
-  // Credits skipped by themselves (Settings), as they start playing (not
-  // while paused): past credits with more after them; from the final
-  // credits to the next episode at once, or to the end.
+  // Skip credits only while playing. Preserve scenes after intermediate credits;
+  // final credits complete the item and start the next episode when available.
   createEffect(() => {
     const p = store.current;
     const t = state.player.time * 1000;
@@ -590,8 +563,7 @@ createRoot(() => {
     }
   });
 
-  // Up next's countdown, and the next episode when it runs out (paused,
-  // Kodi's clock stands still, and so does the countdown).
+  // Kodi's playback position drives Up next, so pausing freezes the countdown.
   createEffect(() => {
     const time = state.player.time;
     if (prompt() !== 'next' || nextAt === undefined) {

@@ -11,8 +11,8 @@ import { Settings } from './screens/Settings';
 import { Show } from './screens/Show';
 import { Titles } from './screens/Titles';
 
-/** Every entry of the stack, each in its own focus scope; only the top one
- * shows, the ones below keep their state for Back. */
+/** Keep stacked screens mounted in separate focus scopes so Back restores
+ * their state; display only the top screen. */
 export function Screens() {
   return (
     <For each={stack()}>

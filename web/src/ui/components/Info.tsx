@@ -7,14 +7,14 @@ import './info.css';
 
 export const LOGO = { w: 720, h: 240 };
 
-/** The logo URL of `m` (an episode's is its show's), if it has one. */
+/** Sized title-logo URL when supplied by Plex; episodes use the show logo. */
 export function logoFor(m: Metadata | undefined): string | undefined {
   const path = logoOf(m);
   return path ? logoUrl(currentServer(), path, LOGO.w, LOGO.h) : undefined;
 }
 
-/** Waits for a decode attempt before swapping the info. Returns the URL even
- * if decoding fails; undefined means no logo or a timeout. */
+/** Wait for a logo decode attempt before changing item information.
+ * Decode failure still returns the URL; absence or timeout returns undefined. */
 export function logoReady(m: Metadata | undefined, wait = 500): Promise<string | undefined> {
   const url = logoFor(m);
   if (!url) return Promise.resolve(undefined);
@@ -24,7 +24,7 @@ export function logoReady(m: Metadata | undefined, wait = 500): Promise<string |
   ]);
 }
 
-/** Parts of a meta line with dots between them; empty parts are left out. */
+/** Separate nonempty metadata values with dots. */
 export function Meta(props: { parts: (JSX.Element | string | number | undefined | false)[]; accent?: string }) {
   const parts = () => props.parts.filter((p) => p !== undefined && p !== false && p !== '' && p !== 0);
   return (
@@ -47,8 +47,8 @@ export function Meta(props: { parts: (JSX.Element | string | number | undefined 
   );
 }
 
-/** The usual meta line of an item: an episode's code and title, a movie's
- * year, length, rating; and how much is left of a started one. */
+/** Format item metadata and remaining time: episode code, title and duration,
+ * or year, duration/season count and ratings for other items. */
 export function metaFor(m: Metadata): JSX.Element {
   if (m.type === 'episode') {
     return <Meta parts={[episodeCode(m), clean(m.title), duration(m.duration)]} accent={remaining(m)} />;
@@ -62,7 +62,7 @@ export function metaFor(m: Metadata): JSX.Element {
   );
 }
 
-/** A title as text: smaller the longer it is, two lines at most. */
+/** Reduce long title text to fit within two lines. */
 function Title(props: { text: string; size: 'hero' | 'page' }) {
   const scale = () => {
     const n = props.text.length;
@@ -78,24 +78,22 @@ function Title(props: { text: string; size: 'hero' | 'page' }) {
 
 export interface InfoProps {
   item: Metadata;
-  /** A logo URL; missing or failed images fall back to the title. */
+  /** Fall back to title text when the logo is absent or fails to load. */
   logo?: string;
-  /** Overrides the title (an episode shows its show's). */
+  /** Optional title override, such as the show title for an episode. */
   title?: string;
   meta?: JSX.Element;
   badges?: string[];
-  /** Keep the badges' line even while there are none (they may come a
-   * moment later, and the summary must not move then). */
+  /** Reserve badge space so late metadata does not move the summary. */
   reserveBadges?: boolean;
-  /** The badges came after the rest: they fade in. */
+  /** Fade in badges that arrive after the other metadata. */
   badgesLate?: boolean;
   summary?: string;
   size?: 'hero' | 'page';
   children?: JSX.Element;
 }
 
-/** Logo or title, meta line, badges, summary: the top of Home and of the
- * details pages. */
+/** Shared logo/title, metadata, badges and summary for Home and detail screens. */
 export function Info(props: InfoProps) {
   const size = () => props.size ?? 'page';
   const [failedLogo, setFailedLogo] = createSignal<string>();
@@ -115,7 +113,7 @@ export function Info(props: InfoProps) {
       <Show when={props.badges?.length || props.reserveBadges}>
         <div class="badges">
           <Show when={props.badges?.length}>
-            {/* Keyed on the set: a new set fades in as one. */}
+            {/* Remount changed badge sets so they fade in together. */}
             <Show when={props.badges!.join(' ')} keyed>
               <div class="badge-set" classList={{ late: props.badgesLate }}>
                 <For each={props.badges}>{(b) => <span class="badge">{b}</span>}</For>

@@ -1,5 +1,5 @@
-// Plex's preview thumbnails (BIF: Roku's "base index frames"), for the
-// scrubber. One file per part holds a JPEG every few seconds:
+// Plex scrub previews use Roku's BIF (base index frames) format.
+// Each media part has one file containing JPEGs at timestamped intervals:
 //
 //   0   magic 89 42 49 46 0d 0a 1a 0a
 //   8   version, u32 LE
@@ -8,8 +8,8 @@
 //   64  index: (timestamp u32, offset u32) per frame, then a terminator
 //       whose offset is the end of the last frame
 //
-// The file is several MB, so it is fetched once, on the first scrub, and
-// frames become object URLs only when shown (a few kept, the rest revoked).
+// Fetch the file once on the first scrub. Create frame object URLs on demand,
+// retaining only a small cache and revoking evicted URLs.
 
 import type { Server } from '../plex/client';
 
@@ -42,7 +42,7 @@ export class Bif {
     return new Bif(data, times, offsets, interval);
   }
 
-  /** The frame at or before `seconds`, as an image URL. */
+  /** Return an image URL for the last frame at or before `seconds`. */
   frameAt(seconds: number): string | undefined {
     const t = (seconds * 1000) / this.interval;
     let lo = 0;

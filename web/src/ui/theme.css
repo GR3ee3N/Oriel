@@ -1,9 +1,7 @@
-/* Design tokens and base styles.
-
-   The page is a fixed 1920×1080 surface; Kodi scales it with its GUI to
-   the output mode. Performance rules for CPU raster on the box's CPU:
-   animate only transform and opacity, keep composited layers few, size
-   images exactly (photo transcoder), no blur or big shadows. */
+/* Kodi scales the fixed 1920×1080 page with its GUI to the output mode.
+   For CPU raster performance, animate only transform and opacity, limit
+   composited layers, request images at their displayed size, and avoid
+   blur and large shadows. */
 
 :root {
   --fs-title: 48px;
@@ -15,17 +13,17 @@
   --bg: #0b0d12;
   --bg-raise: #161a24;
   --bg-raise-2: #222839;
-  /* Raised on --bg-raise-2: the user picker's avatars on a focused card. */
+  /* Keep profile avatars distinct from focused cards using --bg-raise-2. */
   --bg-raise-3: #3a4260;
   --text: #f2f3f7;
   --text-2: #b4b9c8;
   --text-3: #737a8c;
-  /* Set by the Accent colour setting (prefs.ts); this is its default. */
+  /* Default accent; prefs.ts applies the saved colour. */
   --accent: #8c9eff;
   --accent-text: #0b0d12;
   --danger: #f08a7e;
 
-  /* Focus: an accent ring outside the element, and a small lift. */
+  /* Focus styling uses an outer ring and scale increase. */
   --ring: 5px;
   --ring-gap: 4px;
   --lift: scale(1.05);
@@ -45,7 +43,7 @@ html, body {
   width: 1920px;
   height: 1080px;
   overflow: hidden;
-  /* Transparent so Kodi's video shows wherever the page draws nothing. */
+  /* Let Kodi video show through unpainted areas. */
   background: transparent;
   color: var(--text);
   font: 450 var(--fs-body)/1.35 "Inter Variable", "DejaVu Sans", sans-serif;

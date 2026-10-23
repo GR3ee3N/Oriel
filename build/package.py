@@ -1,12 +1,10 @@
 #!/usr/bin/env python3
-"""Packages the built add-on for a release: its zip, Kodi's addons.xml, and
-sha256 files for both.
+"""Package the built add-on as a ZIP, Kodi index and SHA-256 checksums.
 
     build/package.py <add-on dir> <files dir> <version> <framework version>
 
-The release has no folders, so addons.xml gets a <path> to the zip and the
-add-on's art is copied beside it as <id>.<name>; Kodi looks for both next to
-addons.xml.
+Release assets share one directory. Set <path> in addons.xml to the ZIP
+filename and copy artwork alongside it as <id>.<name> so Kodi can find it.
 """
 import hashlib
 from pathlib import Path

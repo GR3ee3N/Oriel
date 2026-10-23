@@ -14,16 +14,14 @@ import { Shelf } from '../components/Shelf';
 import { WatchedButton } from '../components/WatchedButton';
 import './details.css';
 
-/** An episode tile's caption: its number and title, and its length or
- * what is left of it. */
+/** Episode caption with number, title and total or remaining duration. */
 const episodeLines = (e: Metadata): [string, string] => [
   [e.index !== undefined ? `${e.index}.` : '', clean(e.title)].filter(Boolean).join(' '),
   remaining(e) || duration(e.duration),
 ];
 
-/** A show: logo, facts, the next episode to play; seasons as tabs and the
- * season's episodes as a row, the info following the focused episode;
- * below, the cast and related shows. */
+/** Show details with season tabs, an episode row, cast and related shows.
+ * Focused episodes supply the summary and playback metadata. */
 export function Show(props: { ratingKey: string; season?: string; episode?: string }) {
   const [show] = createResource(
     () => [props.ratingKey, dataVersion()] as const,
@@ -39,9 +37,8 @@ export function Show(props: { ratingKey: string; season?: string; episode?: stri
   const [more] = createResource(() => props.ratingKey, (key) => related(currentServer(), key));
   const next = () => show()?.item.OnDeck?.Metadata?.[0];
   const [season, setSeason] = createSignal<string>();
-  // The season to open on: the one asked for, the next episode's, or the
-  // first that isn't Specials. The next episode is in the show's metadata,
-  // which can come after the seasons.
+  // Prefer the requested season, then the next episode's season, then a
+  // non-Specials season. Reevaluate when show metadata arrives after the season list.
   createEffect(
     on([seasons, show], ([list, s]) => {
       if (!list?.length || !s || season()) return;
@@ -53,9 +50,8 @@ export function Show(props: { ratingKey: string; season?: string; episode?: stri
     ([key]) => children(currentServer(), key),
   );
   const [focusedEpisode, setFocusedEpisode] = createSignal<Metadata>();
-  // The badges need the episode's streams, which the season's list leaves
-  // out: its full metadata, and its neighbours' ahead of time (cached), so
-  // moving along the row finds them in.
+  // Season lists omit streams needed for badges. Fetch full episode metadata
+  // and cache neighbours ahead of focus movement.
   const [episodeFull] = createResource(
     () => focusedEpisode()?.ratingKey,
     (key) => {
@@ -70,7 +66,7 @@ export function Show(props: { ratingKey: string; season?: string; episode?: stri
     return full && full.ratingKey === focusedEpisode()?.ratingKey ? badges(full) : [];
   };
   const startEpisode = () => props.episode ?? next()?.ratingKey;
-  // What Play plays: the next episode, else the first of the season shown.
+  // Play the next episode, falling back to the first episode of the displayed season.
   const target = () => next() ?? episodes()?.[0];
   const playLabel = () => {
     const n = target();

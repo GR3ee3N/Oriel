@@ -7,7 +7,7 @@
 .row .tiles {
   display: flex;
   transition: transform var(--normal) var(--ease);
-  /* Its own layer for good: moving it is then compositing only, and the
-     layer isn't torn down and re-rastered after every move. */
+  /* Retain the composited layer between moves so scrolling does not recreate
+     and rasterize it each time. */
   will-change: transform;
 }

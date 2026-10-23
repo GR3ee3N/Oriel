@@ -1,11 +1,7 @@
-// Requests to plex.tv and to Plex servers.
-//
-// The X-Plex-* identity goes in the query string, not in headers: with only
-// `Accept` as a header every GET or POST stays a CORS "simple request", so
-// the browser never sends a preflight (both plex.tv and the server allow
-// our origin, but a preflight would cost a round trip per new URL).
-//
-// Tokens never go to the console: the page's console ends up in shell.log.
+// Requests to plex.tv and Plex servers.
+// Put X-Plex-* identity in the query string so GET and POST requests with
+// only an Accept header avoid CORS preflights and their extra round trip.
+// Never log tokens: the page's console is captured in shell.log.
 
 import type { MediaContainer } from './types';
 
@@ -15,7 +11,7 @@ const PLEX_TV = 'https://plex.tv';
 
 let clientId = '';
 
-/** Our X-Plex-Client-Identifier: one per install, kept in the add-on's store. */
+/** Set the installation's persistent X-Plex-Client-Identifier from the add-on store. */
 export function setClientId(id: string): void {
   clientId = id;
 }
@@ -47,7 +43,7 @@ export interface RequestOptions {
   token?: string;
   params?: Record<string, string | number | boolean | undefined>;
   signal?: AbortSignal;
-  /** Milliseconds; default 15 s. */
+  /** Request timeout in milliseconds; defaults to 15000. */
   timeout?: number;
 }
 
@@ -72,14 +68,14 @@ export function plexTv<T>(path: string, options: RequestOptions = {}): Promise<T
   return request<T>(PLEX_TV + path, options);
 }
 
-/** A Plex server on the connection that answered best (discovery.ts). */
+/** Plex server using the highest-priority reachable connection from discovery.ts. */
 export class Server {
   constructor(
     readonly name: string,
     readonly id: string,
     readonly uri: string,
     readonly token: string,
-    /** On the local network (decides the quality setting that applies). */
+    /** Selects the local or remote playback quality preference. */
     readonly local: boolean,
   ) {}
 
@@ -88,15 +84,15 @@ export class Server {
     return body.MediaContainer;
   }
 
-  /** A request whose answer doesn't matter beyond success (timeline,
-   * scrobble, stream choice); the body is not parsed. */
+  /** Check HTTP success without parsing the response body, for commands such
+   * as timeline reports, watched-state updates and track selection. */
   async call(path: string, params: RequestOptions['params'] = {}, method: RequestOptions['method'] = 'GET'): Promise<void> {
     const url = withParams(this.uri + path, { ...params, ...identity(this.token) });
     const response = await fetch(url, { method, headers: { Accept: 'application/json' }, signal: AbortSignal.timeout(10000) });
     if (!response.ok) throw new PlexError(response.status, `${method} ${path}: HTTP ${response.status}`);
   }
 
-  /** A URL with the token, for <img> and the like. */
+  /** Include the token in a URL for elements such as <img>. */
   url(path: string, params: Record<string, string | number | undefined> = {}): string {
     return withParams(this.uri + path, { ...params, 'X-Plex-Token': this.token });
   }

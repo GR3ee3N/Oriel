@@ -1,4 +1,4 @@
-// What OK and Play do with an item, from any screen.
+// Shared item actions for Select and Play on every screen.
 
 import { push } from './router';
 import { children, metadata } from './plex/api';
@@ -29,15 +29,15 @@ export function open(item: Metadata): void {
   }
 }
 
-/** Opens the library's titles with `person` in them. */
+/** List titles featuring `person` in the item's library. */
 export function openPerson(item: Metadata, person: Role): void {
   const filter = person.filter ?? (person.id !== undefined ? `actor=${person.id}` : undefined);
   if (item.librarySectionID === undefined || !filter) return;
   push({ screen: 'person', section: String(item.librarySectionID), filter, title: person.tag });
 }
 
-/** Plays the item: a movie or episode itself (resuming unless `fromStart`),
- * a show its next episode, a season its first unwatched one. */
+/** Resume movies and episodes unless `fromStart` is set. For shows, play
+ * the next episode; for seasons, play the first unwatched episode or the first. */
 export async function play(item: Metadata, fromStart = false): Promise<void> {
   const server = currentServer();
   if (item.type === 'show') {

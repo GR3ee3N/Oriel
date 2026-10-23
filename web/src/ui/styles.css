@@ -1,5 +1,5 @@
-/* The app frame and the screens outside the router: sign-in, user
-   picker, status. The player OSD: osd.css. Tokens: theme.css. */
+/* App frame and sign-in/profile screens. Player controls use osd.css;
+   shared colours and dimensions come from theme.css. */
 
 .app { position: absolute; inset: 0; }
 .browse, .osd { display: none; }
@@ -17,7 +17,7 @@
 .lead { margin-top: 24px; font-size: 32px; color: var(--text-2); }
 .screen .error { margin-top: 24px; }
 
-/* Sign-in and the user picker: over the colour field, centred. */
+/* Centre sign-in and profile selection over the background colour field. */
 .signin, .users { z-index: 1; }
 .signin { display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
 .mark { display: block; }
@@ -51,8 +51,8 @@
 }
 .user.focused .avatar { outline-color: var(--accent); }
 .user small { color: var(--text-3); font-size: var(--fs-small); }
-/* The PIN pad: who, four dots, the keys. After the fourth digit the dots
-   stay full and pulse while plex.tv checks; a wrong PIN shakes them. */
+/* Keep all four PIN dots filled and pulsing during validation; shake them
+   when plex.tv rejects the PIN. */
 .pinpad { display: flex; flex-direction: column; align-items: center; }
 .pinpad .avatar {
   width: 112px;
@@ -106,15 +106,15 @@
 .pin-key.focused { background: var(--accent); color: var(--accent-text); }
 .pinpad .error { margin-top: 24px; }
 
-/* notice.ts: opaque, as translucent colour blends wrong on the plane; over
-   the splash (a server that did not answer at the start, say). */
+/* Use opaque notices because hardware blending distorts translucent colours.
+   Place them above the splash so startup failures remain visible. */
 .notice {
   position: absolute; left: 50%; bottom: 80px; transform: translateX(-50%); z-index: 35;
   max-width: 1400px; padding: 18px 32px; border-radius: var(--radius);
   background: var(--bg-raise-2); color: var(--text); font-size: var(--fs-meta);
 }
 
-/* Behind the screens without art: Library, Search, Settings and the grids. */
+/* Shared background for screens without item artwork. */
 .screen-bg {
   position: absolute;
   inset: 0;

@@ -1,16 +1,15 @@
-// Based on PM4K's plexnet/plexplayer.py: Kodi reads an HTTP MKV stream
-// through the proxy. Restrict the profile to codecs the box can decode,
-// and request Plex's decision first so refusals include its reason.
-// Kodi's clock starts at zero for each stream; the framework adds `offset`.
-// Seeking or changing tracks replaces the stream under the same session.
-// A direct play gets a decision too, for its playback session.
+// Based on PM4K's plexnet/plexplayer.py. Kodi reads HTTP MKV streams through
+// the proxy. Limit the profile to supported codecs and request Plex's decision
+// before playback so refusals include a reason. The framework adds streamOffset
+// to Kodi's stream-relative clock. Seeks and track changes reuse the session
+// with a new stream; direct playback also requests a decision for its session.
 
 import { identity, PlexError, type Server } from '../plex/client';
 import type { Media } from '../plex/types';
 import { type Quality } from './quality';
 
-/** Video codecs the box's hardware may decode; the state's `decoders` says
- * which it does (ffmpeg's names, which Plex uses too). */
+/** Hardware video codec candidates, using FFmpeg/Plex names. Intersect with
+ * the box's reported `decoders` when available. */
 export const HARDWARE_CODECS = ['h264', 'hevc', 'av1', 'vp9', 'mpeg1video', 'mpeg2video', 'mpeg4', 'vc1'];
 const AUDIO = 'aac,ac3,eac3,dca,truehd,flac,opus,mp3,mp2,pcm';
 const SUBTITLES = 'srt,ass,ssa,pgs,vobsub,dvd_subtitle,mov_text,webvtt';
@@ -19,11 +18,11 @@ const profileExtra = (video: string) =>
   `&videoCodec=${video}&audioCodec=${AUDIO}&subtitleCodec=${SUBTITLES})`;
 
 export interface Transcode {
-  /** The stream's path and query on the server (no token: the proxy adds it). */
+  /** Server path and query; the proxy supplies the token header. */
   path: string;
-  /** The selected subtitles are burnt into the picture, not a stream. */
+  /** Selected subtitles are burnt into the video. */
   burnt: boolean;
-  /** Plex's summary, for the log. */
+  /** Plex decision code and reason for logging. */
   decision: string;
 }
 
@@ -82,12 +81,10 @@ export async function transcode(
   return { path: `/video/:/transcode/universal/start.mkv?${query}`, burnt, decision: `${code} ${text}` };
 }
 
-/** Asks Plex to direct play `media` in playback `session`. Plex keeps a
- * user's streams of different files apart by their sessions: a part
- * requested outside one gets an ad-hoc decision, which ends when the user
- * requests another file. The profile allows the file as it is, as the app
- * chose to play it so, with any of its tracks (Kodi switches them).
- * Resolves with Plex's summary when Plex declined. */
+/** Request a direct-play decision tied to `session`. Without a session,
+ * another file request by the same user can end the stream. Allow the source
+ * format and all tracks because Kodi handles track selection. Return Plex's
+ * decision summary on refusal, or undefined on acceptance. */
 export async function directPlay(server: Server, ratingKey: string, session: string, media?: Media): Promise<string | undefined> {
   const audio = media?.audioCodec && !AUDIO.split(',').includes(media.audioCodec) ? `${AUDIO},${media.audioCodec}` : AUDIO;
   const profile =
@@ -110,15 +107,13 @@ export async function directPlay(server: Server, ratingKey: string, session: str
   return code === 1000 ? undefined : `${code} ${d?.generalDecisionText ?? ''}`.trim();
 }
 
-/** `path` on the server in playback `session`, for Kodi (no token: the
- * proxy adds it). */
+/** Add playback session identity to a Kodi path; the proxy supplies the token. */
 export function inSession(path: string, session: string): string {
   const query = new URLSearchParams({ 'X-Plex-Session-Identifier': session, ...identity() });
   return `${path}${path.includes('?') ? '&' : '?'}${query}`;
 }
 
-/** Ends the session's transcode on the server, so it no longer counts as a
- * stream (a user may be limited to one). */
+/** Release the server transcode so it stops counting against the user's stream limit. */
 export function stopTranscode(server: Server, session: string): Promise<void> {
   return server.call('/video/:/transcode/universal/stop', { session }).catch(() => {});
 }
