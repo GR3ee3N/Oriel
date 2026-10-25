@@ -283,17 +283,18 @@ export function Osd() {
                     classList={{ scrubbing: target() !== null }}
                     ref={(el) => focusable(el, { scope: 'osd', onArrow: scrub, onSelect: commitScrub })}
                   >
-                    <Show when={p().intro}>
+                    {/* The intro and every credits marker, as lighter stretches of the bar. */}
+                    <For each={[...(p().intro ? [p().intro!] : []), ...p().allCredits]}>
                       {(m) => (
                         <div
                           class="marker"
                           style={{
-                            left: `${(m().startTimeOffset / 1000 / duration()) * 100}%`,
-                            width: `${((m().endTimeOffset - m().startTimeOffset) / 1000 / duration()) * 100}%`,
+                            left: `${(m.startTimeOffset / 1000 / duration()) * 100}%`,
+                            width: `${((m.endTimeOffset - m.startTimeOffset) / 1000 / duration()) * 100}%`,
                           }}
                         />
                       )}
-                    </Show>
+                    </For>
                     <div class="fill" style={{ transform: `scaleX(${duration() ? state.player.time / duration() : 0})` }} />
                     <Show when={target() !== null}>
                       <div class="target" style={{ left: `${((target() ?? 0) / duration()) * 100}%` }}>
