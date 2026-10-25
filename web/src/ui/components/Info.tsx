@@ -1,4 +1,5 @@
 import { createSignal, For, type JSX, Show } from 'solid-js';
+import { t } from '../../i18n';
 import { ageRating, clean, duration, episodeCode, remaining, seasonCount } from '../../plex/format';
 import { logoOf, logoUrl, preload } from '../../plex/images';
 import type { Metadata } from '../../plex/types';
@@ -48,13 +49,17 @@ export function Meta(props: { parts: (JSX.Element | string | number | undefined 
 }
 
 /** Format item metadata and remaining time: episode code, title and duration,
- * or year, duration/season count and ratings for other items. */
+ * season title, episode count and the show's year, or year, duration/season
+ * count and ratings for other items. */
 export function metaFor(m: Metadata, showRemaining = true): JSX.Element {
   const left = showRemaining ? remaining(m) : undefined;
   if (m.type === 'episode') {
     return <Meta parts={[episodeCode(m), clean(m.title), duration(m.duration)]} accent={left} />;
   }
-  const length = m.type === 'show' || m.type === 'season' ? seasonCount(m) : duration(m.duration);
+  if (m.type === 'season') {
+    return <Meta parts={[clean(m.title), m.leafCount && t('count.episodes', { n: m.leafCount }), m.parentYear]} accent={left} />;
+  }
+  const length = m.type === 'show' ? seasonCount(m) : duration(m.duration);
   return (
     <Meta
       parts={[m.year, length, ageRating(m.contentRating), m.audienceRating ? `★ ${m.audienceRating.toFixed(1)}` : '']}

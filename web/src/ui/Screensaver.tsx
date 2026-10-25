@@ -27,7 +27,12 @@ async function pictures(): Promise<Metadata[]> {
   const out: Metadata[] = [];
   for (const h of hubs) {
     for (const m of h.Metadata ?? []) {
-      const show = m.type === 'episode' ? { ...m, art: m.grandparentArt, title: m.grandparentTitle ?? m.title } : m;
+      const show =
+        m.type === 'episode'
+          ? { ...m, art: m.grandparentArt, title: m.grandparentTitle ?? m.title }
+          : m.type === 'season'
+            ? { ...m, title: m.parentTitle ?? m.title, year: m.parentYear }
+            : m;
       if (!show.art || seen.has(show.art)) continue;
       seen.add(show.art);
       out.push(show as Metadata);

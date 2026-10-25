@@ -34,6 +34,8 @@ export interface Metadata {
   extraType?: number;
   summary?: string;
   year?: number;
+  /** The show's year, for seasons. */
+  parentYear?: number;
   thumb?: string;
   art?: string;
   /** Show poster and artwork for episodes. */

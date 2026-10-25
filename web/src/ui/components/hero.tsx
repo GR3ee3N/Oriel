@@ -5,7 +5,7 @@
 
 import { createSignal, onCleanup, Show } from 'solid-js';
 import { metadata } from '../../plex/api';
-import { badges, clean } from '../../plex/format';
+import { badges, tileTitle } from '../../plex/format';
 import type { Metadata } from '../../plex/types';
 import { currentServer } from '../../session';
 import { episodeTitle, hidden } from '../spoilers';
@@ -31,7 +31,9 @@ export function createHero(onFirst?: (item: Metadata) => void) {
   const [hero, setHero] = createSignal<HeroState>();
   let wanted: Metadata | undefined;
   let timer: ReturnType<typeof setTimeout> | undefined;
-  const fullOf = (item: Metadata) => metadata(currentServer(), item.ratingKey).catch(() => undefined);
+  // A season's own metadata rarely has a summary, so seasons use their show's.
+  const fullOf = (item: Metadata) =>
+    metadata(currentServer(), item.type === 'season' ? item.parentRatingKey! : item.ratingKey).catch(() => undefined);
 
   /** Show `item` after focus settles; `around` are neighbours to fetch ahead. */
   const show = (item: Metadata, around: Metadata[] = []) => {
@@ -73,8 +75,8 @@ export function createHero(onFirst?: (item: Metadata) => void) {
 
 export type Hero = ReturnType<typeof createHero>;
 
-/** The hero's item information: the show's title for episodes, and no
- * episode title or summary while spoilers are hidden. */
+/** The hero's item information: the show's title for episodes and seasons,
+ * and no episode title or summary while spoilers are hidden. */
 export function HeroInfo(props: { hero: Hero }) {
   return (
     <Show when={props.hero.hero()}>
@@ -82,11 +84,11 @@ export function HeroInfo(props: { hero: Hero }) {
         <Info
           item={h().item}
           logo={h().logo}
-          title={clean(h().item.type === 'episode' ? h().item.grandparentTitle : h().item.title)}
+          title={tileTitle(h().item)}
           meta={metaFor(hidden(h().item) ? { ...h().item, title: episodeTitle(h().item) } : h().item)}
           badges={h().full ? badges(h().full) : []}
           badgesLate={h().late}
-          summary={hidden(h().item) ? undefined : h().item.summary}
+          summary={hidden(h().item) ? undefined : h().item.summary || h().full?.summary}
           size="hero"
         />
       )}
