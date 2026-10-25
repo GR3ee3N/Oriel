@@ -1,6 +1,8 @@
 /* Opaque surfaces only: Mali blending shifts translucent panel colours. */
 .panel-layer { position: absolute; inset: 0; z-index: 20; }
 .panel-shade { position: absolute; inset: 0; background: rgba(10, 11, 16, 0.62); }
+/* Over video only black blends correctly. */
+.app[data-mode="osd"] .panel-shade { background: rgba(0, 0, 0, 0.6); }
 .panel {
   position: absolute;
   right: var(--safe-x);

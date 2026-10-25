@@ -37,8 +37,9 @@ import {
   thumbs,
 } from '../player/playback';
 import { SUBTITLES_OFF, type Track } from '../player/tracks';
-import { currentServer } from '../session';
+import { currentServer, session } from '../session';
 import { Menu } from './components/Menu';
+import { Panel } from './components/Panel';
 import { episodeTitle, hidden } from './spoilers';
 import './osd.css';
 
@@ -138,7 +139,10 @@ export function Osd() {
   };
 
   const trackLabel = (tracks: Track[], id: number, none: string) => tracks.find((t) => t.id === id)?.label ?? none;
-  const trackOption = (t: Track) => ({ label: t.detail ? `${t.label} · ${t.detail}` : t.label, value: t });
+  // The same list as on the detail pages: language, then format and kind.
+  const trackOption = (t: Track) => ({ label: t.label, value: t, detail: t.detail || undefined });
+  // A choice is saved on the server for this title, as on the detail pages.
+  const trackHint = () => t('details.trackHint', { server: session.serverName ?? '' });
   const pages = (): Page[] => {
     const p = playback();
     return [...(p?.chapters.length ? ['chapters' as const] : []), ...((playQueue()?.total ?? 0) > 1 ? ['queue' as const] : [])];
@@ -333,11 +337,15 @@ export function Osd() {
               </div>
             </Show>
             <Show when={menu() === 'audio'}>
-              <Menu
+              <Panel
                 title={t('player.audio')}
+                hint={trackHint()}
                 options={p().audio.map(trackOption)}
                 selected={p().audio.find((t) => t.id === p().audioId)}
-                onChoose={chooseAudio}
+                onChoose={(track) => {
+                  chooseAudio(track);
+                  setMenu(null);
+                }}
                 onClose={() => setMenu(null)}
               />
             </Show>
@@ -351,11 +359,15 @@ export function Osd() {
               />
             </Show>
             <Show when={menu() === 'subtitles'}>
-              <Menu
+              <Panel
                 title={t('player.subtitles')}
+                hint={trackHint()}
                 options={[SUBTITLES_OFF, ...p().subtitles].map(trackOption)}
                 selected={[SUBTITLES_OFF, ...p().subtitles].find((t) => t.id === p().subtitleId)}
-                onChoose={chooseSubtitle}
+                onChoose={(track) => {
+                  chooseSubtitle(track);
+                  setMenu(null);
+                }}
                 onClose={() => setMenu(null)}
               />
             </Show>
