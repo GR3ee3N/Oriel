@@ -396,9 +396,10 @@ function entryLine(m: Metadata, left = false): string {
 /** A 16:9 picture of an entry: an episode's still, a movie's backdrop. */
 const still = (m: Metadata) => (m.type === 'episode' ? m.thumb : (m.art ?? m.thumb));
 
-/** One page of chapters or queue entries under the OSD controls. It opens on
- * the current chapter or the playing entry; Left/Right move along it, Up and
- * Down change page, and Up from the first page or Back closes it. */
+/** One page of chapters or queue entries under the OSD controls, under its
+ * name, with a Down chevron when another page follows. It opens on the
+ * current chapter or the playing entry; Left/Right move along it, Up and Down
+ * change page, and Up from the first page or Back closes it. */
 function Strip(props: { page: Page; pages: Page[]; onPage: (page: Page) => void; onClose: () => void }) {
   const p = playback()!;
   const server = currentServer();
@@ -444,7 +445,7 @@ function Strip(props: { page: Page; pages: Page[]; onPage: (page: Page) => void;
     open(Math.max(0, now()));
     return (
       <div class="strip">
-        <StripTabs pages={props.pages} page={props.page} count={t('player.position', { n: Math.max(1, now() + 1), total: p.chapters.length })} />
+        <StripHead pages={props.pages} page={props.page} count={t('player.position', { n: Math.max(1, now() + 1), total: p.chapters.length })} />
         <div class="strip-row" style={{ transform: `translateX(${-first() * PITCH}px)` }}>
           <For each={p.chapters}>
             {(c, i) => (
@@ -488,7 +489,7 @@ function Strip(props: { page: Page; pages: Page[]; onPage: (page: Page) => void;
   open(Math.max(0, playingAt()));
   return (
     <div class="strip">
-      <StripTabs pages={props.pages} page={props.page} count={count()} />
+      <StripHead pages={props.pages} page={props.page} count={count()} />
       <div class="strip-row" style={{ transform: `translateX(${-first() * PITCH}px)` }}>
         <For each={q().items}>
           {(m, i) => {
@@ -528,21 +529,20 @@ function Strip(props: { page: Page; pages: Page[]; onPage: (page: Page) => void;
   );
 }
 
-/** Names of the strip's pages, the visible one underlined with its count. */
-function StripTabs(props: { pages: Page[]; page: Page; count: string }) {
+/** The page's name and count; the chevron at the panel's foot shows while a
+ * page follows. */
+function StripHead(props: { pages: Page[]; page: Page; count: string }) {
+  const more = props.pages.indexOf(props.page) < props.pages.length - 1;
   return (
-    <div class="strip-tabs">
-      <For each={props.pages}>
-        {(page) => (
-          <span classList={{ on: page === props.page }}>
-            {t(page === 'chapters' ? 'player.chapters' : 'player.queue')}
-            <Show when={page === props.page}>
-              <small>{props.count}</small>
-            </Show>
-          </span>
-        )}
-      </For>
-    </div>
+    <>
+      <div class="strip-head">
+        <b>{t(props.page === 'chapters' ? 'player.chapters' : 'player.queue')}</b>
+        <small>{props.count}</small>
+      </div>
+      <Show when={more}>
+        <Icon d={CHEVRON} class="strip-hint" />
+      </Show>
+    </>
   );
 }
 

@@ -135,7 +135,7 @@
 .next-blank { width: 320px; height: 180px; border-radius: 8px; background: #2a2f3a; }
 
 /* The strip under the controls: the panel grows upward to hold it. */
-.osd-panel.tall { height: 850px; padding-top: 140px; background: linear-gradient(rgba(0, 0, 0, 0), rgba(0, 0, 0, 0.9) 30%); }
+.osd-panel.tall { height: 820px; padding-top: 140px; background: linear-gradient(rgba(0, 0, 0, 0), rgba(0, 0, 0, 0.9) 30%); }
 .strip { margin-top: 40px; }
 .strip-hint {
   position: absolute;
@@ -146,11 +146,9 @@
   margin-left: -18px;
   color: rgba(255, 255, 255, 0.45);
 }
-.strip-tabs { display: flex; gap: 36px; align-items: baseline; }
-.strip-tabs span { font-size: var(--fs-meta); font-weight: 700; color: rgba(255, 255, 255, 0.55); }
-.strip-tabs span.on { color: var(--text); }
-.strip-tabs span.on::after { content: ''; display: block; height: 4px; margin-top: 8px; border-radius: 2px; background: var(--text); }
-.strip-tabs small { margin-left: 10px; font-size: var(--fs-meta); font-weight: 600; color: rgba(255, 255, 255, 0.6); }
+.strip-head { display: flex; gap: 10px; align-items: baseline; }
+.strip-head b { font-size: var(--fs-meta); font-weight: 700; }
+.strip-head small { font-size: var(--fs-meta); font-weight: 600; color: rgba(255, 255, 255, 0.6); }
 .strip-row { margin-top: 22px; display: flex; gap: 24px; transition: transform var(--normal) var(--ease); }
 .s-card { flex: none; width: 304px; transition: transform var(--fast) var(--ease); transform-origin: bottom center; }
 .s-card .pic { position: relative; width: 304px; height: 171px; border-radius: 10px; overflow: hidden; background: #2a2f3a; }
