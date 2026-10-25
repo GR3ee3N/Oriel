@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { t } from '../src/i18n';
-import { ageRating, clean, duration, hubTitle, tileSubtitle, versionLabel } from '../src/plex/format';
+import { ageRating, badges, clean, duration, hubTitle, tileSubtitle, versionLabel } from '../src/plex/format';
 import type { Metadata } from '../src/plex/types';
 
 const item = (m: Partial<Metadata>): Metadata => ({ ratingKey: '1', key: '/1', type: 'movie', title: 'A', ...m });
@@ -66,5 +66,17 @@ describe('versionLabel', () => {
       Part: [{ id: 1, key: '/p', size: 52_100_000_000, Stream: [{ id: 1, streamType: 1 as const, DOVIPresent: true }] }],
     };
     expect(versionLabel(media)).toEqual({ label: '4K · Dolby Vision', detail: 'HEVC · 44 Mbps · MKV · 52.1 GB' });
+  });
+
+  it('names the Dolby Vision profile, with the sub-profile for 8 and 10', () => {
+    const dv = (DOVIProfile: number, DOVIBLCompatID: number) => ({
+      ratingKey: '1', key: '', type: 'movie', title: 'A',
+      Media: [{ id: 1, videoResolution: '4k', Part: [{ id: 1, key: '/p', Stream: [{ id: 1, streamType: 1 as const, DOVIPresent: true, DOVIProfile, DOVIBLCompatID }] }] }],
+    }) as unknown as Metadata;
+    expect(badges(dv(5, 0))).toEqual(['4K', 'Dolby Vision P5']);
+    expect(badges(dv(7, 6))).toEqual(['4K', 'Dolby Vision P7']);
+    expect(badges(dv(8, 1))).toEqual(['4K', 'Dolby Vision P8.1']);
+    expect(badges(dv(8, 6))).toEqual(['4K', 'Dolby Vision P8.6']);
+    expect(badges(dv(10, 1))).toEqual(['4K', 'Dolby Vision P10.1']);
   });
 });

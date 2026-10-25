@@ -147,6 +147,10 @@ export interface Stream {
   /** Dolby Vision flag and transfer function: smpte2084 is PQ, arib-std-b67 is HLG. */
   DOVIPresent?: boolean;
   colorTrc?: string;
+  /** Dolby Vision profile, e.g. 5, 7, 8 or 10, and the base layer's
+   * compatibility ID, e.g. 1 for HDR10 in profile 8.1. */
+  DOVIProfile?: number;
+  DOVIBLCompatID?: number;
 }
 
 export interface Marker {

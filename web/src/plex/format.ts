@@ -94,7 +94,7 @@ export function unwatched(m: Metadata): number {
 }
 
 /** Badges for the first media version: resolution, dynamic range, then audio
- * codec, spatial format and channels, e.g. 4K · Dolby Vision · TrueHD Atmos 7.1.
+ * codec, spatial format and channels, e.g. 4K · Dolby Vision P8.1 · TrueHD Atmos 7.1.
  * Dynamic range requires stream metadata and is omitted from summary-only lists.
  * `playing` overrides Plex's selected audio flag, which does not track Kodi changes. */
 export function badges(m: Metadata | undefined, playing?: Stream): string[] {
@@ -139,9 +139,18 @@ export function versionLabel(media: Media): { label: string; detail: string } {
   };
 }
 
+/** Dolby Vision with its profile, e.g. "Dolby Vision P8.1". Profiles 8 and
+ * 10 name their base layer's compatibility as a sub-profile. */
+function dolbyVision(video: Stream): string {
+  const p = video.DOVIProfile;
+  if (!p) return 'Dolby Vision';
+  const id = video.DOVIBLCompatID;
+  return `Dolby Vision P${p}${(p === 8 || p === 10) && id !== undefined ? `.${id}` : ''}`;
+}
+
 function dynamicRange(video: Stream): string {
   const title = video.displayTitle ?? '';
-  if (video.DOVIPresent || /dovi|dolby vision/i.test(title)) return 'Dolby Vision';
+  if (video.DOVIPresent || /dovi|dolby vision/i.test(title)) return dolbyVision(video);
   if (/hdr10\+/i.test(title)) return 'HDR10+';
   if (video.colorTrc === 'arib-std-b67' || /hlg/i.test(title)) return 'HLG';
   if (video.colorTrc === 'smpte2084' || /hdr/i.test(title)) return 'HDR10';
