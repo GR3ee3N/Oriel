@@ -72,7 +72,7 @@ export function Movie(props: { ratingKey: string }) {
 
   return (
     <div class="details" classList={{ scrolled: scroll() > 0 }} style={{ '--detail-scroll': `${scroll()}px` }}>
-      <Backdrop art={item()?.art} colors={item()?.UltraBlurColors} delay={0} />
+      <Backdrop art={item()?.art} colors={item()?.UltraBlurColors} />
       <div class="scroll-dim" />
       <DetailHead />
       <Switch>

@@ -161,28 +161,52 @@ function decoded(src: string, cors: boolean): Promise<HTMLImageElement> {
   return img.decode().then(() => img);
 }
 
-/** Blend artwork into the item's colour field at the top and right.
- * Wait for focus to settle before fetching artwork, decode it off-screen,
- * then cross-fade scenes with compositor-only opacity transitions. */
-export function Backdrop(props: { art?: string; colors?: UltraBlurColors; delay?: number }) {
+interface Scene {
+  colors: UltraBlurColors;
+  img?: HTMLImageElement;
+  lum: number;
+}
+
+const sceneKey = (art: string | undefined, colors: UltraBlurColors | undefined) => `${art ?? ''}|${JSON.stringify(colors ?? null)}`;
+// The last scenes prepared; each holds a decoded full-screen image.
+const prepared = new Map<string, Promise<Scene>>();
+const KEEP = 2;
+
+/** Decode and measure a backdrop. A Backdrop given the same artwork and
+ * colours next shows it in the same frame. */
+export function prepareBackdrop(art: string | undefined, colors: UltraBlurColors | undefined): Promise<Scene> {
+  const c = colors ?? FALLBACK;
+  if (!art) return Promise.resolve({ colors: c, lum: 0 });
+  const key = sceneKey(art, colors);
+  const scene =
+    prepared.get(key) ??
+    Promise.all([
+      decoded(backdropUrl(art), true)
+        .catch(() => decoded(backdropUrl(art), false))
+        .catch(() => undefined),
+      measure(art, c),
+    ]).then(([img, lum]) => ({ colors: c, img, lum }));
+  prepared.delete(key);
+  prepared.set(key, scene);
+  for (const old of prepared.keys()) if (prepared.size > KEEP) prepared.delete(old);
+  return scene;
+}
+
+/** Blend artwork into the item's colour field at the top and right, then
+ * cross-fade scenes with compositor-only opacity transitions. Pages that
+ * change artwork with focus wait for it with prepareBackdrop. */
+export function Backdrop(props: { art?: string; colors?: UltraBlurColors }) {
   const scenes: { root: HTMLDivElement; canvas: HTMLCanvasElement }[] = [];
   let shown = -1;
   let showing = '';
   // Retain the current scene inputs for repainting after visibility changes.
   let painted: [UltraBlurColors, HTMLImageElement | undefined, number] | undefined;
-  let timer: ReturnType<typeof setTimeout> | undefined;
 
   const show = async (art: string | undefined, colors: UltraBlurColors | undefined) => {
-    const key = `${art ?? ''}|${JSON.stringify(colors ?? null)}`;
+    const key = sceneKey(art, colors);
     if (key === showing) return;
-    let img: HTMLImageElement | undefined;
-    let lum = 0;
-    if (art) {
-      const measured = measure(art, colors ?? FALLBACK);
-      img = await decoded(backdropUrl(art), true).catch(() => decoded(backdropUrl(art), false)).catch(() => undefined);
-      lum = await measured;
-      if (props.art !== art) return;
-    }
+    const { img, lum } = await prepareBackdrop(art, colors);
+    if (sceneKey(props.art, props.colors) !== key) return;
     const next = shown === 0 ? 1 : 0;
     const scene = scenes[next];
     painted = [colors ?? FALLBACK, img, lum];
@@ -196,15 +220,7 @@ export function Backdrop(props: { art?: string; colors?: UltraBlurColors; delay?
   createEffect(
     on(
       () => [props.art, props.colors] as const,
-      ([art, colors]) => {
-        clearTimeout(timer);
-        // Show the initial colour field immediately while artwork is unavailable.
-        if (shown < 0 && !art) {
-          void show(undefined, colors);
-          return;
-        }
-        timer = setTimeout(() => void show(art, colors), shown < 0 ? 0 : (props.delay ?? 300));
-      },
+      ([art, colors]) => void show(art, colors),
     ),
   );
   // WebKit discards canvas contents while hidden: while the page is, and
@@ -226,10 +242,7 @@ export function Backdrop(props: { art?: string; colors?: UltraBlurColors; delay?
       { defer: true },
     ),
   );
-  onCleanup(() => {
-    clearTimeout(timer);
-    document.removeEventListener('visibilitychange', onVisibility);
-  });
+  onCleanup(() => document.removeEventListener('visibilitychange', onVisibility));
 
   const scene = (i: number) => (
     <div class="scene" ref={(el) => (scenes[i] = { ...scenes[i], root: el })}>

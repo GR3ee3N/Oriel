@@ -111,7 +111,7 @@ export function Show(props: { ratingKey: string; season?: string; episode?: stri
 
   return (
     <div class="details" classList={{ scrolled: scroll() > 0 }} style={{ '--detail-scroll': `${scroll()}px` }}>
-      <Backdrop art={show.latest?.item.art} colors={show.latest?.item.UltraBlurColors} delay={0} />
+      <Backdrop art={show.latest?.item.art} colors={show.latest?.item.UltraBlurColors} />
       <div class="scroll-dim" />
       <DetailHead />
       <Switch>

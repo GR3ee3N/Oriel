@@ -24,7 +24,7 @@ export function Remote(props: { guid: string; title: string }) {
       .catch(() => notice(t('watchlist.failed')));
   return (
     <div class="details">
-      <Backdrop art={meta()?.art} delay={0} />
+      <Backdrop art={meta()?.art} />
       <DetailHead />
       <div class="details-info">
         <Info

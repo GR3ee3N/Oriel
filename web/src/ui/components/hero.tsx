@@ -1,6 +1,7 @@
 // Focused-item information above rows on Home and a library's Recommended
-// view. Changes wait for focus to settle and for the title logo to decode,
-// so the hero and backdrop change together and stay out of row animation.
+// view. Changes wait for focus to settle, the title logo and the backdrop,
+// so the information and backdrop change together and stay out of row
+// animation.
 
 import { createSignal, onCleanup, Show } from 'solid-js';
 import { metadata } from '../../plex/api';
@@ -8,7 +9,11 @@ import { badges, clean } from '../../plex/format';
 import type { Metadata } from '../../plex/types';
 import { currentServer } from '../../session';
 import { episodeTitle, hidden } from '../spoilers';
+import { prepareBackdrop } from './Backdrop';
 import { Info, logoReady, metaFor } from './Info';
+
+// Longest wait for slow artwork; the backdrop follows when it arrives.
+const BACKDROP_WAIT = 1000;
 
 export interface HeroState {
   item: Metadata;
@@ -39,6 +44,7 @@ export function createHero(onFirst?: (item: Metadata) => void) {
         const [logo, full] = await Promise.all([
           logoReady(item),
           Promise.race([pending, new Promise<undefined>((done) => setTimeout(done, 350))]),
+          Promise.race([prepareBackdrop(backdropOf(item), item.UltraBlurColors), new Promise((done) => setTimeout(done, BACKDROP_WAIT))]),
         ]);
         if (wanted !== item) return;
         setHero({ item, logo, full });
