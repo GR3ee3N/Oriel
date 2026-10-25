@@ -1,8 +1,8 @@
 // Persist app settings through @oriel/web's add-on store.
 
-import { type BaseSaved, load as loadStore, save as saveStore } from '@oriel/web';
+import { load as loadStore, save as saveStore } from '@oriel/web';
 
-export interface Saved extends BaseSaved {
+export interface Saved {
   clientId?: string;
   /** Account token used to switch Plex Home profiles. */
   accountToken?: string;

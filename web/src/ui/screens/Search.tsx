@@ -43,29 +43,16 @@ export function Search() {
 
   // Delete removes the last character, including one outside the BMP.
   const type = (k: string) => setQuery((q) => (k === 'del' ? [...q].slice(0, -1).join('') : k === 'clear' ? '' : q + k));
-  // Accept remote keyboard input only while Search is the active screen.
+  // A keyboard types into the query while Search is the active screen; its
+  // Backspace deletes.
   const scope = useScope();
   const onKey = (e: KeyboardEvent) => {
     if (activeScope() !== scope) return;
-    if (e.key.length === 1 && /[\p{L}\p{N} ]/u.test(e.key)) type(e.key.toLowerCase());
+    if (e.key === 'Backspace') type('del');
+    else if (e.key.length === 1 && /[\p{L}\p{N} ]/u.test(e.key)) type(e.key.toLowerCase());
   };
-  // Kodi sends the remote's Back as Escape, so Backspace comes from a
-  // keyboard: it deletes while there's text and is Back otherwise. Window
-  // capture runs before App's document handler, which treats it as Back.
-  const onBackspace = (e: KeyboardEvent) => {
-    if (e.key !== 'Backspace' || activeScope() !== scope || !query()) return;
-    e.preventDefault();
-    e.stopImmediatePropagation();
-    type('del');
-  };
-  onMount(() => {
-    document.addEventListener('keydown', onKey);
-    window.addEventListener('keydown', onBackspace, true);
-  });
-  onCleanup(() => {
-    document.removeEventListener('keydown', onKey);
-    window.removeEventListener('keydown', onBackspace, true);
-  });
+  onMount(() => document.addEventListener('keydown', onKey));
+  onCleanup(() => document.removeEventListener('keydown', onKey));
 
   const key = (k: string, label: string, wide = false) => (
     <div class="key" classList={{ wide }} ref={(el) => focusable(el, { group: 'keyboard', area: 'keyboard', autofocus: k === 'a', onSelect: () => type(k) })}>

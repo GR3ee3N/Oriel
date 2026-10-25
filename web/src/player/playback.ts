@@ -14,13 +14,13 @@ import { clean, episodeCode } from '../plex/format';
 import { createQueue, loadQueue, type PlayQueue, type QueueSource } from '../plex/playqueue';
 import type { Marker, Metadata, Part } from '../plex/types';
 import { currentServer } from '../session';
+import { uuid } from '../uuid';
 import { Bif } from './bif';
 import { type ChapterMark, chaptersFor } from './chapters';
 import { after, merge } from './queue';
 import { ORIGINAL, QUALITIES, quality } from './quality';
 import { directPlay, HARDWARE_CODECS, inSession, stopTranscode, transcode } from './transcode';
 import { audioTracks, kodiSubtitle, subtitleTracks, SUBTITLES_OFF, type Track } from './tracks';
-import { uuid } from '@oriel/web';
 
 export interface Playback {
   id: string;

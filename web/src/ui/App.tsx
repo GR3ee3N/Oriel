@@ -72,6 +72,9 @@ export function App() {
       return;
     }
     const a = action(e);
+    // A keyboard's Backspace would otherwise send WebKit back in its history;
+    // Search handles it as delete.
+    if (e.key === 'Backspace') e.preventDefault();
     if (!a) return;
     e.preventDefault();
     // Simulate the add-on's hidden-page key handling in browser development.

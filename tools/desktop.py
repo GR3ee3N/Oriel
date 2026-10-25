@@ -29,6 +29,7 @@ def player_state(state="idle", time=0, duration=None, session=None, meta=None, e
 
 
 STATE = {
+    "run": uuid.uuid4().hex,
     "mode": "browse",
     "cpuRendering": False,
     "screensaver": 0,
@@ -37,7 +38,6 @@ STATE = {
     # App.tsx handles video keys here because no add-on receives them.
     "desktop": True,
 }
-RUN = uuid.uuid4().hex
 LOCK = threading.RLock()
 CLIENTS = set()
 # Query this source for the duration Kodi would read from the file.
@@ -182,7 +182,7 @@ class Handler(BaseHTTPRequestHandler):
     def do_GET(self):
         path = self.path.split("?", 1)[0]
         if path == "/api/store":
-            return self.json({**store(), "run": RUN})
+            return self.json(store())
         if path != "/api/events":
             return self.send_error(404)
         q = queue.Queue()

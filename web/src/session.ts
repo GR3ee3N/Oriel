@@ -9,7 +9,7 @@
 // fail without falling back to another server.
 
 import { createStore } from 'solid-js/store';
-import { call } from './bridge';
+import { call, runId } from './bridge';
 import { tab } from './router';
 import { checkPin, createPin, homeUsers, type Pin, switchUser, whoAmI } from './plex/auth';
 import { PlexError, type Server, setClientId } from './plex/client';
@@ -21,8 +21,8 @@ import { t } from './i18n';
 import { notice } from './notice';
 import { loadPrefs } from './prefs';
 import { load, type Saved, save } from './store';
-import { uuid } from '@oriel/web';
 import { resetHomeReady } from './boot';
+import { uuid } from './uuid';
 import type { MenuOption } from './ui/components/Menu';
 
 export type Phase = 'loading' | 'signin' | 'users' | 'connecting' | 'ready' | 'error';
@@ -133,13 +133,14 @@ async function afterAccount(account: User): Promise<void> {
   setSession({ multiUser: true, lastUser: saved.userUuid });
   // Automatic sign-in reuses the last profile token without asking for a PIN.
   // Reloads within the same app run also preserve the selected profile.
-  const sameRun = !!saved.run && saved.userRun === saved.run;
+  const run = await runId();
+  const sameRun = saved.userRun === run;
   if ((saved.autoSignIn || sameRun) && saved.userUuid && saved.userToken) {
     const user = await whoAmI(saved.userToken);
     if (user && user.uuid === saved.userUuid) {
-      if (saved.run && saved.userRun !== saved.run) {
-        saved.userRun = saved.run;
-        await save({ userRun: saved.run });
+      if (!sameRun) {
+        saved.userRun = run;
+        await save({ userRun: run });
       }
       return useUser(user);
     }
@@ -175,11 +176,12 @@ export async function signIn(): Promise<void> {
 /** A wrong PIN throws PlexError for the picker to display. */
 export async function pickUser(user: HomeUser, pin?: string): Promise<void> {
   const switched = await switchUser(saved.accountToken!, user, pin);
+  const run = await runId();
   saved.userUuid = switched.uuid;
   saved.userToken = switched.authToken;
-  saved.userRun = saved.run;
+  saved.userRun = run;
   setSession({ lastUser: switched.uuid, picks: session.picks + 1 });
-  await save({ userUuid: switched.uuid, userToken: switched.authToken, userRun: saved.run });
+  await save({ userUuid: switched.uuid, userToken: switched.authToken, userRun: run });
   // Return to Home because library access differs between profiles.
   tab({ screen: 'home' });
   await useUser(switched);
@@ -199,7 +201,7 @@ export function signOut(): Promise<void> {
   who = undefined;
   resources = [];
   setSession({ servers: [], serverId: undefined });
-  saved = { clientId: saved.clientId, run: saved.run };
+  saved = { clientId: saved.clientId };
   return signIn();
 }
 
