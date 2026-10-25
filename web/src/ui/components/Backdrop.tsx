@@ -1,6 +1,8 @@
 import { createEffect, on, onCleanup } from 'solid-js';
+import { useScope } from '../../nav';
 import { imageUrl } from '../../plex/images';
 import type { UltraBlurColors } from '../../plex/types';
+import { top } from '../../router';
 import { currentServer } from '../../session';
 import './backdrop.css';
 
@@ -205,11 +207,25 @@ export function Backdrop(props: { art?: string; colors?: UltraBlurColors; delay?
       },
     ),
   );
-  // WebKit discards canvas contents while hidden; repaint on visibility restoration.
+  // WebKit discards canvas contents while hidden: while the page is, and
+  // while a screen above this one hides it. Repaint when it shows again.
+  const repaint = () => {
+    if (painted) paintScene(scenes[shown].canvas, ...painted);
+  };
   const onVisibility = () => {
-    if (!document.hidden && painted) paintScene(scenes[shown].canvas, ...painted);
+    if (!document.hidden) repaint();
   };
   document.addEventListener('visibilitychange', onVisibility);
+  const scope = useScope();
+  createEffect(
+    on(
+      () => top().scope === scope,
+      (onTop) => {
+        if (onTop) repaint();
+      },
+      { defer: true },
+    ),
+  );
   onCleanup(() => {
     clearTimeout(timer);
     document.removeEventListener('visibilitychange', onVisibility);
