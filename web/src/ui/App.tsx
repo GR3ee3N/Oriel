@@ -15,6 +15,7 @@ import { Users } from './Users';
 import { noticeMessage } from '../notice';
 import { Dialog } from './components/Dialog';
 import { answerExit, askExit, exitAsked } from './exit';
+import { answerFonts, fontsOffered, fontsSize, linkFonts } from '../fonts';
 import { openRail } from './components/Rail';
 import { t } from '../i18n';
 
@@ -38,6 +39,7 @@ export function App() {
       },
     ),
   );
+  linkFonts();
   // Reload progress and watched state when returning from playback.
   createEffect(on(() => state.mode, (mode, prev) => mode === 'browse' && prev && prev !== 'browse' && refresh()));
 
@@ -157,6 +159,17 @@ export function App() {
             { label: t('action.exit'), onSelect: () => answerExit(true) },
           ]}
           onCancel={() => answerExit(false)}
+        />
+      </Show>
+      <Show when={fontsOffered() && session.phase === 'ready' && state.mode === 'browse' && !exitAsked()}>
+        <Dialog
+          title={t('fonts.offerTitle')}
+          body={t('fonts.offerBody', { size: fontsSize() })}
+          choices={[
+            { label: t('action.notNow'), onSelect: () => answerFonts(false) },
+            { label: t('action.download'), onSelect: () => answerFonts(true) },
+          ]}
+          onCancel={() => answerFonts(false)}
         />
       </Show>
       <Show when={saver()}>

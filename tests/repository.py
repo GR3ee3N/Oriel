@@ -71,6 +71,19 @@ if command=='ci':
         package=web/'node_modules'/name; package.mkdir(parents=True,exist_ok=True)
         (package/'package.json').write_text(json.dumps({'name':name,'version':'1.0.0','license':'MIT'}))
         (package/'LICENSE').write_text('Test dependency license')
+    for name in json.loads((web/'package.json').read_text())['devDependencies']:
+        if not name.startswith('@fontsource'): continue
+        package=web/'node_modules'/name; (package/'files').mkdir(parents=True,exist_ok=True)
+        short=name.split('/')[1]
+        (package/'package.json').write_text(json.dumps({'name':name,'version':'1.0.0','license':'OFL-1.1'}))
+        (package/'LICENSE').write_text('Test font license '+short)
+        faces=''
+        for part in ('0','latin'):
+            file=f'{short}-{part}-wght-normal'
+            faces+=(f"/* {file} */\\n@font-face {{\\n  font-family: '{short}';\\n  src: url(./files/{file}.woff2) format('woff2'), "
+                    f"url(./files/{file}.woff) format('woff');\\n  unicode-range: U+0;\\n}}\\n")
+            (package/'files'/(file+'.woff2')).write_bytes(b'font '+file.encode())
+        (package/('400.css' if name.startswith('@fontsource/') else 'wght.css')).write_text(faces)
 elif command=='run build':
     (web/'dist/assets').mkdir(parents=True,exist_ok=True)
     (web/'dist/index.html').write_text('<script type="module" src="./assets/app.js"></script>')

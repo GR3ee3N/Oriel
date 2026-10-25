@@ -25,6 +25,8 @@ export interface Saved {
   hideUnwatched?: Record<string, boolean>;
   /** Library view, sort and filters by `profile/server/section`. */
   libraries?: Record<string, LibraryState>;
+  /** Oriel has offered the optional fonts (fonts.ts). */
+  fontsAsked?: boolean;
 }
 
 export interface LibraryState {

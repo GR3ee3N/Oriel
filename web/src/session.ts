@@ -19,6 +19,7 @@ import { forgetWatchlist } from './plex/watchlist';
 import type { Directory, HomeUser, Resource, User } from './plex/types';
 import { t } from './i18n';
 import { notice } from './notice';
+import { loadFontsAsked } from './fonts';
 import { loadPrefs } from './prefs';
 import { load, type Saved, save } from './store';
 import { resetHomeReady } from './boot';
@@ -112,6 +113,7 @@ export async function start(): Promise<void> {
   try {
     saved = await load();
     loadPrefs(saved);
+    loadFontsAsked(saved);
     if (!saved.clientId) {
       saved.clientId = uuid();
       await save({ clientId: saved.clientId });

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { t } from '../src/i18n';
-import { ageRating, duration, hubTitle, tileSubtitle, versionLabel } from '../src/plex/format';
+import { ageRating, clean, duration, hubTitle, tileSubtitle, versionLabel } from '../src/plex/format';
 import type { Metadata } from '../src/plex/types';
 
 const item = (m: Partial<Metadata>): Metadata => ({ ratingKey: '1', key: '/1', type: 'movie', title: 'A', ...m });
@@ -46,6 +46,12 @@ describe('hubTitle', () => {
   it('uses Oriel titles for known hubs and the server title for the rest', () => {
     expect(hubTitle({ hubIdentifier: 'home.ondeck', title: 'On Deck' })).toBe('Up Next');
     expect(hubTitle({ hubIdentifier: 'custom.collection.3.1.1', title: 'Popular on Netflix' })).toBe('Popular on Netflix');
+  });
+});
+
+describe('clean', () => {
+  it('drops emoji variation selectors and invisible marks', () => {
+    expect(clean('Love ❤️​ ')).toBe('Love ❤');
   });
 });
 

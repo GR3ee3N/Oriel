@@ -82,7 +82,8 @@ html, body {
   /* Let Kodi video show through unpainted areas. */
   background: transparent;
   color: var(--text);
-  font: 450 var(--fs-body)/1.35 "Inter Variable", "DejaVu Sans", sans-serif;
+  /* The extra fonts' stylesheet (fonts.ts) sets --extra-fonts once they are installed. */
+  font: 450 var(--fs-body)/1.35 "Inter Variable", var(--extra-fonts, "Noto Emoji"), "Noto Emoji", "DejaVu Sans", sans-serif;
   -webkit-font-smoothing: antialiased;
 }
 

@@ -1,4 +1,5 @@
 // Requests to plex.tv and Plex servers.
+import { noteText } from '../fonts';
 import { LANGUAGE } from '../i18n';
 
 // Put X-Plex-* identity in the query string so GET and POST requests with
@@ -64,6 +65,7 @@ export async function request<T>(url: string, options: RequestOptions = {}): Pro
   const path = new URL(url).pathname;
   if (!response.ok) throw new PlexError(response.status, `${options.method ?? 'GET'} ${path}: HTTP ${response.status}`);
   const text = await response.text();
+  noteText(text);
   return (text ? JSON.parse(text) : undefined) as T;
 }
 

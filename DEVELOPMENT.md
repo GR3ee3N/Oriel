@@ -12,13 +12,14 @@ TypeScript/Solid interface over Kodi's video. Vite builds the page.
 addon/          Kodi add-on
   addon.xml     metadata and version placeholders
   default.py    VideoApp subclass and entry point
+  fonts.py      download of the optional extra fonts
   resources/    icon, fanart and startup mark
 web/            web interface
   src/nav/      remote navigation: focus, focus scopes and Back handlers
   src/plex/     Plex API: sign-in, servers, libraries and images
   src/player/   playback, tracks, transcoding and episode prompts
   src/ui/       screens and components
-build/          packaging, license notices and version settings
+build/          packaging, license notices, font package and version settings
   versions.env  VERSION and FRAMEWORK_VERSION
 tools/          build, deployment and development scripts
 ```
@@ -83,7 +84,8 @@ Sign-in, browsing, artwork and settings use your Plex servers. Playback
 is simulated: the player state advances so you can test the OSD, pause,
 seek and end of playback, but no media plays. The server logs command
 names. Settings, including Plex tokens, are stored in
-`.cache/desktop-store.json`.
+`.cache/desktop-store.json`. The optional fonts download from a package built
+from `web/node_modules` into `.cache/desktop-files`.
 
 ## Checks and builds
 
@@ -104,6 +106,15 @@ bundles the page. It stages the add-on in
 includes the page in `resources/web`, `LICENSE.txt` and
 `THIRD-PARTY-NOTICES.txt`. `build/notices.py` collects the notices for npm
 packages shipped with the page.
+
+The extra fonts, colour emoji and scripts such as Chinese, Japanese, Korean,
+Thai and the Indian scripts, are too large to ship with the page, so the box
+downloads them when asked. `build/fonts.py` packs the Fontsource development
+dependencies it lists into `.cache/runtime/oriel-fonts-<hash>.zip` and writes
+`resources/fonts.json`, which gives the ZIP's address in the `v<version>`
+release, its size, its SHA-256 and the scripts it adds. Add a script by
+adding its package to `web/package.json` and to `PACKAGES` in
+`build/fonts.py`.
 
 The build does not run tests or TypeScript checking. Both scripts work
 without Git metadata.
@@ -131,8 +142,8 @@ tools/release.sh
 
 The script checks and builds a snapshot of the committed source. It
 packages and validates the add-on ZIP, Kodi index, artwork and checksums,
-then tags `v<version>` and uploads a draft GitHub release. The `<news>`
-text becomes the release notes.
+then tags `v<version>` and uploads a draft GitHub release, including the font
+ZIP. The `<news>` text becomes the release notes.
 
 Release files are in `.cache/release/files`.
 `.cache/release/COMMIT` records the source commit.

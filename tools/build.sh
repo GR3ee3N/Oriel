@@ -19,6 +19,9 @@ rsync -a --exclude __pycache__ addon/ "$ADDON/"
 sed -i.orig "s/@VERSION@/$VERSION/g; s/@FRAMEWORK_VERSION@/$FRAMEWORK_VERSION/g" "$ADDON/addon.xml"
 rm "$ADDON/addon.xml.orig"
 rsync -a web/dist/ "$ADDON/resources/web/"
+# The fonts download from this version's GitHub release (tools/release.sh).
+python3 build/fonts.py web/node_modules .cache/runtime "$ADDON/resources/fonts.json" \
+    "https://github.com/GR3ee3N/Oriel/releases/download/v$VERSION/" >/dev/null
 cp LICENSE "$ADDON/LICENSE.txt"
 python3 build/notices.py web "$ADDON/THIRD-PARTY-NOTICES.txt" >/dev/null
 echo "Built $ADDON."

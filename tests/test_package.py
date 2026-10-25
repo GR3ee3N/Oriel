@@ -1,4 +1,5 @@
 import hashlib
+import json
 import xml.etree.ElementTree as ET
 import zipfile
 
@@ -40,6 +41,26 @@ class PackageTests(RepositoryTests):
         with self.zip.open("ab") as file:
             file.write(b"corruption")
         with self.assertRaisesRegex(SystemExit, "sha256 does not match"):
+            self.package.validate(self.files, "script.oriel.oriel", self.v, self.f)
+
+    def test_fonts_join_the_release_under_the_name_the_addon_downloads(self):
+        fonts = json.loads((self.addon / "resources/fonts.json").read_text())
+        name = fonts["url"].removeprefix(f"https://github.com/GR3ee3N/Oriel/releases/download/v{self.v}/")
+        data = (self.files / name).read_bytes()
+        self.assertEqual((len(data), hashlib.sha256(data).hexdigest()), (fonts["size"], fonts["sha256"]))
+        self.assertIn("Thai", fonts["scripts"])
+        with zipfile.ZipFile(self.files / name) as archive:
+            css = archive.read("fonts.css").decode()
+            self.assertIn("src: url(./noto-sans-jp-0-wght-normal.woff2) format('woff2');", css)
+            self.assertNotIn(".woff)", css)
+            self.assertNotIn("latin", css)
+            self.assertIn(":root { --extra-fonts: 'noto-color-emoji', 'noto-sans-jp',", css)
+            self.assertEqual(archive.read("noto-sans-kr-0-wght-normal.woff2"), b"font noto-sans-kr-0-wght-normal")
+            self.assertNotIn("noto-sans-kr-latin-wght-normal.woff2", archive.namelist())
+            self.assertIn(b"Test font license noto-color-emoji", archive.read("LICENSE.txt"))
+        with (self.files / name).open("ab") as file:
+            file.write(b"corruption")
+        with self.assertRaisesRegex(SystemExit, "does not match fonts.json"):
             self.package.validate(self.files, "script.oriel.oriel", self.v, self.f)
 
     def test_validation_rejects_missing_art_or_wrong_framework_version(self):

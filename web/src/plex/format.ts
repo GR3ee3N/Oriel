@@ -5,8 +5,9 @@ import { en } from '../i18n/en';
 import type { Media, Metadata, Stream } from './types';
 
 // Strip invisible characters used by tools such as Kometa to distinguish
-// collection titles, including zero-width and bidirectional marks.
-const INVISIBLE = /[​-‏‪-‮⁠-⁤﻿]/g;
+// collection titles, including zero-width and bidirectional marks. Emoji
+// variation selectors go too: the monochrome emoji font draws them as boxes.
+const INVISIBLE = /[\u200b-\u200f\u202a-\u202e\u2060-\u2064\ufe0e\ufe0f\ufeff]/g;
 
 export function clean(text: string | undefined): string {
   return (text ?? '').replace(INVISIBLE, '').trim();

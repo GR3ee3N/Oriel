@@ -10,6 +10,7 @@ import { PRODUCT, VERSION } from '../../plex/client';
 import { QUALITIES, quality } from '../../player/quality';
 import { ACCENTS, accent, hidesUnwatched, prefs, setHidesUnwatched, setPref } from '../../prefs';
 import { changeUser, chooseServer, currentServer, serverOptions, session, signOut } from '../../session';
+import { fontsSize } from '../../fonts';
 import { Dialog } from '../components/Dialog';
 import { Panel, type PanelOption } from '../components/Panel';
 import { Rail } from '../components/Rail';
@@ -62,10 +63,19 @@ const qualitySetting = (label: string, key: 'qualityLocal' | 'qualityRemote') =>
     onChoose: (kbps) => setPref(key, kbps),
   });
 
+const fontsStatus = () => {
+  const f = state.fonts;
+  if (!f) return '';
+  if (f.status === 'downloading') return t('settings.fontsDownloading', { percent: Math.floor((100 * f.received) / f.size) });
+  const names = { missing: 'settings.fontsMissing', installed: 'settings.fontsInstalled', outdated: 'settings.fontsOutdated', failed: 'settings.fontsFailed' } as const;
+  return t(names[f.status]);
+};
+
 export function Settings() {
   const [category, setCategory] = createSignal(0);
   const [open, setOpen] = createSignal<Setting>();
   const [leaving, setLeaving] = createSignal(false);
+  const [removingFonts, setRemovingFonts] = createSignal(false);
 
   const categories = (): { label: string; settings: Setting[] }[] => [
     {
@@ -90,6 +100,20 @@ export function Settings() {
         }),
         onOff(t('settings.spoilers'), t('settings.spoilersHint'), () => hidesUnwatched(session.user?.uuid), (on) => session.user && setHidesUnwatched(session.user.uuid, on)),
         onOff(t('settings.motion'), t('settings.motionHint'), () => prefs.reduceMotion, (on) => setPref('reduceMotion', on)),
+        ...(state.fonts
+          ? [
+              action({
+                label: t('settings.fonts'),
+                hint: t('settings.fontsHint', { size: fontsSize() }),
+                value: fontsStatus,
+                onSelect: () => {
+                  const status = state.fonts?.status;
+                  if (status === 'installed') setRemovingFonts(true);
+                  else if (status !== 'downloading') send({ cmd: 'fonts-install' });
+                },
+              }),
+            ]
+          : []),
       ],
     },
     {
@@ -223,6 +247,23 @@ export function Settings() {
             { label: t('action.signOut'), onSelect: () => void signOut() },
           ]}
           onCancel={() => setLeaving(false)}
+        />
+      </Show>
+      <Show when={removingFonts()}>
+        <Dialog
+          title={t('fonts.removeTitle')}
+          body={t('fonts.removeBody')}
+          choices={[
+            { label: t('action.cancel'), onSelect: () => setRemovingFonts(false) },
+            {
+              label: t('action.remove'),
+              onSelect: () => {
+                setRemovingFonts(false);
+                send({ cmd: 'fonts-remove' });
+              },
+            },
+          ]}
+          onCancel={() => setRemovingFonts(false)}
         />
       </Show>
     </div>

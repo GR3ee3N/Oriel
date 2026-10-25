@@ -120,7 +120,7 @@ export function Info(props: InfoProps) {
       </Show>
       <Show when={props.summary}>
         <p class="info-summary">
-          {props.summary}
+          {clean(props.summary)}
         </p>
       </Show>
       {props.children}

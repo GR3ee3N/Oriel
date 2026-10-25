@@ -35,6 +35,9 @@ export const en = {
   'action.browse': 'Browse {library}',
   'action.signOut': 'Sign out',
   'action.removeWatchlist': 'Remove from Watchlist',
+  'action.notNow': 'Not now',
+  'action.download': 'Download',
+  'action.remove': 'Remove',
 
   'time.hm': '{h} h {m} min',
   'time.h': '{h} h',
@@ -187,6 +190,13 @@ export const en = {
   'settings.rendering': 'Rendering',
   'settings.renderingHint': 'Changing it reloads the page and applies to every Oriel app',
   'settings.version': 'Version',
+  'settings.fonts': 'Extra fonts',
+  'settings.fontsHint': 'Colour emoji and more languages; {size} MB',
+  'settings.fontsMissing': 'Not installed',
+  'settings.fontsDownloading': 'Downloading {percent}%',
+  'settings.fontsInstalled': 'Installed',
+  'settings.fontsOutdated': 'Update available',
+  'settings.fontsFailed': 'Download failed',
   'settings.on': 'On',
   'settings.off': 'Off',
 
@@ -219,6 +229,10 @@ export const en = {
 
   'exit.title': 'Exit Oriel?',
   'exit.body': "You'll go back to Kodi.",
+  'fonts.offerTitle': 'Unsupported characters detected',
+  'fonts.offerBody': "Some titles use characters Oriel's built-in fonts can't show. Showing them needs {size} MB of extra fonts, which also bring colour emoji. You can download them later in Settings, under Appearance.",
+  'fonts.removeTitle': 'Remove the fonts?',
+  'fonts.removeBody': 'Text in some languages shows as boxes and emoji lose their colour until you download the fonts again.',
 } as const;
 
 export type Key = keyof typeof en;

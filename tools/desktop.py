@@ -5,19 +5,28 @@ Run alongside `npm run dev` in web/ and open http://localhost:5173/.
 Browsing uses real Plex servers. No media plays; simulated player state
 supports OSD visibility, pause, seek and end-of-playback testing. The state
 follows addon/lib/oriel/video.py in oriel-framework. Settings, including
-Plex tokens, are stored in .cache/desktop-store.json.
+Plex tokens, are stored in .cache/desktop-store.json. The optional fonts
+download from a ZIP built from web/node_modules into .cache/desktop-files.
 """
 import json
+import mimetypes
 import os
 import queue
+import subprocess
+import sys
 import threading
 import time
 import urllib.request
 import uuid
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
+REPO = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..")
+sys.path.insert(0, os.path.join(REPO, "addon"))
+from fonts import Fonts  # noqa: E402
+
 PORT = 32499
-STORE = os.path.join(os.path.dirname(__file__), "..", ".cache", "desktop-store.json")
+STORE = os.path.join(REPO, ".cache", "desktop-store.json")
+FILES = os.path.realpath(os.path.join(REPO, ".cache", "desktop-files"))
 FAILURES = {"invalid": 400, "unavailable": 409, "failed": 500}
 # Simulated loading delay in seconds.
 LOADING = 1.5
@@ -37,6 +46,7 @@ STATE = {
     "decoders": None,
     # App.tsx handles video keys here because no add-on receives them.
     "desktop": True,
+    "fonts": None,
 }
 LOCK = threading.RLock()
 CLIENTS = set()
@@ -176,6 +186,30 @@ def command(cmd, base=None, headers=None, session=None, position=None, streamOff
         if STATE["mode"] == "osd":
             STATE["mode"] = "video"
             publish()
+    elif cmd == "fonts-install":
+        if not FONTS.install():
+            raise CommandError("the fonts are downloading or none were built")
+        fonts_changed()
+    elif cmd == "fonts-remove":
+        if not FONTS.remove():
+            raise CommandError("the fonts are downloading")
+        fonts_changed()
+
+
+def fonts_changed():
+    with LOCK:
+        STATE["fonts"] = FONTS.state()
+        publish()
+
+
+def build_fonts(info):
+    """Build the font ZIP as tools/build.sh does, to download from its folder."""
+    out = os.path.dirname(info)
+    os.makedirs(out, exist_ok=True)
+    zip_path = subprocess.run(
+        [sys.executable, os.path.join(REPO, "build", "fonts.py"), os.path.join(REPO, "web", "node_modules"), out, info,
+         "file://" + os.path.realpath(out) + "/"], capture_output=True, text=True, check=True).stdout.strip()
+    print(f"fonts: {os.path.getsize(zip_path) // 1_000_000} MB package built", flush=True)
 
 
 class Handler(BaseHTTPRequestHandler):
@@ -183,6 +217,8 @@ class Handler(BaseHTTPRequestHandler):
         path = self.path.split("?", 1)[0]
         if path == "/api/store":
             return self.json(store())
+        if path.startswith("/files/"):
+            return self.file(path.removeprefix("/files/"))
         if path != "/api/events":
             return self.send_error(404)
         q = queue.Queue()
@@ -234,11 +270,31 @@ class Handler(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(body)
 
+    def file(self, path):
+        file = os.path.realpath(os.path.join(FILES, path))
+        if not file.startswith(FILES + os.sep) or not os.path.isfile(file):
+            return self.send_error(404)
+        with open(file, "rb") as f:
+            data = f.read()
+        self.send_response(200)
+        self.send_header("Content-Type", mimetypes.guess_type(file)[0] or "application/octet-stream")
+        self.send_header("Content-Length", str(len(data)))
+        self.send_header("Access-Control-Allow-Origin", "*")
+        self.end_headers()
+        self.wfile.write(data)
+
     def log_message(self, format, *args):
         pass
 
 
 if __name__ == "__main__":
+    package = os.path.join(REPO, ".cache", "desktop-fonts", "fonts.json")
+    try:
+        build_fonts(package)
+    except (OSError, subprocess.CalledProcessError) as e:
+        print(f"fonts: not built; run npm install in web/ ({getattr(e, 'stderr', e)})", flush=True)
+    FONTS = Fonts(package, FILES, fonts_changed, lambda message: print(message, flush=True))
+    STATE["fonts"] = FONTS.state()
     server = ThreadingHTTPServer(("127.0.0.1", PORT), Handler)
     server.daemon_threads = True
     threading.Thread(target=tick, daemon=True).start()

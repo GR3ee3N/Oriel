@@ -5,8 +5,11 @@
 
 Release assets share one directory. Set <path> in addons.xml to the ZIP
 filename and copy artwork alongside it as <id>.<name> so Kodi can find it.
+The font ZIP that tools/build.sh writes beside the add-on joins them, under
+the name resources/fonts.json downloads it by.
 """
 import hashlib
+import json
 from pathlib import Path
 import shutil
 import sys
@@ -35,6 +38,12 @@ def package(addon, files):
     for name in (zip_name, "addons.xml"):
         digest = hashlib.sha256((files / name).read_bytes()).hexdigest()
         (files / f"{name}.sha256").write_text(f"{digest}  {name}\n")
+    fonts = font_zip(addon)
+    shutil.copy(addon.parent / fonts, files / fonts)
+
+
+def font_zip(addon):
+    return json.loads((addon / "resources/fonts.json").read_text())["url"].rsplit("/", 1)[1]
 
 
 def require(condition, message):
@@ -50,9 +59,10 @@ def validate(files, addon_id, version, framework):
     with zipfile.ZipFile(files / zip_name) as archive:
         names = set(archive.namelist())
         for name in ("addon.xml", "default.py", "LICENSE.txt", "THIRD-PARTY-NOTICES.txt",
-                     "resources/mark.png", "resources/web/index.html"):
+                     "resources/mark.png", "resources/fonts.json", "resources/web/index.html"):
             require(f"{addon_id}/{name}" in names, f"{zip_name} has no {name}")
         addon = ET.fromstring(archive.read(f"{addon_id}/addon.xml"))
+        fonts = json.loads(archive.read(f"{addon_id}/resources/fonts.json"))
     require(addon.get("id") == addon_id and addon.get("version") == version, "wrong id or version")
     require(addon.find("requires/import[@addon='script.module.oriel.framework']").get("version") == framework,
             "wrong framework version")
@@ -60,6 +70,12 @@ def validate(files, addon_id, version, framework):
     require(entry.findtext("extension/path") == zip_name, "addons.xml points to another zip")
     for asset in entry.find("extension/assets"):
         require((files / asset.text).is_file(), f"no {asset.text}")
+    base, font_name = fonts["url"].rsplit("/", 1)
+    require(base == f"https://github.com/GR3ee3N/Oriel/releases/download/v{version}", "fonts.json points outside this release")
+    require((files / font_name).is_file(), f"no {font_name}")
+    data = (files / font_name).read_bytes()
+    require(len(data) == fonts["size"] and hashlib.sha256(data).hexdigest() == fonts["sha256"],
+            f"{font_name} does not match fonts.json")
 
 
 def main():
