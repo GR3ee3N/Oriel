@@ -1,12 +1,18 @@
 // Hardware blending over Kodi video requires black or white for translucent
 // elements; opaque colours render correctly. Keys open the full OSD. Playback
 // prompts open a corner card, which an arrow key expands to the full controls.
+// Down from the controls opens a strip with the playing item's chapters and
+// its play queue.
 
-import { createEffect, createMemo, createSignal, type JSX, on, onCleanup, onMount, Show } from 'solid-js';
+import { createEffect, createMemo, createSignal, For, type JSX, on, onCleanup, onMount, Show } from 'solid-js';
 import { send, state } from '../bridge';
-import { focusable } from '../nav';
-import { badges, clean, episodeCode, hhmm } from '../plex/format';
+import { type Direction, focusable, focusOn, onBack } from '../nav';
+import { t } from '../i18n';
+import { badges, clean, duration as length, episodeCode, hhmm, remaining } from '../plex/format';
 import { imageUrl } from '../plex/images';
+import type { Metadata } from '../plex/types';
+import { currentChapter } from '../player/chapters';
+import { more, position } from '../player/queue';
 import { QUALITIES, quality } from '../player/quality';
 import {
   acceptPrompt,
@@ -16,10 +22,15 @@ import {
   dismiss,
   INTRO_AFTER,
   introIn,
-  NEXT_AFTER,
+  loadAround,
+  nextEntry,
   nextIn,
+  nextShare,
+  nextTimed,
   playback,
+  playEntry,
   playNextNow,
+  playQueue,
   prompt,
   type Prompt,
   seekTo,
@@ -28,6 +39,7 @@ import {
 import { SUBTITLES_OFF, type Track } from '../player/tracks';
 import { currentServer } from '../session';
 import { Menu } from './components/Menu';
+import { episodeTitle, hidden } from './spoilers';
 import './osd.css';
 
 function clock(seconds: number): string {
@@ -47,6 +59,9 @@ export function Osd() {
   const [target, setTarget] = createSignal<number | null>(null);
   const [thumb, setThumb] = createSignal<string>();
   const [menu, setMenu] = createSignal<'audio' | 'subtitles' | 'quality' | null>(null);
+  const [strip, setStrip] = createSignal<Page | null>(null);
+  // The button Down opened the strip from, where focus returns.
+  let stripFrom: HTMLElement | undefined;
   let held = 0;
   let lastArrow = 0;
 
@@ -79,6 +94,7 @@ export function Osd() {
         setExpanded(false);
         setTarget(null);
         setMenu(null);
+        setStrip(null);
       },
     ),
   );
@@ -93,7 +109,7 @@ export function Osd() {
   createEffect(() => {
     void keyAt();
     clearTimeout(hideTimer);
-    const idle = state.mode === 'osd' && state.player.state === 'playing' && !menu() && target() === null && !prompt();
+    const idle = state.mode === 'osd' && state.player.state === 'playing' && !menu() && !strip() && target() === null && !prompt();
     if (idle) hideTimer = setTimeout(() => send({ cmd: 'osd-off' }), HIDE_AFTER);
   });
   onCleanup(() => clearTimeout(hideTimer));
@@ -123,8 +139,32 @@ export function Osd() {
 
   const trackLabel = (tracks: Track[], id: number, none: string) => tracks.find((t) => t.id === id)?.label ?? none;
   const trackOption = (t: Track) => ({ label: t.detail ? `${t.label} · ${t.detail}` : t.label, value: t });
+  const pages = (): Page[] => {
+    const p = playback();
+    return [...(p?.chapters.length ? ['chapters' as const] : []), ...((playQueue()?.total ?? 0) > 1 ? ['queue' as const] : [])];
+  };
+  const openStrip = (from: HTMLElement) => {
+    const first = pages()[0];
+    if (!first) return false;
+    stripFrom = from;
+    setStrip(first);
+    return true;
+  };
+  // Focus goes back before the strip's cards leave, so it doesn't fall to
+  // the first control.
+  const closeStrip = () => {
+    if (stripFrom?.isConnected) focusOn(stripFrom);
+    setStrip(null);
+  };
   const focus = (onSelect: () => void, autofocus = false) => (el: HTMLElement) =>
-    focusable(el, { scope: 'osd', group: 'osd-buttons', autofocus, onSelect, onFocus: () => setTarget(null) });
+    focusable(el, {
+      scope: 'osd',
+      group: 'osd-buttons',
+      autofocus,
+      onSelect,
+      onFocus: () => setTarget(null),
+      onArrow: (d) => d === 'down' && openStrip(el),
+    });
   // Show action labels on focus; temporary actions can keep their labels visible.
   const action = (icon: JSX.Element, name: () => string, onSelect: () => void, opts: { named?: boolean; autofocus?: boolean } = {}) => (
     <div class="osd-action" classList={{ named: opts.named }} ref={focus(onSelect, opts.autofocus)}>
@@ -152,23 +192,29 @@ export function Osd() {
           <>
             <Show when={promptOnly()}>
               <div class="prompt">
-                <Show when={prompt() === 'next' && p().next}>
-                  {(next) => (
-                    <div class="next-card">
-                      <Show when={next().thumb}>
-                        {(t) => <img src={imageUrl(currentServer(), t(), 320, 180)} alt="" />}
-                      </Show>
-                      <div>
-                        <small>Up next</small>
-                        <b>
-                          {episodeCode(next())} · {clean(next().title)}
-                        </b>
-                        <Show when={nextIn() !== undefined}>
-                          <span class="countdown">Starts in {nextIn()} s</span>
+                <Show when={prompt() === 'next' && nextEntry()}>
+                  {(next) => {
+                    const at = () => {
+                      const q = playQueue();
+                      const n = q && position(q, next().playQueueItemID);
+                      return n ? t('player.upNextAt', { n, total: q!.total }) : t('player.upNext');
+                    };
+                    return (
+                      <div class="next-card">
+                        <Show when={!hidden(next()) && still(next())} fallback={<div class="next-blank" />}>
+                          {(path) => <img src={imageUrl(currentServer(), path(), 320, 180)} alt="" />}
                         </Show>
+                        <div>
+                          <small>{at()}</small>
+                          <b>{entryTitle(next())}</b>
+                          <span class="next-sub">{entryLine(next())}</span>
+                          <Show when={nextIn() !== undefined}>
+                            <span class="countdown">{t('player.startsIn', { n: nextIn()! })}</span>
+                          </Show>
+                        </div>
                       </div>
-                    </div>
-                  )}
+                    );
+                  }}
                 </Show>
                 <div
                   class="btn"
@@ -193,21 +239,21 @@ export function Osd() {
                       }}
                     />
                   </Show>
-                  <span>{prompt() === 'intro' ? 'Skip intro' : 'Play now'}</span>
+                  <span>{prompt() === 'intro' ? t('player.skipIntro') : t('player.playNow')}</span>
                   <Show when={prompt() === 'intro' && introIn() !== undefined}>
                     <span class="intro-secs">{introIn()}</span>
                   </Show>
                 </div>
-                <Show when={prompt() === 'next' && p().credits && nextIn() !== undefined}>
-                  <div class="countdown-bar">
-                    <div style={{ transform: `scaleX(${(nextIn() ?? 0) / NEXT_AFTER})` }} />
+                <Show when={prompt() === 'next' && nextShare() !== undefined}>
+                  <div class="countdown-bar" classList={{ timed: nextTimed() }}>
+                    <div style={{ transform: `scaleX(${nextShare()})` }} />
                   </div>
                 </Show>
-                <small class="hint">Back to dismiss</small>
+                <small class="hint">{t('player.dismiss')}</small>
               </div>
             </Show>
             <Show when={!promptOnly() && !going()}>
-              <div class="osd-panel">
+              <div class="osd-panel" classList={{ tall: !!strip() }}>
                 <div class="osd-head">
                   <div class="osd-title" classList={{ hidden: target() !== null }}>
                     <b>{p().heading}</b>
@@ -217,13 +263,13 @@ export function Osd() {
                         <span class="badge">{b}</span>
                       ))}
                       <Show when={p().transcoded}>
-                        <span class="badge">Converted</span>
+                        <span class="badge">{t('player.converted')}</span>
                       </Show>
                     </div>
                   </div>
                   <div class="osd-clock">
                     <b>{now()}</b>
-                    <span>Ends at {endsAt()}</span>
+                    <span>{t('player.endsAt', { time: endsAt() })}</span>
                   </div>
                 </div>
                 <div class="scrubber">
@@ -258,30 +304,37 @@ export function Osd() {
                   <div class="osd-actions">
                     {action(
                       <Icon d={paused() ? PLAY : PAUSE} fill />,
-                      () => (paused() ? 'Play' : 'Pause'),
+                      () => (paused() ? t('player.play') : t('player.pause')),
                       () => send({ cmd: 'set-paused', paused: !paused() }),
                       { autofocus: true },
                     )}
                     <Show when={prompt() === 'intro'}>
-                      {action(<Icon d={SKIP} fill />, () => 'Skip intro', acceptPrompt, { named: true })}
+                      {action(<Icon d={SKIP} fill />, () => t('player.skipIntro'), acceptPrompt, { named: true })}
                     </Show>
-                    <Show when={p().next}>{action(<Icon d={NEXT} fill />, () => 'Next episode', () => playNextNow())}</Show>
+                    <Show when={nextEntry()}>{action(<Icon d={NEXT} fill />, () => t('player.next'), () => playNextNow())}</Show>
                   </div>
                   <div class="osd-tracks">
                     <Show when={p().audio.length > 1}>
-                      {track(<Icon d={AUDIO} />, 'Audio', () => trackLabel(p().audio, p().audioId, '—'), () => setMenu('audio'))}
+                      {track(<Icon d={AUDIO} />, t('player.audio'), () => trackLabel(p().audio, p().audioId, '—'), () => setMenu('audio'))}
                     </Show>
                     <Show when={p().subtitles.length > 0}>
-                      {track(<Icon d={SUBTITLES} />, 'Subtitles', () => trackLabel(p().subtitles, p().subtitleId, 'Off'), () => setMenu('subtitles'))}
+                      {track(<Icon d={SUBTITLES} />, t('player.subtitles'), () => trackLabel(p().subtitles, p().subtitleId, t('settings.off')), () => setMenu('subtitles'))}
                     </Show>
-                    {track(<Icon d={QUALITY} />, 'Quality', () => quality(p().quality).label, () => setMenu('quality'))}
+                    {track(<Icon d={QUALITY} />, t('player.quality'), () => quality(p().quality).label, () => setMenu('quality'))}
                   </div>
                 </div>
+                <Show when={strip()} keyed>
+                  {(page) => <Strip page={page} pages={pages()} onPage={setStrip} onClose={closeStrip} />}
+                </Show>
+                {/* Down opens the strip; the chevron hints at it without another button. */}
+                <Show when={!strip() && pages().length}>
+                  <Icon d={CHEVRON} class="strip-hint" />
+                </Show>
               </div>
             </Show>
             <Show when={menu() === 'audio'}>
               <Menu
-                title="Audio"
+                title={t('player.audio')}
                 options={p().audio.map(trackOption)}
                 selected={p().audio.find((t) => t.id === p().audioId)}
                 onChoose={chooseAudio}
@@ -290,7 +343,7 @@ export function Osd() {
             </Show>
             <Show when={menu() === 'quality'}>
               <Menu
-                title="Quality"
+                title={t('player.quality')}
                 options={QUALITIES.map((q) => ({ label: q.label, value: q.kbps }))}
                 selected={p().quality}
                 onChoose={chooseQuality}
@@ -299,7 +352,7 @@ export function Osd() {
             </Show>
             <Show when={menu() === 'subtitles'}>
               <Menu
-                title="Subtitles"
+                title={t('player.subtitles')}
                 options={[SUBTITLES_OFF, ...p().subtitles].map(trackOption)}
                 selected={[SUBTITLES_OFF, ...p().subtitles].find((t) => t.id === p().subtitleId)}
                 onChoose={chooseSubtitle}
@@ -310,6 +363,174 @@ export function Osd() {
         )}
       </Show>
     </section>
+  );
+}
+
+type Page = 'chapters' | 'queue';
+
+// Strip cards: 304 px wide with 24 px between them; five fit the panel.
+const PITCH = 328;
+const SHOWN = 5;
+
+/** Show or movie title of a queue entry. */
+const entryTitle = (m: Metadata) => clean(m.type === 'episode' ? m.grandparentTitle : m.title);
+/** An episode's number & title (number only while concealed), or a movie's
+ * year & length; with `left`, the number or year & the time left. */
+function entryLine(m: Metadata, left = false): string {
+  const episode = m.type === 'episode';
+  const parts = left ? [episode ? episodeCode(m) : m.year, remaining(m)] : episode ? [episodeCode(m), hidden(m) ? '' : clean(episodeTitle(m))] : [m.year, length(m.duration)];
+  return parts.filter(Boolean).join(' · ');
+}
+/** A 16:9 picture of an entry: an episode's still, a movie's backdrop. */
+const still = (m: Metadata) => (m.type === 'episode' ? m.thumb : (m.art ?? m.thumb));
+
+/** One page of chapters or queue entries under the OSD controls. It opens on
+ * the current chapter or the playing entry; Left/Right move along it, Up and
+ * Down change page, and Up from the first page or Back closes it. */
+function Strip(props: { page: Page; pages: Page[]; onPage: (page: Page) => void; onClose: () => void }) {
+  const p = playback()!;
+  const server = currentServer();
+  const cards: HTMLElement[] = [];
+  const [first, setFirst] = createSignal(0);
+  onBack(props.onClose);
+
+  const at = props.pages.indexOf(props.page);
+  const arrow = (i: number) => (d: Direction) => {
+    if (d === 'left' || d === 'right') {
+      const to = cards[i + (d === 'left' ? -1 : 1)];
+      if (to?.isConnected) focusOn(to);
+    } else if (d === 'up') {
+      if (at > 0) props.onPage(props.pages[at - 1]);
+      else props.onClose();
+    } else if (props.pages[at + 1]) props.onPage(props.pages[at + 1]);
+    return true;
+  };
+  // Keep the focused card in view with one card of context on either side.
+  const place = (i: number) => setFirst((f) => (i <= f ? Math.max(0, i - 1) : i >= f + SHOWN - 1 ? i - SHOWN + 2 : f));
+  const card = (i: () => number, onSelect: () => void, onFocus?: () => void) => (el: HTMLElement) => {
+    cards[i()] = el;
+    focusable(el, {
+      scope: 'osd',
+      group: 'osd-strip',
+      onSelect,
+      onArrow: (d) => arrow(i())(d),
+      onFocus: () => {
+        place(i());
+        onFocus?.();
+      },
+    });
+  };
+  const open = (i: number) =>
+    onMount(() => {
+      setFirst(Math.max(0, i - 1));
+      if (cards[i]) focusOn(cards[i]);
+    });
+
+  if (props.page === 'chapters') {
+    const now = () => currentChapter(p.chapters, state.player.time);
+    const conceal = hidden(p.item);
+    open(Math.max(0, now()));
+    return (
+      <div class="strip">
+        <StripTabs pages={props.pages} page={props.page} count={t('player.position', { n: Math.max(1, now() + 1), total: p.chapters.length })} />
+        <div class="strip-row" style={{ transform: `translateX(${-first() * PITCH}px)` }}>
+          <For each={p.chapters}>
+            {(c, i) => (
+              <div
+                class="s-card"
+                ref={card(i, () => {
+                  seekTo(c.start);
+                  props.onClose();
+                })}
+              >
+                <div class="pic">
+                  <Show when={!conceal && c.thumb} fallback={<div class="num">{c.n}</div>}>
+                    {(thumb) => <img src={imageUrl(server, thumb(), 304, 171)} alt="" />}
+                  </Show>
+                  <Show when={i() === now()}>
+                    <span class="tag">{t('player.now')}</span>
+                  </Show>
+                </div>
+                <b>{!conceal && c.title ? c.title : t('player.chapter', { n: c.n })}</b>
+                <span>{clock(c.start)}</span>
+              </div>
+            )}
+          </For>
+        </div>
+      </div>
+    );
+  }
+
+  const q = () => playQueue()!;
+  const playingAt = () => q().items.findIndex((m) => m.playQueueItemID === p.entry);
+  const count = () => {
+    const n = position(q(), p.entry) ?? 1;
+    return t(q().shuffled ? 'player.shuffled' : 'player.position', { n, total: q().total });
+  };
+  // Load more of the queue as focus nears either end of the loaded window.
+  const near = (i: number) => {
+    const items = q().items;
+    if (i >= items.length - 4 && more(q(), 'after')) loadAround(items[items.length - 1].playQueueItemID!);
+    if (i <= 3 && more(q(), 'before')) loadAround(items[0].playQueueItemID!);
+  };
+  open(Math.max(0, playingAt()));
+  return (
+    <div class="strip">
+      <StripTabs pages={props.pages} page={props.page} count={count()} />
+      <div class="strip-row" style={{ transform: `translateX(${-first() * PITCH}px)` }}>
+        <For each={q().items}>
+          {(m, i) => {
+            const playing = () => m.playQueueItemID === p.entry;
+            const progress = () => (playing() ? state.player.time / (state.player.duration || 1) : m.viewOffset && m.duration ? m.viewOffset / m.duration : 0);
+            return (
+              <div class="s-card" ref={card(i, () => (playing() ? props.onClose() : playEntry(m)), () => near(i()))}>
+                <div class="pic">
+                  <Show when={!hidden(m) && still(m)} fallback={<div class="num">{m.type === 'episode' ? `E${m.index ?? ''}` : ''}</div>}>
+                    {(path) => <img src={imageUrl(server, path(), 304, 171)} alt="" />}
+                  </Show>
+                  <Show when={playing()}>
+                    <span class="tag">{t('player.playing')}</span>
+                  </Show>
+                  <Show when={i() === playingAt() + 1}>
+                    <span class="tag soft">{t('player.nextTag')}</span>
+                  </Show>
+                  <Show when={progress() > 0}>
+                    <div class="bar">
+                      <i style={{ transform: `scaleX(${progress()})` }} />
+                    </div>
+                  </Show>
+                </div>
+                <b>{entryTitle(m)}</b>
+                <span>{entryLine(m, !playing() && !!m.viewOffset)}</span>
+              </div>
+            );
+          }}
+        </For>
+        <Show when={more(q(), 'after')}>
+          <div class="s-card skel">
+            <div class="pic" />
+          </div>
+        </Show>
+      </div>
+    </div>
+  );
+}
+
+/** Names of the strip's pages, the visible one underlined with its count. */
+function StripTabs(props: { pages: Page[]; page: Page; count: string }) {
+  return (
+    <div class="strip-tabs">
+      <For each={props.pages}>
+        {(page) => (
+          <span classList={{ on: page === props.page }}>
+            {t(page === 'chapters' ? 'player.chapters' : 'player.queue')}
+            <Show when={page === props.page}>
+              <small>{props.count}</small>
+            </Show>
+          </span>
+        )}
+      </For>
+    </div>
   );
 }
 
@@ -326,6 +547,7 @@ const SKIP = 'M3 6.2v11.6a.8.8 0 0 0 1.25.66L12 13.1v4.7a.8.8 0 0 0 1.25.66l8.2-
 const AUDIO = 'M2.5 10v4M6.5 6.5v11M10.5 3.5v17M14.5 8v8M18.5 5.5v13M22 10v4';
 const SUBTITLES = 'M4.5 5h15a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2h-15a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2zM7 15h4M14 15h3M7 11h2M12 11h5';
 const QUALITY = 'M12 14.5l4-4.5M3.4 19a10 10 0 1 1 17.2 0';
+const CHEVRON = 'M6 9.5l6 5 6-5';
 const CHEVRONS = 'm7 9 5-5 5 5M7 15l5 5 5-5';
 
 /** Render a 24×24 icon, filled for playback actions or outlined for settings. */

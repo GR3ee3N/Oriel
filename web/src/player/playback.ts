@@ -5,14 +5,18 @@ import { createEffect, createRoot, createSignal, on } from 'solid-js';
 import { createStore } from 'solid-js/store';
 import { call, send, state } from '../bridge';
 import { refresh } from '../data';
+import { t } from '../i18n';
 import { notice } from '../notice';
 import { prefs } from '../prefs';
-import { children, type Details, metadata, setWatched } from '../plex/api';
+import { type Details, metadata, setWatched } from '../plex/api';
 import type { Server } from '../plex/client';
 import { clean, episodeCode } from '../plex/format';
+import { createQueue, loadQueue, type PlayQueue, type QueueSource } from '../plex/playqueue';
 import type { Marker, Metadata, Part } from '../plex/types';
 import { currentServer } from '../session';
 import { Bif } from './bif';
+import { type ChapterMark, chaptersFor } from './chapters';
+import { after, merge } from './queue';
 import { ORIGINAL, QUALITIES, quality } from './quality';
 import { directPlay, HARDWARE_CODECS, inSession, stopTranscode, transcode } from './transcode';
 import { audioTracks, kodiSubtitle, subtitleTracks, SUBTITLES_OFF, type Track } from './tracks';
@@ -34,16 +38,25 @@ export interface Playback {
   credits?: Marker;
   /** Include every credits marker so skipping preserves scenes after credits. */
   allCredits: Marker[];
-  next?: Metadata;
+  /** The playing entry's playQueueItemID; undefined without a play queue. */
+  entry?: number;
+  /** Chapters of the playing version, in time order. */
+  chapters: ChapterMark[];
   /** Whether BIF previews are available; fetched on the first scrub. */
   hasThumbs: boolean;
   /** Selected bitrate limit in kbps; 0 requests the original file. */
   quality: number;
   transcoded: boolean;
+  /** Index of the playing version in item.Media. */
+  media: number;
 }
 
-const [store, setStore] = createStore<{ current?: Playback; nextCancelled: boolean }>({ nextCancelled: false });
+const [store, setStore] = createStore<{ current?: Playback; nextCancelled: boolean; queue?: PlayQueue }>({ nextCancelled: false });
 export const playback = () => store.current;
+/** The Plex play queue the playing item belongs to; its loaded window only. */
+export const playQueue = () => store.queue;
+/** The entry after the playing one, which Next, Up Next & the end of the item start. */
+export const nextEntry = () => after(store.queue, store.current?.entry);
 
 /** Prompt displayed when playback opens the OSD without a key press. */
 export type Prompt = 'intro' | 'next' | null;
@@ -60,24 +73,67 @@ const [introIn, setIntroIn] = createSignal<number>();
 /** Remaining intro countdown in seconds, undefined when inactive. */
 export { introIn };
 
-/** Up next delay in seconds during credits; Back cancels autoplay.
- * Without a credits marker, show the prompt 30 s before the end and wait
- * for playback to finish before starting the next episode. */
+/** Up next counts down this many seconds of playback in the final credits,
+ * then starts the next entry; Back cancels that. Without a credits marker
+ * it shows NEXT_BEFORE_END s before the end and the next entry follows the end. */
 export const NEXT_AFTER = 10;
-let nextAt: number | undefined;
-/** A credits countdown starts the next episode before this episode ends. */
+export const NEXT_BEFORE_END = 30;
+/** In the credits: milliseconds of playback left, when they last ran down
+ * (performance.now()) and the timer running them, as for Skip intro. */
+let nextLeft: number | undefined;
+let nextSince: number | undefined;
+let nextTimer: ReturnType<typeof setInterval> | undefined;
+/** A credits countdown starts the next entry before this one ends. */
 let nextOnCredits = false;
 let nextStarted = false;
 const [nextIn, setNextIn] = createSignal<number>();
-/** Remaining Up next countdown in seconds, undefined when inactive. */
-export { nextIn };
+const [nextShare, setNextShare] = createSignal<number>();
+const [nextTimed, setNextTimed] = createSignal(false);
+/** Seconds until the next entry starts, and the share of the countdown
+ * left (0–1); undefined while Up next isn't showing. `nextTimed`: the
+ * countdown runs on the clock (credits), updating every 100 ms rather than
+ * with Kodi's position. */
+export { nextIn, nextShare, nextTimed };
 
 let bif: Promise<Bif | undefined> | undefined;
 let server: Server | undefined;
 
-export async function startPlayback(item: Metadata, fromStart = false): Promise<void> {
+/** Play an item in a new play queue: an episode with the rest of its show,
+ * anything else on its own. `media` picks a version of an item with several
+ * files, e.g. 4K or 1080p. */
+export function startPlayback(item: Metadata, fromStart = false, media = 0): Promise<void> {
+  return startQueue({ item: item.ratingKey, continuous: item.type === 'episode' }, fromStart, media, item);
+}
+
+/** Play a new play queue from its first entry, e.g. a shuffled collection.
+ * Without one from the server, `fallback` plays on its own. */
+export async function startQueue(source: QueueSource, fromStart = false, media = 0, fallback?: Metadata): Promise<void> {
   server = currentServer();
-  const p = await prepare(server, item.ratingKey, uuid(), server.local ? prefs.qualityLocal : prefs.qualityRemote);
+  const built = await createQueue(server, source).catch((e) => {
+    console.warn(`playback: no play queue: ${e}`);
+    return undefined;
+  });
+  const first = built?.selected ?? fallback;
+  if (!first) throw new Error('nothing to play');
+  // A version chosen on the detail page applies to that item only.
+  await begin(first, fromStart, first.ratingKey === fallback?.ratingKey ? media : 0, built?.queue);
+}
+
+/** Play `entry` of the current queue, resuming where it has a saved position. */
+export function playEntry(entry: Metadata, fromCredits = false): void {
+  if (state.player.state === 'idle' || !store.current) {
+    begin(entry, false, 0, store.queue).catch(warn('entry'));
+    return;
+  }
+  playAfterStop = entry;
+  stopFinished = fromCredits;
+  send({ cmd: 'stop' });
+}
+
+async function begin(entry: Metadata, fromStart: boolean, media: number, queue: PlayQueue | undefined): Promise<void> {
+  const s = (server = currentServer());
+  const quality = s.local ? prefs.qualityLocal : prefs.qualityRemote;
+  const p = await prepare(s, entry.ratingKey, uuid(), quality, media, queue, entry.playQueueItemID);
   if (!p) return;
   try {
     await launch(fromStart ? 0 : (p.item.viewOffset ?? 0) / 1000);
@@ -88,17 +144,34 @@ export async function startPlayback(item: Metadata, fromStart = false): Promise<
   }
 }
 
+/** Load the queue's entries around `entry`: as each entry starts, for
+ * fresh progress & watched state and so Up next has the one after it, and
+ * as the strip nears either end of the loaded window. */
+export function loadAround(entry: number | undefined): void {
+  const q = store.queue;
+  if (!q || !server || entry === undefined) return;
+  loadQueue(server, q.id, entry)
+    .then((w) => store.queue?.id === w.id && setStore('queue', merge(store.queue, w)))
+    .catch(warn('queue'));
+}
+
 /** Metadata retained by the add-on to restore playback after a page reload. */
 export interface PlaybackNote {
   ratingKey: string;
   quality: number;
   transcoded: boolean;
+  /** Version index; older notes have none and played the first version. */
+  media?: number;
+  /** Play queue & the playing entry's playQueueItemID. */
+  queue?: number;
+  entry?: number;
 }
 
 /** Restore page state for the existing Kodi playback without restarting it. */
 export async function adoptPlayback(note: PlaybackNote, id: string): Promise<void> {
-  server = currentServer();
-  const p = await prepare(server, note.ratingKey, id, note.quality);
+  const s = (server = currentServer());
+  const queue = note.queue ? await loadQueue(s, note.queue, note.entry).catch(() => undefined) : undefined;
+  const p = await prepare(s, note.ratingKey, id, note.quality, note.media ?? 0, queue, queue && note.entry);
   if (!p) return;
   setStore('current', 'transcoded', note.transcoded);
   // The next position update triggers a timeline report for the restored session.
@@ -108,15 +181,26 @@ export async function adoptPlayback(note: PlaybackNote, id: string): Promise<voi
 /** Reject metadata from requests superseded by a newer item selection. */
 let prepares = 0;
 
-/** Prepare the current item; return undefined if a newer request supersedes it. */
-async function prepare(server: Server, ratingKey: string, id: string, quality: number): Promise<Playback | undefined> {
+/** Prepare the current item as `entry` of `queue`; return undefined if a
+ * newer request supersedes it. */
+async function prepare(
+  server: Server,
+  ratingKey: string,
+  id: string,
+  quality: number,
+  media: number,
+  queue: PlayQueue | undefined,
+  entry?: number,
+): Promise<Playback | undefined> {
   const ours = ++prepares;
   const meta = await metadata(server, ratingKey);
   if (ours !== prepares) {
     console.log(`playback: a newer playback replaced ${ratingKey}`);
     return undefined;
   }
-  const part = meta?.Media?.[0]?.Part?.[0];
+  // Fall back to the first version if the chosen one is gone.
+  const index = meta?.Media?.[media] ? media : 0;
+  const part = meta?.Media?.[index]?.Part?.[0];
   if (!meta || !part) throw new Error(`${ratingKey} has nothing to play`);
   const audio = audioTracks(part);
   const subtitles = subtitleTracks(part);
@@ -125,8 +209,10 @@ async function prepare(server: Server, ratingKey: string, id: string, quality: n
   const markers = meta.Marker ?? [];
   bif?.then((b) => b?.dispose());
   bif = undefined;
+  const sameQueue = !!queue && queue === store.queue;
   setStore({
     nextCancelled: false,
+    queue,
     current: {
       id,
       item: meta,
@@ -140,20 +226,20 @@ async function prepare(server: Server, ratingKey: string, id: string, quality: n
       intro: markers.find((m) => m.type === 'intro'),
       credits: markers.find((m) => m.type === 'credits' && m.final) ?? markers.find((m) => m.type === 'credits'),
       allCredits: markers.filter((m) => m.type === 'credits'),
+      entry,
+      chapters: chaptersFor(meta, index),
       hasThumbs: part.indexes === 'sd',
       quality,
       transcoded: false,
+      media: index,
     },
   });
   setPrompt(null);
   dismissed.clear();
   skipped.clear();
   lastReport = { state: '', at: 0 };
-  if (meta.type === 'episode') {
-    nextEpisode(server, meta).then((next) => {
-      if (store.current?.id === id) setStore('current', 'next', next);
-    });
-  }
+  // A new queue arrives with its window; moving along one refreshes it.
+  if (sameQueue) loadAround(entry);
   return store.current!;
 }
 
@@ -172,7 +258,7 @@ async function launch(at: number): Promise<void> {
     return true;
   };
   let q = quality(p.quality);
-  const media = p.item.Media?.[0];
+  const media = p.item.Media?.[p.media];
   const bitrate = media?.bitrate ?? Infinity;
   if (!decodes(media?.videoCodec)) {
     // Software decoding is too slow for 4K. For Original quality, fall back
@@ -181,7 +267,7 @@ async function launch(at: number): Promise<void> {
       q = QUALITIES[1];
       setStore('current', 'quality', q.kbps);
     }
-    if (!p.transcoded) notice(`This box can’t decode ${media?.videoCodec?.toUpperCase()} video; Plex converts it`);
+    if (!p.transcoded) notice(t('player.noDecoder', { codec: media?.videoCodec?.toUpperCase() ?? '' }));
   }
   const title =
     p.item.type === 'episode'
@@ -204,14 +290,14 @@ async function launch(at: number): Promise<void> {
     tracksChecked = undefined;
     // A session keeps Plex from ending this stream when the user opens another
     // file. A declined decision does not prevent Kodi from requesting the file.
-    const declined = await directPlay(server, p.item.ratingKey, p.id, media).catch((e) => String(e));
+    const declined = await directPlay(server, p.item.ratingKey, p.id, media, p.media).catch((e) => String(e));
     if (declined) console.warn(`playback: Plex declined the direct play: ${declined}`);
     if (store.current?.id !== p.id || overtaken()) return;
     await call({
       cmd: 'play',
       path: inSession(p.part.key, p.id),
       session: p.id,
-      meta: { ratingKey: p.item.ratingKey, quality: p.quality, transcoded: false },
+      meta: { ...note(p), transcoded: false },
       title,
       position: at,
       audio: p.audio.find((t) => t.id === p.audioId)?.kodi,
@@ -220,30 +306,38 @@ async function launch(at: number): Promise<void> {
     });
     return;
   }
-  let t;
+  let stream;
   try {
-    t = await transcode(server, p.item.ratingKey, p.id, at, q, state.decoders);
+    stream = await transcode(server, p.item.ratingKey, p.id, at, q, state.decoders, p.media);
   } catch (e) {
     notice(e instanceof Error ? e.message : String(e));
     throw e;
   }
   if (store.current?.id !== p.id || overtaken()) return;
-  console.log(`playback: transcode from ${Math.floor(at)} s at ${q.label}: ${t.decision}`);
+  console.log(`playback: transcode from ${Math.floor(at)} s at ${q.label}: ${stream.decision}`);
   setStore('current', 'transcoded', true);
   // Transcodes contain only the selected tracks, so subtitles use index 0
   // unless Plex burns them into the video.
   await call({
     cmd: 'play',
-    path: t.path,
+    path: stream.path,
     session: p.id,
-    meta: { ratingKey: p.item.ratingKey, quality: p.quality, transcoded: true },
+    meta: { ...note(p), transcoded: true },
     title,
     position: Math.floor(at),
     streamOffset: Math.floor(at),
     duration: (p.item.duration ?? 0) / 1000,
-    subtitle: s && !t.burnt ? 0 : -1,
+    subtitle: s && !stream.burnt ? 0 : -1,
   });
 }
+
+const note = (p: Playback): Omit<PlaybackNote, 'transcoded'> => ({
+  ratingKey: p.item.ratingKey,
+  quality: p.quality,
+  media: p.media,
+  queue: p.entry !== undefined ? store.queue?.id : undefined,
+  entry: p.entry,
+});
 
 /** Allow direct playback for hardware-supported codecs, codecs outside
  * HARDWARE_CODECS, or unknown codec and decoder information. */
@@ -261,11 +355,11 @@ function kodiSubtitles(p: Playback) {
   return !p.transcoded && session === p.id ? subtitles : undefined;
 }
 
-/** Transcoded playback needs a new stream for each seek. */
+/** Transcoded playback needs a new stream for each seek; the framework
+ * keeps a paused session paused across the new stream. */
 export function seekTo(seconds: number): void {
-  const p = store.current;
-  if (p?.transcoded) launch(seconds).catch(warn('seek'));
-  else send({ cmd: 'seek-to', seconds });
+  if (!store.current?.transcoded) return send({ cmd: 'seek-to', seconds });
+  launch(seconds).catch(warn('seek'));
 }
 
 /** Apply a bitrate limit in kbps at the current position; 0 requests Original. */
@@ -274,16 +368,6 @@ export function chooseQuality(kbps: number): void {
   if (!p || p.quality === kbps) return;
   setStore('current', 'quality', kbps);
   launch(state.player.time).catch(warn('quality'));
-}
-
-async function nextEpisode(server: Server, episode: Metadata): Promise<Metadata | undefined> {
-  if (!episode.parentRatingKey || !episode.grandparentRatingKey) return undefined;
-  const episodes = await children(server, episode.parentRatingKey);
-  const after = episodes.find((e) => (e.index ?? 0) > (episode.index ?? 0));
-  if (after) return after;
-  const seasons = (await children(server, episode.grandparentRatingKey)).sort((x, y) => (x.index ?? 0) - (y.index ?? 0));
-  const season = seasons.find((s) => (s.index ?? 0) > (episode.parentIndex ?? 0));
-  return season ? (await children(server, season.ratingKey))[0] : undefined;
 }
 
 /** Fetch BIF previews once per playback session. */
@@ -334,13 +418,10 @@ export function acceptPrompt(): void {
   if (which === 'next') playNextNow(true);
 }
 
-/** Queue the next episode after stopping; `fromCredits` reports this one complete. */
+/** Start the next entry; `fromCredits` reports this one complete. */
 export function playNextNow(fromCredits = false): void {
-  const next = store.current?.next;
-  if (!next) return;
-  playNextAfterStop = next;
-  stopFinished = fromCredits;
-  send({ cmd: 'stop' });
+  const next = nextEntry();
+  if (next) playEntry(next, fromCredits);
 }
 
 /** Dismiss the prompt and cancel its countdown; Up next also cancels autoplay. */
@@ -379,6 +460,14 @@ function runIntroDown(): void {
   introSince = now;
 }
 
+/** Subtract elapsed playing time from Up next's credits countdown. */
+function runNextDown(): void {
+  if (nextLeft === undefined || nextSince === undefined) return;
+  const now = performance.now();
+  nextLeft = Math.max(0, nextLeft - (now - nextSince));
+  nextSince = now;
+}
+
 /** Show Skip intro within the marker, excluding its last 3 s. `t` is in ms. */
 function duringIntro(p: Playback, t: number): boolean {
   return !!p.intro && t >= p.intro.startTimeOffset && t < p.intro.endTimeOffset - 3000;
@@ -389,7 +478,8 @@ function finalCredits(m: Marker, p: Playback): boolean {
   const end = (p.item.duration ?? 0) - 5000;
   return !!m.final || (end > 0 && m.endTimeOffset >= end);
 }
-let playNextAfterStop: Metadata | undefined;
+/** The entry to start once Kodi has stopped the playing one. */
+let playAfterStop: Metadata | undefined;
 /** Report a stop during final credits as completion; long credits can start
  * before Plex's watched threshold. */
 let stopFinished = false;
@@ -409,6 +499,7 @@ function report(
       key: `/library/metadata/${p.item.ratingKey}`,
       // Associate timeline reports with the session used for the Plex decision.
       'X-Plex-Session-Identifier': p.id,
+      playQueueItemID: p.entry,
       state: plexState,
       // Clamp Kodi's clock to the duration; Plex rejects later positions with HTTP 400.
       time: Math.round((total ? Math.min(time, total) : time) * 1000),
@@ -454,7 +545,7 @@ createRoot(() => {
         const p = store.current;
         if (now !== 'idle' || !before || before === 'idle' || !p || state.player.session !== p.id) return;
         const ended = state.player.ended === 'ended';
-        if (state.player.ended === 'error') notice('Kodi couldn’t play this item');
+        if (state.player.ended === 'error') notice(t('player.failed'));
         const finished = ended || stopFinished;
         stopFinished = false;
         const end = finished ? (state.player.duration ?? state.player.time) : state.player.time;
@@ -471,10 +562,11 @@ createRoot(() => {
           p.transcoded && ending
             ? new Promise((done) => setTimeout(done, 2000)).then(() => stopTranscode(ending, p.id))
             : Promise.resolve();
-        const next = playNextAfterStop ?? (ended && !store.nextCancelled ? p.next : undefined);
-        playNextAfterStop = undefined;
-        setStore('current', undefined);
-        if (next) stopped.then(() => startPlayback(next)).catch(warn('next episode'));
+        const next = playAfterStop ?? (ended && !store.nextCancelled ? nextEntry() : undefined);
+        playAfterStop = undefined;
+        // The queue lives with playback: it ends when nothing follows.
+        setStore({ current: undefined, ...(next ? {} : { queue: undefined }) });
+        if (next) stopped.then(() => begin(next, false, 0, store.queue)).catch(warn('next entry'));
       },
     ),
   );
@@ -491,23 +583,27 @@ createRoot(() => {
     const autoNext = auto && p.allCredits.some((m) => finalCredits(m, p));
     const credits = auto ? undefined : p.credits;
     const inIntro = duringIntro(p, t);
-    // Leaving the intro clears dismissal, so seeking back shows a fresh prompt.
-    if (!inIntro) dismissed.delete('intro');
     const duration = state.player.duration;
-    const creditsAt = credits?.startTimeOffset ?? (duration === null ? Infinity : (duration - 30) * 1000);
-    const inCredits = !autoNext && !!p.next && duration !== null && t >= creditsAt;
-    const want: Prompt = inIntro && !dismissed.has('intro') ? 'intro' : inCredits && !dismissed.has('next') ? 'next' : null;
+    const creditsAt = credits?.startTimeOffset ?? (duration === null ? Infinity : (duration - NEXT_BEFORE_END) * 1000);
+    const inCredits = !autoNext && duration !== null && t >= creditsAt;
+    // Leaving the intro or the credits clears Back on its prompt, so seeking
+    // back shows it again; for Up next that brings the autoplay back too.
+    if (!inIntro) dismissed.delete('intro');
+    if (!inCredits && dismissed.delete('next')) setStore('nextCancelled', false);
+    const want: Prompt = inIntro && !dismissed.has('intro') ? 'intro' : inCredits && nextEntry() && !dismissed.has('next') ? 'next' : null;
     if (want === prompt()) return;
     if (want === 'intro') {
       introLeft = prefs.autoSkipIntro ? INTRO_AFTER * 1000 : undefined;
       introSince = undefined;
     }
-    setPrompt(want);
     if (want === 'next') {
       nextOnCredits = !!credits;
-      nextAt = credits ? state.player.time + NEXT_AFTER : (duration ?? undefined);
+      setNextTimed(nextOnCredits);
+      nextLeft = credits ? NEXT_AFTER * 1000 : undefined;
+      nextSince = undefined;
       nextStarted = false;
     }
+    setPrompt(want);
     if (want && state.mode === 'video') send({ cmd: 'osd-on' });
   });
 
@@ -553,8 +649,8 @@ createRoot(() => {
     if (!finalCredits(credits, p)) {
       console.log('playback: skipping credits');
       seekTo(credits.endTimeOffset / 1000);
-    } else if (p.next) {
-      console.log('playback: skipping the final credits to the next episode');
+    } else if (nextEntry()) {
+      console.log('playback: skipping the final credits to the next entry');
       playNextNow(true);
     } else {
       console.log('playback: skipping the final credits to the end');
@@ -563,19 +659,45 @@ createRoot(() => {
     }
   });
 
-  // Kodi's playback position drives Up next, so pausing freezes the countdown.
+  // Up next in the credits counts playback on the clock, as Skip intro
+  // does, so seeks don't stretch or cut it and pausing stops it. Without a
+  // credits marker it counts Kodi's position to the end, where the next
+  // entry follows.
   createEffect(() => {
-    const time = state.player.time;
-    if (prompt() !== 'next' || nextAt === undefined) {
+    const showing = prompt() === 'next';
+    const playing = state.player.state === 'playing';
+    runNextDown();
+    clearInterval(nextTimer);
+    nextSince = undefined;
+    if (!showing) {
       setNextIn(undefined);
+      setNextShare(undefined);
       return;
     }
-    const left = Math.max(0, Math.ceil(nextAt - time));
-    setNextIn(left);
-    if (left === 0 && nextOnCredits && state.player.state === 'playing' && !nextStarted) {
-      nextStarted = true;
-      dismiss();
-      playNextNow(true);
-    }
+    if (!nextOnCredits) return;
+    const publish = () => {
+      setNextIn(Math.ceil(nextLeft! / 1000));
+      setNextShare(nextLeft! / (NEXT_AFTER * 1000));
+    };
+    publish();
+    if (!playing) return;
+    nextSince = performance.now();
+    nextTimer = setInterval(() => {
+      runNextDown();
+      publish();
+      if (nextLeft === 0 && !nextStarted) {
+        clearInterval(nextTimer);
+        nextStarted = true;
+        dismiss();
+        playNextNow(true);
+      }
+    }, 100);
+  });
+  createEffect(() => {
+    const { time, duration } = state.player;
+    if (prompt() !== 'next' || nextOnCredits || duration === null) return;
+    const left = Math.max(0, duration - time);
+    setNextIn(Math.ceil(left));
+    setNextShare(Math.min(1, left / NEXT_BEFORE_END));
   });
 });

@@ -2,7 +2,7 @@
 
 import { type Key, t } from '../i18n';
 import { en } from '../i18n/en';
-import type { Metadata, Stream } from './types';
+import type { Media, Metadata, Stream } from './types';
 
 // Strip invisible characters used by tools such as Kometa to distinguish
 // collection titles, including zero-width and bidirectional marks.
@@ -117,6 +117,25 @@ export function badges(m: Metadata | undefined, playing?: Stream): string[] {
       : soundOf(media.audioCodec, media.audioProfile, undefined, channelLabel(media.audioChannels));
   if (sound) out.push(sound);
   return out;
+}
+
+/** A media version for the Version choice: "4K · Dolby Vision" with
+ * "HEVC · 44 Mbps · MKV · 52.1 GB" as its detail. */
+export function versionLabel(media: Media): { label: string; detail: string } {
+  const video = media.Part?.[0]?.Stream?.find((s) => s.streamType === 1);
+  const res = media.videoResolution;
+  const size = media.Part?.[0]?.size;
+  return {
+    label: [res === '4k' ? '4K' : res === 'sd' ? 'SD' : res ? `${res}p` : '', video ? dynamicRange(video) : ''].filter(Boolean).join(' · '),
+    detail: [
+      media.videoCodec?.toUpperCase(),
+      media.bitrate ? `${Math.round(media.bitrate / 1000)} Mbps` : '',
+      media.container?.toUpperCase(),
+      size ? `${(size / 1e9).toFixed(1)} GB` : '',
+    ]
+      .filter(Boolean)
+      .join(' · '),
+  };
 }
 
 function dynamicRange(video: Stream): string {

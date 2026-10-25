@@ -46,11 +46,13 @@ export async function transcode(
   offset: number,
   q: Quality,
   decoders?: string[] | null,
+  /** Index of the media version in the item's Media list. */
+  mediaIndex = 0,
 ): Promise<Transcode> {
   const video = (decoders ? HARDWARE_CODECS.filter((c) => decoders.includes(c)) : HARDWARE_CODECS).join(',');
   const params: Record<string, string> = {
     path: `/library/metadata/${ratingKey}`,
-    mediaIndex: '0',
+    mediaIndex: String(mediaIndex),
     partIndex: '0',
     protocol: 'http',
     offset: String(Math.max(0, Math.floor(offset))),
@@ -85,7 +87,13 @@ export async function transcode(
  * another file request by the same user can end the stream. Allow the source
  * format and all tracks because Kodi handles track selection. Return Plex's
  * decision summary on refusal, or undefined on acceptance. */
-export async function directPlay(server: Server, ratingKey: string, session: string, media?: Media): Promise<string | undefined> {
+export async function directPlay(
+  server: Server,
+  ratingKey: string,
+  session: string,
+  media?: Media,
+  mediaIndex = 0,
+): Promise<string | undefined> {
   const audio = media?.audioCodec && !AUDIO.split(',').includes(media.audioCodec) ? `${AUDIO},${media.audioCodec}` : AUDIO;
   const profile =
     'add-settings(DirectPlayStreamSelection=true)+' +
@@ -93,7 +101,7 @@ export async function directPlay(server: Server, ratingKey: string, session: str
     `&videoCodec=${media?.videoCodec ?? HARDWARE_CODECS.join(',')}&audioCodec=${audio}&subtitleCodec=${SUBTITLES})`;
   const d = (await server.get<never>('/video/:/transcode/universal/decision', {
     path: `/library/metadata/${ratingKey}`,
-    mediaIndex: '0',
+    mediaIndex: String(mediaIndex),
     partIndex: '0',
     protocol: 'http',
     directPlay: '1',

@@ -82,8 +82,8 @@ export class Server {
     readonly local: boolean,
   ) {}
 
-  async get<T = never>(path: string, params?: RequestOptions['params']): Promise<MediaContainer<T>> {
-    const body = await request<{ MediaContainer: MediaContainer<T> }>(this.uri + path, { token: this.token, params });
+  async get<T = never>(path: string, params?: RequestOptions['params'], method: RequestOptions['method'] = 'GET'): Promise<MediaContainer<T>> {
+    const body = await request<{ MediaContainer: MediaContainer<T> }>(this.uri + path, { token: this.token, params, method });
     return body.MediaContainer;
   }
 

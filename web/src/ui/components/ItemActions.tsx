@@ -5,7 +5,8 @@ import { createResource, createSignal, Show } from 'solid-js';
 import { refresh } from '../../data';
 import { t } from '../../i18n';
 import { setWatched } from '../../plex/api';
-import { clean, isWatched } from '../../plex/format';
+import { chooseVersion, chosenVersion } from '../../actions';
+import { clean, isWatched, versionLabel } from '../../plex/format';
 import type { Metadata, Part } from '../../plex/types';
 import { isWatchlisted, setWatchlisted, watchlistVersion } from '../../plex/watchlist';
 import { audioTracks, subtitleTracks, SUBTITLES_OFF, type Track } from '../../player/tracks';
@@ -103,10 +104,12 @@ export function WatchlistButton(props: { item: Metadata; group?: string }) {
  * the server for this file, as other Plex clients do, and used by the next
  * Play. Hidden when there's nothing to choose. */
 export function TrackChips(props: { item: Metadata; group?: string }) {
-  const part = (): Part | undefined => props.item.Media?.[0]?.Part?.[0];
+  const versions = () => props.item.Media ?? [];
+  const version = () => Math.min(chosenVersion(props.item.ratingKey), Math.max(0, versions().length - 1));
+  const part = (): Part | undefined => versions()[version()]?.Part?.[0];
   const audio = () => (part() ? audioTracks(part()!) : []);
   const subtitles = () => (part() ? subtitleTracks(part()!) : []);
-  const [panel, setPanel] = createSignal<'audio' | 'subtitles' | null>(null);
+  const [panel, setPanel] = createSignal<'audio' | 'subtitles' | 'version' | null>(null);
   const current = (tracks: Track[]) => tracks.find((x) => x.selected);
   const save = (kind: 'audio' | 'subtitles', id: number) => {
     const p = part();
@@ -122,17 +125,39 @@ export function TrackChips(props: { item: Metadata; group?: string }) {
       });
   };
   const describe = (x: Track) => x.detail || undefined;
+  // Versions that share a label, such as two 4K Dolby Vision files, add their bitrate.
+  const versionName = (i: number) => {
+    const { label } = versionLabel(versions()[i]);
+    const twin = versions().some((m, j) => j !== i && versionLabel(m).label === label);
+    const rate = versions()[i].bitrate;
+    return twin && rate ? `${label} · ${Math.round(rate / 1000)} Mbps` : label;
+  };
   // Language and format, e.g. "German · DTS-HD MA 5.1".
   const audioLabel = (x: Track) => [x.label, x.detail.split(' · ')[0]].filter(Boolean).join(' · ');
   return (
     <>
+      <Show when={versions().length > 1}>
+        <Chip icon="version" label={t('details.version')} value={versionName(version())} group={props.group ?? 'tracks'} onSelect={() => setPanel('version')} />
+      </Show>
+      <Show when={panel() === 'version'}>
+        <Panel
+          title={t('details.version')}
+          options={versions().map((m, i) => ({ ...versionLabel(m), value: i }))}
+          selected={version()}
+          onChoose={(i) => {
+            setPanel(null);
+            chooseVersion(props.item.ratingKey, i);
+          }}
+          onClose={() => setPanel(null)}
+        />
+      </Show>
       <Show when={audio().length > 1}>
         <Chip icon="audio" value={audioLabel(current(audio()) ?? audio()[0])} group={props.group ?? 'tracks'} onSelect={() => setPanel('audio')} />
       </Show>
       <Show when={subtitles().length > 0}>
         <Chip icon="subtitles" label={t('details.subtitles')} value={current(subtitles())?.label ?? t('details.subtitlesOff')} group={props.group ?? 'tracks'} onSelect={() => setPanel('subtitles')} />
       </Show>
-      <Show when={panel()}>
+      <Show when={panel() === 'audio' || panel() === 'subtitles' ? (panel() as 'audio' | 'subtitles') : undefined}>
         {(kind) => {
           const tracks = kind() === 'audio' ? audio() : [SUBTITLES_OFF, ...subtitles()];
           return (

@@ -52,7 +52,7 @@ function Screen(props: { entry: Entry }) {
       </Match>
       <Match when={r.screen === 'remote' && r}>{(x) => <Remote guid={x().guid} title={x().title} />}</Match>
       <Match when={r.screen === 'playlist' && r}>
-        {(p) => <Titles title={p().title} key={p().ratingKey} load={(start, size) => playlistItems(currentServer(), p().ratingKey, { start, size })} />}
+        {(p) => <Titles title={p().title} key={p().ratingKey} load={(start, size) => playlistItems(currentServer(), p().ratingKey, { start, size })} queue={{ playlist: p().ratingKey }} />}
       </Match>
       <Match when={r.screen === 'movie' && r}>{(m) => <Movie ratingKey={m().ratingKey} />}</Match>
       <Match when={r.screen === 'show' && r}>
@@ -64,6 +64,7 @@ function Screen(props: { entry: Entry }) {
             title={c().title}
             key={c().ratingKey}
             load={(start, size) => collectionItems(currentServer(), c().ratingKey, { start, size })}
+            queue={{ collection: c().ratingKey }}
           />
         )}
       </Match>

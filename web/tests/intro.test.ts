@@ -22,6 +22,8 @@ vi.mock('../src/session', () => ({ currentServer: () => server }));
 vi.mock('../src/prefs', () => ({ prefs }));
 vi.mock('../src/notice', () => ({ notice: vi.fn() }));
 vi.mock('../src/player/bif', () => ({ Bif: {} }));
+// Without a play queue each item plays on its own.
+vi.mock('../src/plex/playqueue', () => ({ createQueue: vi.fn(async () => Promise.reject(new Error('no queue'))), loadQueue: vi.fn() }));
 
 const bridge = await import('../src/bridge');
 const { dismiss, introIn, playback, prompt, startPlayback } = await import('../src/player/playback');

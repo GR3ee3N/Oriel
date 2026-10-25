@@ -1,20 +1,20 @@
-import { createSignal, type JSX, Show } from 'solid-js';
-import { open } from '../../actions';
+import { createSignal, Show } from 'solid-js';
+import { open, playAll } from '../../actions';
 import { t } from '../../i18n';
 import type { MediaContainer } from '../../plex/types';
-import { Message } from '../components/Controls';
+import { Button, Message } from '../components/Controls';
 import { Grid } from '../components/Grid';
 import { DetailHead } from '../components/Status';
 import './library.css';
 
 /** Full-width grid of a collection's members, a playlist or a person's
- * titles in one library, with Home at the top right. `actions` sit under
- * the title, e.g. Play all. */
+ * titles in one library, with Home at the top right. With `queue`, Play all
+ * and Shuffle play all of it through a Plex play queue. */
 export function Titles(props: {
   title: string;
   key: string;
   load: (start: number, size: number) => Promise<MediaContainer>;
-  actions?: JSX.Element;
+  queue?: { collection: string } | { playlist: string };
 }) {
   const [total, setTotal] = createSignal<number>();
   return (
@@ -27,8 +27,11 @@ export function Titles(props: {
           <span>{t('count.titles', { n: total()! })}</span>
         </Show>
       </header>
-      <Show when={props.actions}>
-        <div class="detail-actions">{props.actions}</div>
+      <Show when={props.queue && total()}>
+        <div class="detail-actions">
+          <Button icon="play" label={t('action.playAll')} group="actions" onSelect={() => playAll(props.queue!)} />
+          <Button icon="shuffle" label={t('action.shuffle')} group="actions" onSelect={() => playAll(props.queue!, true)} />
+        </div>
       </Show>
       <Grid
         key={props.key}

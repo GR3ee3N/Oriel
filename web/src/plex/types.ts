@@ -3,6 +3,13 @@
 export interface MediaContainer<T = Metadata> {
   size: number;
   totalSize?: number;
+  /** Play queue replies (plex/playqueue.ts). */
+  playQueueID?: number;
+  playQueueSelectedItemID?: number;
+  /** Position of the selected entry in the whole queue. */
+  playQueueSelectedItemOffset?: number;
+  playQueueTotalCount?: number;
+  playQueueShuffled?: boolean;
   Metadata?: T[];
   Directory?: Directory[];
   Hub?: Hub[];
@@ -55,6 +62,10 @@ export interface Metadata {
   librarySectionID?: number;
   Media?: Media[];
   Marker?: Marker[];
+  /** From includeChapters; the times belong to one version (player/chapters.ts). */
+  Chapter?: Chapter[];
+  /** The entry's own ID in a play queue, distinct for each copy of a title. */
+  playQueueItemID?: number;
   /** Artwork from includeImages, labelled by kind such as 'clearLogo' or 'background'. */
   Image?: Image[];
   /** Four artwork corner colours as hex values without '#'. */
@@ -105,6 +116,8 @@ export interface Part {
   id: number;
   key: string;
   duration?: number;
+  /** Bytes. */
+  size?: number;
   /** 'sd' indicates available BIF preview thumbnails. */
   indexes?: string;
   Stream?: Stream[];
@@ -140,6 +153,17 @@ export interface Marker {
   startTimeOffset: number;
   endTimeOffset: number;
   final?: boolean;
+}
+
+export interface Chapter {
+  index?: number;
+  /** Title; often generic, e.g. 'Kapitel 01'. */
+  tag?: string;
+  /** Milliseconds. */
+  startTimeOffset: number;
+  endTimeOffset?: number;
+  /** '/library/media/<mediaId>/chapterImages/<n>'. */
+  thumb?: string;
 }
 
 /** Library section returned by /library/sections. */

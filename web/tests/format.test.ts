@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { t } from '../src/i18n';
-import { ageRating, duration, hubTitle, tileSubtitle } from '../src/plex/format';
+import { ageRating, duration, hubTitle, tileSubtitle, versionLabel } from '../src/plex/format';
 import type { Metadata } from '../src/plex/types';
 
 const item = (m: Partial<Metadata>): Metadata => ({ ratingKey: '1', key: '/1', type: 'movie', title: 'A', ...m });
@@ -46,5 +46,19 @@ describe('hubTitle', () => {
   it('uses Oriel titles for known hubs and the server title for the rest', () => {
     expect(hubTitle({ hubIdentifier: 'home.ondeck', title: 'On Deck' })).toBe('Up Next');
     expect(hubTitle({ hubIdentifier: 'custom.collection.3.1.1', title: 'Popular on Netflix' })).toBe('Popular on Netflix');
+  });
+});
+
+describe('versionLabel', () => {
+  it('names resolution and dynamic range, with codec, bitrate, container and size as detail', () => {
+    const media = {
+      id: 1,
+      videoResolution: '4k',
+      videoCodec: 'hevc',
+      bitrate: 44426,
+      container: 'mkv',
+      Part: [{ id: 1, key: '/p', size: 52_100_000_000, Stream: [{ id: 1, streamType: 1 as const, DOVIPresent: true }] }],
+    };
+    expect(versionLabel(media)).toEqual({ label: '4K · Dolby Vision', detail: 'HEVC · 44 Mbps · MKV · 52.1 GB' });
   });
 });

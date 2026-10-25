@@ -87,11 +87,12 @@ export interface Details extends Metadata {
   OnDeck?: { Metadata?: Metadata[] };
 }
 
-/** Item metadata including media versions, parts, streams, markers and images. */
+/** Item metadata including media versions, parts, streams, markers, chapters and images. */
 export async function metadata(server: Server, ratingKey: string): Promise<Details | undefined> {
   const mc = await cached(`${server.id}/meta/${ratingKey}`, () =>
     server.get<Details>(`/library/metadata/${ratingKey}`, {
       includeMarkers: 1,
+      includeChapters: 1,
       includeOnDeck: 1,
       includeImages: 1,
       includeExtras: 1,
