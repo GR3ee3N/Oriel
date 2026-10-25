@@ -3,7 +3,8 @@
 // arrows on the page never land in it; Left at the page's edge or Back
 // opens it on the active destination. Up and Down stay inside, Right
 // returns to the page's last focus, and Select opens a destination. Back in
-// the rail goes Home, or asks to exit on Home.
+// the rail goes Home, or asks to exit on Home. Select on the profile opens
+// its account choices in a popup under it.
 
 import { createSignal, For, onCleanup, Show } from 'solid-js';
 import { activeScope, focusOn, focusable, onBack, setScope, useScope } from '../../nav';
@@ -14,8 +15,13 @@ import { changeUser, chooseServer, serverOptions, session } from '../../session'
 import { askExit } from '../exit';
 import { Avatar } from './Avatar';
 import { Icon, type IconName, libraryIcon } from './Icon';
-import { Panel } from './Panel';
 import './rail.css';
+
+interface AccountOption {
+  label: string;
+  value: string;
+  icon: IconName;
+}
 
 interface Destination {
   id: string;
@@ -56,8 +62,8 @@ export function Rail() {
   let box!: HTMLElement;
   const page = useScope();
   const scope = `${page}-rail`;
-  const open = () => activeScope() === scope;
   const [menu, setMenu] = createSignal(false);
+  const open = () => activeScope() === scope || menu();
 
   const leave = () => setScope(page);
   // Fresh entry focuses the active destination, marked autofocus below.
@@ -96,7 +102,7 @@ export function Rail() {
     else tab(d.route);
   };
 
-  const accountOptions = () => [
+  const accountOptions = (): AccountOption[] => [
     ...(session.multiUser ? [{ label: t('nav.switchUser'), value: 'users', icon: 'user' as const }] : []),
     ...(session.servers.length > 1
       ? serverOptions().map((o) => ({ label: o.label, value: `server:${o.value}`, icon: 'server' as const }))
@@ -138,18 +144,54 @@ export function Rail() {
         <div class="rail-foot">
           <Item d={settings} />
         </div>
-      </nav>
-      <Show when={menu()}>
-          <Panel
-            title={session.user?.title ?? ''}
-            hint={session.serverName}
+        <Show when={menu()}>
+          <AccountMenu
+            scope={`${scope}-account`}
             options={accountOptions()}
             selected={`server:${session.serverId}`}
             onChoose={onAccount}
             onClose={() => setMenu(false)}
           />
-      </Show>
+        </Show>
+      </nav>
     </>
+  );
+}
+
+/** Account choices under the profile entry, in a focus scope of their own.
+ * Back or Left closes them and returns to the profile. */
+function AccountMenu(props: {
+  scope: string;
+  options: AccountOption[];
+  selected: string;
+  onChoose: (value: string) => void;
+  onClose: () => void;
+}) {
+  const previous = activeScope();
+  onBack(props.onClose);
+  onCleanup(() => setScope(previous));
+  queueMicrotask(() => setScope(props.scope, true));
+  const arrow = (d: 'up' | 'down' | 'left' | 'right') => {
+    if (d === 'left') props.onClose();
+    return d === 'left' || d === 'right';
+  };
+  return (
+    <div class="rail-menu">
+      <For each={props.options}>
+        {(o, i) => (
+          <div
+            class="rail-option"
+            classList={{ selected: o.value === props.selected }}
+            ref={(el) =>
+              focusable(el, { scope: props.scope, autofocus: i() === 0, onSelect: () => props.onChoose(o.value), onArrow: arrow })
+            }
+          >
+            <Icon name={o.icon} />
+            <span>{o.label}</span>
+          </div>
+        )}
+      </For>
+    </div>
   );
 }
 
