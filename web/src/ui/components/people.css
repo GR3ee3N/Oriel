@@ -3,7 +3,7 @@
   width: 150px;
   height: 150px;
   border-radius: 50%;
-  background: var(--bg-raise-2);
+  background: var(--surface-2);
   outline: var(--ring) solid transparent;
   outline-offset: var(--ring-gap);
   display: flex;
@@ -11,11 +11,11 @@
   justify-content: center;
   font-size: 56px;
   font-weight: 700;
-  color: var(--text-3);
-  transition: transform var(--normal) var(--ease);
+  color: var(--ink-3);
+  transition: transform var(--move) var(--ease);
 }
 .person .portrait img { display: block; width: 150px; height: 150px; border-radius: 50%; }
-.person.focused .portrait { outline-color: var(--accent); transform: var(--lift); }
+.person.focused .portrait { outline-color: var(--accent); transform: var(--zoom); }
 .person b,
 .person span {
   display: block;
@@ -23,6 +23,7 @@
   overflow: hidden;
   text-overflow: ellipsis;
 }
-.person b { margin-top: 16px; font-size: var(--fs-small); font-weight: 600; color: var(--text-2); }
-.person span { font-size: 17px; color: var(--text-3); }
-.person.focused b { color: var(--text); }
+.person b { margin-top: 16px; font-size: var(--t-caption); font-weight: 600; color: var(--ink-2); }
+.person span { font-size: var(--t-caption); color: var(--ink-3); }
+.person.focused b { color: var(--ink); }
+.person.focused span { color: var(--ink-2); }

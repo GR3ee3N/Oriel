@@ -1,8 +1,9 @@
 import { createEffect, createSignal, Match, on, onCleanup, onMount, Show, Switch } from 'solid-js';
 import { connect, ready, send, state } from '../bridge';
 import { refresh } from '../data';
-import { action, back, move, playFocused, select, setScope } from '@oriel/web';
-import { pop, root, tab, top } from '../router';
+import { action } from '@oriel/web';
+import { back, move, playFocused, select, setScope } from '../nav';
+import { pop, top } from '../router';
 import { session, start } from '../session';
 import { adoptPlayback, playback } from '../player/playback';
 import { Osd, osdBack } from './Osd';
@@ -12,8 +13,10 @@ import { SignIn } from './SignIn';
 import { Splash } from './Splash';
 import { Users } from './Users';
 import { noticeMessage } from '../notice';
-import { Confirm } from './components/Confirm';
+import { Dialog } from './components/Dialog';
 import { answerExit, askExit, exitAsked } from './exit';
+import { openRail } from './components/Rail';
+import { t } from '../i18n';
 
 export function App() {
   // Route focus to the OSD, active screen or default sign-in/profile scope.
@@ -81,6 +84,10 @@ export function App() {
     const osd = state.mode !== 'browse';
     switch (a) {
       case 'left':
+        // Rows and grids can extend below the rail's items; Left at a
+        // page's left edge still reaches the rail.
+        if (!move(a) && !osd && session.phase === 'ready') openRail();
+        break;
       case 'right':
       case 'up':
       case 'down':
@@ -93,7 +100,8 @@ export function App() {
         if (back()) break;
         else if (osd) osdBack();
         else if (session.phase === 'ready' && pop()) break;
-        else if (session.phase === 'ready' && root().route.screen !== 'home') tab({ screen: 'home' });
+        // Back on a root page moves to the rail; Back in the rail is handled there.
+        else if (session.phase === 'ready' && openRail()) break;
         else askExit();
         break;
       // Kodi handles Play/Pause and Stop during playback; forwarded Play keys
@@ -138,7 +146,15 @@ export function App() {
       </Show>
       <Show when={noticeMessage()}>{(m) => <div class="notice">{m()}</div>}</Show>
       <Show when={exitAsked() && state.mode === 'browse'}>
-        <Confirm title="Exit Oriel?" yes="Exit" no="Cancel" onYes={() => answerExit(true)} onNo={() => answerExit(false)} />
+        <Dialog
+          title={t('exit.title')}
+          body={t('exit.body')}
+          choices={[
+            { label: t('action.stay'), onSelect: () => answerExit(false) },
+            { label: t('action.exit'), onSelect: () => answerExit(true) },
+          ]}
+          onCancel={() => answerExit(false)}
+        />
       </Show>
       <Show when={saver()}>
         <Screensaver />

@@ -20,6 +20,18 @@ export interface Saved extends BaseSaved {
   autoSkipCredits?: boolean;
   /** Accent colour id from prefs.ts. */
   accent?: string;
+  reduceMotion?: boolean;
+  /** Spoiler protection by profile UUID (prefs.ts). */
+  hideUnwatched?: Record<string, boolean>;
+  /** Library view, sort and filters by `profile/server/section`. */
+  libraries?: Record<string, LibraryState>;
+}
+
+export interface LibraryState {
+  view: 'recommended' | 'library' | 'collections';
+  sort: string;
+  unwatched: boolean;
+  filters: Record<string, string>;
 }
 
 export const load = () => loadStore<Saved>();

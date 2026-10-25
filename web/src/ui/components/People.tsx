@@ -1,5 +1,5 @@
 import { createSignal, For, Show } from 'solid-js';
-import { focusable } from '@oriel/web';
+import { focusable } from '../../nav';
 import { imageUrl } from '../../plex/images';
 import type { Role } from '../../plex/types';
 import { currentServer } from '../../session';
@@ -14,13 +14,20 @@ export function People(props: { title: string; people: Role[]; group: string; on
   return (
     <section class="row people">
       <h2>{props.title}</h2>
-      <div class="tiles" style={{ transform: `translateX(${-Math.max(0, col() - 2) * (SIZE + GAP)}px)`, gap: `${GAP}px` }}>
+      <div class="tiles" style={{ transform: `translateX(${-col() * (SIZE + GAP)}px)`, gap: `${GAP}px` }}>
         <For each={props.people}>
           {(p, i) => (
             <div
               class="person"
               ref={(el) =>
-                focusable(el, { group: props.group, onFocus: () => setCol(i()), onSelect: () => props.onSelect(p) })
+                focusable(el, {
+                  group: props.group,
+                  get entry() {
+                    return i() === col();
+                  },
+                  onFocus: () => setCol(i()),
+                  onSelect: () => props.onSelect(p),
+                })
               }
             >
               <div class="portrait">

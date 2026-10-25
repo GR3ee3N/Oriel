@@ -1,4 +1,5 @@
 import { createSignal, For, onCleanup, Show } from 'solid-js';
+import type { Direction } from '../../nav';
 import { imageUrl, preload } from '../../plex/images';
 import type { Metadata } from '../../plex/types';
 import { currentServer } from '../../session';
@@ -20,9 +21,11 @@ export interface RowProps {
   onSelect: (item: Metadata) => void;
   /** Number of caption lines passed to Tile. */
   lines?: (m: Metadata) => [string, string];
+  /** Return true to handle an arrow on a tile, as for Tile. */
+  onArrow?: (d: Direction) => boolean;
 }
 
-/** Scroll tiles with focus, retaining one tile of context on the left. */
+/** Scroll the focused tile to the row's first slot; Up and Down enter the row there. */
 export function Row(props: RowProps) {
   const [col, setCol] = createSignal(Math.max(0, props.items.findIndex((m) => m.ratingKey === props.focusKey)));
   const shape = () => props.shape ?? 'poster';
@@ -49,16 +52,18 @@ export function Row(props: RowProps) {
       <Show when={props.title}>
         <h2>{props.title}</h2>
       </Show>
-      <div class="tiles" style={{ transform: `translateX(${-Math.max(0, col() - 1) * step()}px)`, gap: `${GAP}px` }}>
+      <div class="tiles" style={{ transform: `translateX(${-col() * step()}px)`, gap: `${GAP}px` }}>
         <For each={props.items}>
           {(item, i) => (
             <Tile
               item={item}
               shape={shape()}
               group={props.group}
+              entry={i() === col()}
               autofocus={props.focusKey ? item.ratingKey === props.focusKey : props.autofocus && i() === 0}
               index={i()}
               lines={props.lines}
+              onArrow={props.onArrow}
               onFocus={() => focused(i(), item)}
               onSelect={() => props.onSelect(item)}
             />

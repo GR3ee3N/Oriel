@@ -1,0 +1,48 @@
+/* Opaque surfaces only: Mali blending shifts translucent panel colours. */
+.panel-layer { position: absolute; inset: 0; z-index: 20; }
+.panel-shade { position: absolute; inset: 0; background: rgba(10, 11, 16, 0.62); }
+.panel {
+  position: absolute;
+  right: var(--safe-x);
+  top: 72px;
+  bottom: 72px;
+  width: 640px;
+  padding: 32px 24px;
+  border-radius: var(--r-panel);
+  background: var(--surface);
+  display: flex;
+  flex-direction: column;
+}
+.panel h2 { padding: 0 16px; font-size: var(--t-heading); font-weight: 650; }
+.panel-hint { margin-top: 6px; padding: 0 16px; font-size: var(--t-caption); color: var(--ink-3); }
+.panel-list { margin-top: 18px; overflow: hidden; display: flex; flex-direction: column; gap: 2px; }
+.panel-option {
+  flex: none;
+  min-height: 64px;
+  padding: 10px 16px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  font-size: var(--t-meta);
+  color: var(--ink-2);
+}
+.panel-label { display: flex; flex-direction: column; min-width: 0; }
+.panel-label small { font-size: var(--t-caption); color: var(--ink-3); }
+.panel-option b { margin-left: auto; font-weight: 600; color: var(--ink); white-space: nowrap; }
+.panel-option .swatch { flex: none; width: 30px; height: 30px; border-radius: 50%; box-shadow: 0 0 0 3px var(--surface); }
+.panel-option.selected { color: var(--ink); }
+.panel-option.selected::after {
+  content: '';
+  flex: none;
+  margin-left: auto;
+  width: 12px;
+  height: 22px;
+  border: solid var(--accent);
+  border-width: 0 4px 4px 0;
+  transform: translate(-6px, -3px) rotate(45deg);
+}
+.panel-option.focused { background: var(--accent); color: var(--accent-text); }
+.panel-option.focused small,
+.panel-option.focused b { color: var(--accent-text); }
+.panel-option.focused.selected::after { border-color: var(--accent-text); }

@@ -1,10 +1,12 @@
-import { Show } from 'solid-js';
+import { createSignal, Show } from 'solid-js';
 import { play } from '../../actions';
-import { focusable } from '@oriel/web';
+import { type Direction, focusable } from '../../nav';
 import { isWatched, progress, tileSubtitle, tileTitle, unwatched } from '../../plex/format';
 import { imageUrl } from '../../plex/images';
 import type { Metadata } from '../../plex/types';
 import { currentServer } from '../../session';
+import { episodeTitle, hidden } from '../spoilers';
+import { Icon } from './Icon';
 import './tile.css';
 
 export type TileShape = 'poster' | 'wide';
@@ -28,42 +30,58 @@ export interface TileProps {
   item?: Metadata;
   shape?: TileShape;
   group?: string;
+  /** Enter the group here, as at a scrolling row's first visible tile. */
+  entry?: boolean;
   autofocus?: boolean;
   /** Override the default title/year or show/episode caption pair. */
   lines?: (m: Metadata) => [string, string];
+  /** Dim the artwork, e.g. for a Watchlist title the server doesn't have. */
+  dim?: boolean;
   index?: number;
   onFocus?: () => void;
   onSelect: () => void;
+  /** Return true to handle an arrow instead of moving to the nearest element. */
+  onArrow?: (d: Direction) => boolean;
 }
 
 export function Tile(props: TileProps) {
   const shape = () => props.shape ?? 'poster';
   const size = () => SIZES[shape()];
+  const [failed, setFailed] = createSignal(false);
+  // Spoiler protection swaps an unwatched episode's still for the show's art.
   const src = () => {
-    const path = props.item && tileImage(props.item, shape());
-    return path ? imageUrl(currentServer(), path, size().w, size().h) : undefined;
+    const m = props.item;
+    const path = m && (hidden(m) && shape() === 'wide' ? (m.grandparentArt ?? m.grandparentThumb) : tileImage(m, shape()));
+    return path && !failed() ? imageUrl(currentServer(), path, size().w, size().h) : undefined;
   };
+  const lines = (m: Metadata): [string, string] =>
+    props.lines?.(m) ?? [tileTitle(m), tileSubtitle(hidden(m) ? { ...m, title: episodeTitle(m) } : m, shape() === 'wide')];
   return (
     <div
       class={`tile ${shape()}`}
+      classList={{ dim: props.dim }}
       data-index={props.index}
       style={{ width: `${size().w}px` }}
       ref={(el) =>
         focusable(el, {
           group: props.group,
+          get entry() {
+            return props.entry;
+          },
           autofocus: props.autofocus,
           onFocus: props.onFocus,
+          onArrow: props.onArrow,
           onSelect: () => props.item && props.onSelect(),
           onPlay: () => props.item && play(props.item),
         })
       }
     >
-      <Show when={props.item}>
-        {(item) => (
-          <>
-            <div class="art" style={{ height: `${size().h}px` }}>
+      <div class="art" style={{ height: `${size().h}px` }}>
+        <Show when={props.item}>
+          {(item) => (
+            <>
               <Show when={src()} fallback={<div class="noimg">{tileTitle(item())}</div>}>
-                {(s) => <img src={s()} alt="" decoding="async" />}
+                {(s) => <img src={s()} alt="" decoding="async" onError={() => setFailed(true)} />}
               </Show>
               <Show when={progress(item()) > 0}>
                 <div class="progress">
@@ -71,19 +89,22 @@ export function Tile(props: TileProps) {
                 </div>
               </Show>
               <Show when={isWatched(item())}>
-                <div class="watched">✓</div>
+                <div class="watched">
+                  <Icon name="check" />
+                </div>
               </Show>
               <Show when={unwatched(item())}>{(n) => <div class="count">{n()}</div>}</Show>
-            </div>
-            <div class="caption">
-              <b>{(props.lines?.(item()) ?? [tileTitle(item()), ''])[0]}</b>
-              <span>{props.lines ? props.lines(item())[1] : tileSubtitle(item())}</span>
-            </div>
-          </>
+            </>
+          )}
+        </Show>
+      </div>
+      <Show when={props.item} fallback={<div class="caption placeholder"><i /><i /></div>}>
+        {(item) => (
+          <div class="caption">
+            <b>{lines(item())[0]}</b>
+            <span>{lines(item())[1]}</span>
+          </div>
         )}
-      </Show>
-      <Show when={!props.item}>
-        <div class="art" style={{ height: `${size().h}px` }} />
       </Show>
     </div>
   );

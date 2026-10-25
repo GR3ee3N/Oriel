@@ -1,17 +1,21 @@
-import { createEffect, createResource, createSignal, For, onCleanup, Show } from 'solid-js';
+import { createEffect, createResource, createSignal, For, Match, on, onCleanup, Show, Switch } from 'solid-js';
 import { open } from '../../actions';
 import { markHomeReady } from '../../boot';
 import { dataVersion } from '../../data';
-import { homeHubs, metadata } from '../../plex/api';
-import { badges, clean } from '../../plex/format';
+import { t } from '../../i18n';
+import { homeHubs } from '../../plex/api';
+import { hubTitle } from '../../plex/format';
 import { preload } from '../../plex/images';
-import type { Hub, Metadata } from '../../plex/types';
-import { currentServer } from '../../session';
+import type { Hub } from '../../plex/types';
+import { currentServer, session } from '../../session';
 import { Backdrop, backdropUrl } from '../components/Backdrop';
-import { Info, logoReady, metaFor } from '../components/Info';
+import { Button, Message } from '../components/Controls';
+import { backdropOf, createHero, HeroInfo, neighbours } from '../components/hero';
+import { openRail, Rail } from '../components/Rail';
 import { Row } from '../components/Row';
+import { ServerPicker } from '../components/ServerPicker';
 import { Shelf } from '../components/Shelf';
-import { TopNav } from '../components/TopNav';
+import { Status } from '../components/Status';
 import './home.css';
 
 const PLAYABLE_HUBS = ['movie', 'show', 'episode', 'season', 'mixed', 'collection'];
@@ -29,113 +33,152 @@ function homeRows(hubs: Hub[]): Hub[] {
     .filter((h) => h.Metadata!.length);
 }
 
-const backdropOf = (m: Metadata | undefined) => (m?.type === 'episode' ? (m.grandparentArt ?? m.art) : m?.art);
+// Show "Still loading" with Try again after this long without Home data.
+const SLOW = 8000;
+
+// Home's place in this run of Oriel, for the profile and server it belongs
+// to. Home rebuilt after visiting another root page returns to it; a fresh
+// start or a profile picked in the picker focuses the first card.
+let anchor: { owner: string; hub: string; key: string } | undefined;
+const owner = () => `${session.picks}/${session.user?.uuid}/${session.serverId}`;
 
 export function Home() {
-  const [hubs] = createResource(dataVersion, () => homeHubs(currentServer()));
-  const rows = () => homeRows(hubs() ?? []);
-  // Release the splash when Home has no rows or another root tab is active.
+  const [hubs, { refetch }] = createResource(dataVersion, () => homeHubs(currentServer()));
+  const rows = () => homeRows(hubs.latest ?? []);
+  // Release the splash when Home has no rows or failed to load.
   createEffect(() => {
-    if (hubs.error || (hubs() && !rows().length)) markHomeReady();
+    if (hubs.error || (hubs.latest && !rows().length)) markHomeReady();
+  });
+  const [slow, setSlow] = createSignal(false);
+  let slowTimer: ReturnType<typeof setTimeout> | undefined;
+  createEffect(
+    on(
+      () => hubs.loading,
+      (loading) => {
+        clearTimeout(slowTimer);
+        setSlow(false);
+        if (loading) slowTimer = setTimeout(() => setSlow(true), SLOW);
+      },
+    ),
+  );
+  onCleanup(() => clearTimeout(slowTimer));
+
+  // Release the splash after the first backdrop is decoded so it can reuse
+  // the cached image when Home appears.
+  const hero = createHero((item) => {
+    const path = backdropOf(item);
+    (path ? preload(backdropUrl(path), true) : Promise.resolve()).then(markHomeReady);
   });
 
-  // Keep metadata layout out of the row animation to prevent dropped frames.
-  // Wait for logo decoding before changing the hero. Fetch full metadata for HDR badges.
-  const [hero, setHero] = createSignal<{ item: Metadata; logo?: string; full?: Metadata; late?: boolean }>();
-  let wanted: Metadata | undefined;
-  let heroTimer: ReturnType<typeof setTimeout> | undefined;
-  const fullOf = (item: Metadata) => metadata(currentServer(), item.ratingKey).catch(() => undefined);
-  const showHero = (item: Metadata, around: Metadata[]) => {
-    wanted = item;
-    clearTimeout(heroTimer);
-    heroTimer = setTimeout(
-      async () => {
-        const first = !hero();
-        const pending = fullOf(item);
-        const [logo, full] = await Promise.all([
-          logoReady(item),
-          Promise.race([pending, new Promise<undefined>((done) => setTimeout(done, 350))]),
-        ]);
-        if (wanted !== item) return;
-        setHero({ item, logo, full });
-        if (!full) {
-          // Fade in badges when full metadata arrives after the hero.
-          pending.then((f) => {
-            const h = hero();
-            if (f && h?.item === item) setHero({ ...h, full: f, late: true });
-          });
-        }
-        // Cache neighbouring metadata for the next focus move; entries last one minute.
-        for (const m of around) void fullOf(m);
-        // Release the splash after the first backdrop is decoded so it can reuse
-        // the cached image when Home appears.
-        if (first) {
-          const path = backdropOf(item);
-          const ready = path ? preload(backdropUrl(path)) : Promise.resolve();
-          ready.then(markHomeReady);
-        }
-      },
-      hero() ? 230 : 0,
-    );
-  };
-  onCleanup(() => clearTimeout(heroTimer));
-  const heroBadges = () => {
-    const f = hero()?.full;
-    return f ? badges(f) : [];
-  };
-
-  const art = () => backdropOf(hero()?.item);
-  const colors = () => hero()?.item.UltraBlurColors ?? hero()?.full?.UltraBlurColors;
   const shapeOf = (hub: Hub) =>
     hub.hubIdentifier.includes('continue') || hub.hubIdentifier === 'home.ondeck' || hub.type === 'episode'
       ? 'wide'
       : 'poster';
+  const [picking, setPicking] = createSignal(false);
+  // The anchored item, if it's still on Home.
+  const anchored = () => {
+    const a = anchor;
+    if (!a || a.owner !== owner()) return undefined;
+    return rows().some((h) => h.hubIdentifier === a.hub && h.Metadata!.some((m) => m.ratingKey === a.key)) ? a : undefined;
+  };
+  // Decided once, when the rows first render; later focus moves update the anchor.
+  let decided = false;
+  let first: ReturnType<typeof anchored>;
+  const start = () => {
+    if (!decided && rows().length) {
+      first = anchored();
+      decided = true;
+    }
+    return first;
+  };
 
   return (
     <div class="home">
-      <Backdrop art={art()} colors={colors()} />
-      <TopNav />
-      <div class="hero">
-        <Show when={hero()}>
-          {(h) => (
-            <Info
-              item={h().item}
-              logo={h().logo}
-              title={clean(h().item.type === 'episode' ? h().item.grandparentTitle : h().item.title)}
-              meta={metaFor(h().item)}
-              badges={heroBadges()}
-              reserveBadges
-              badgesLate={h().late}
-              summary={h().item.summary}
-              size="hero"
-            />
-          )}
-        </Show>
-      </div>
-      <Show when={hubs.error}>
-        <p class="error home-error">Could not load the home screen: {String(hubs.error)}</p>
+      <Backdrop art={hero.art()} colors={hero.colors()} />
+      <Rail />
+      <Status />
+      <Switch>
+        <Match when={hubs.error && !hubs.latest}>
+          <Message class="home-message" icon="warning" title={t('error.server', { server: session.serverName ?? '' })} body={t('error.serverHint')}>
+            <Button icon="restart" label={t('action.retry')} autofocus onSelect={refetch} />
+            <Show when={session.servers.length > 1}>
+              <Button icon="server" label={t('action.switchServer')} onSelect={() => setPicking(true)} />
+            </Show>
+          </Message>
+        </Match>
+        <Match when={!hubs.latest}>
+          <HomeSkeleton />
+          <Show when={slow()}>
+            <Message class="home-slow" icon="server" title={t('error.slow', { server: session.serverName ?? '' })}>
+              <Button icon="restart" label={t('action.retry')} autofocus onSelect={refetch} />
+            </Message>
+          </Show>
+        </Match>
+        <Match when={!rows().length}>
+          <Message class="home-message" icon="home" title={t('home.empty')}>
+            <Button icon="movie" label={t('home.browse')} autofocus onSelect={openRail} />
+          </Message>
+        </Match>
+        <Match when={rows().length}>
+          <div class="hero">
+            <HeroInfo hero={hero} />
+          </div>
+          <Shelf class="home-shelf">
+            <For each={rows()}>
+              {(hub, i) => (
+                <div>
+                  <Row
+                    title={hubTitle(hub)}
+                    items={hub.Metadata!}
+                    shape={shapeOf(hub)}
+                    group={`hub-${hub.hubIdentifier}`}
+                    autofocus={!start() && i() === 0}
+                    focusKey={start()?.hub === hub.hubIdentifier ? start()!.key : undefined}
+                    onFocus={(item) => {
+                      anchor = { owner: owner(), hub: hub.hubIdentifier, key: item.ratingKey };
+                      hero.show(item, neighbours(hub.Metadata!, item));
+                    }}
+                    onSelect={open}
+                  />
+                </div>
+              )}
+            </For>
+          </Shelf>
+        </Match>
+      </Switch>
+      <Show when={picking()}>
+        <ServerPicker onClose={() => setPicking(false)} />
       </Show>
-      <Shelf class="home-shelf">
-        <For each={rows()}>
-          {(hub, i) => (
-            <div>
-              <Row
-                title={clean(hub.title)}
-                items={hub.Metadata!}
-                shape={shapeOf(hub)}
-                group={`hub-${hub.hubIdentifier}`}
-                autofocus={i() === 0}
-                onFocus={(item) => {
-                  const items = hub.Metadata!;
-                  const at = items.indexOf(item);
-                  showHero(item, [...items.slice(at + 1, at + 3), ...items.slice(Math.max(0, at - 2), at)]);
-                }}
-                onSelect={open}
-              />
-            </div>
-          )}
-        </For>
-      </Shelf>
+    </div>
+  );
+}
+
+/** Final-geometry blocks while Home loads; no shimmer, which costs a raster per frame. */
+function HomeSkeleton() {
+  const cards = (n: number, w: number, h: number) => (
+    <div class="skeleton-cards">
+      <For each={Array.from({ length: n })}>
+        {() => (
+          <div style={{ width: `${w}px` }}>
+            <i style={{ height: `${h}px` }} />
+            <i class="line" />
+            <i class="line short" />
+          </div>
+        )}
+      </For>
+    </div>
+  );
+  return (
+    <div class="home-skeleton">
+      <div class="hero-skeleton">
+        <i class="logo" />
+        <i class="line" />
+        <i class="line long" />
+      </div>
+      <div class="rows-skeleton">
+        <h2>{t('hub.home.continue')}</h2>
+        {cards(4, 400, 225)}
+      </div>
     </div>
   );
 }

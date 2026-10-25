@@ -12,10 +12,12 @@ import { createStore } from 'solid-js/store';
 import { call } from './bridge';
 import { tab } from './router';
 import { checkPin, createPin, homeUsers, type Pin, switchUser, whoAmI } from './plex/auth';
-import { type Server, setClientId } from './plex/client';
+import { PlexError, type Server, setClientId } from './plex/client';
 import { connect, servers, Unreachable } from './plex/discovery';
-import { invalidate, sections } from './plex/api';
+import { invalidate, playlistCount, sections } from './plex/api';
+import { forgetWatchlist } from './plex/watchlist';
 import type { Directory, HomeUser, Resource, User } from './plex/types';
+import { t } from './i18n';
 import { notice } from './notice';
 import { loadPrefs } from './prefs';
 import { load, type Saved, save } from './store';
@@ -37,11 +39,15 @@ interface Session {
   multiUser: boolean;
   /** Last profile UUID, used for initial focus in the picker. */
   lastUser?: string;
+  /** Counts profiles picked in the picker; each pick starts Home at its first row. */
+  picks: number;
   serverName?: string;
   /** Server name shown while connecting. */
   connectingTo?: string;
-  /** Movie and show libraries displayed in the top bar. */
+  /** Movie and show libraries listed in the navigation rail. */
   sections: Directory[];
+  /** Number of video playlists; the rail lists Playlists only when there are some. */
+  playlists: number;
   error?: string;
 }
 
@@ -57,7 +63,9 @@ const [session, setSession] = createStore<Session>({
   users: [],
   servers: [],
   sections: [],
+  playlists: 0,
   multiUser: false,
+  picks: 0,
 });
 export { session };
 
@@ -70,15 +78,32 @@ let resources: Resource[] = [];
 let again: () => Promise<void> = () => start();
 let signin: AbortController | undefined;
 
+/** plex.tv token of the signed-in profile, for account features such as
+ * the Watchlist. Valid only while the session is 'ready'. */
+export function profileToken(): string {
+  if (!who) throw new Error('no profile');
+  return who.authToken;
+}
+
 /** Valid only while the session is 'ready'. */
 export function currentServer(): Server {
   if (!server) throw new Error('no server');
   return server;
 }
 
+/** Show the failure as a sentence; the raw error goes to the log. Errors
+ * thrown here with t() text are already sentences. */
 function fail(e: unknown): void {
   console.error(`session: ${e}`);
-  setSession({ phase: 'error', error: e instanceof Error ? e.message : String(e) });
+  const error =
+    e instanceof PlexError
+      ? t('start.httpError', { status: e.status })
+      : e instanceof TypeError || (e instanceof DOMException && e.name === 'TimeoutError')
+        ? t('start.offline')
+        : e instanceof Error
+          ? e.message
+          : String(e);
+  setSession({ phase: 'error', error });
 }
 
 export async function start(): Promise<void> {
@@ -153,7 +178,7 @@ export async function pickUser(user: HomeUser, pin?: string): Promise<void> {
   saved.userUuid = switched.uuid;
   saved.userToken = switched.authToken;
   saved.userRun = saved.run;
-  setSession({ lastUser: switched.uuid });
+  setSession({ lastUser: switched.uuid, picks: session.picks + 1 });
   await save({ userUuid: switched.uuid, userToken: switched.authToken, userRun: saved.run });
   // Return to Home because library access differs between profiles.
   tab({ screen: 'home' });
@@ -201,7 +226,10 @@ export async function chooseServer(id: string): Promise<void> {
 async function useUser(user: User, want?: string): Promise<void> {
   const sameUser = who?.uuid === user.uuid;
   // Browse caches use server keys, so clear data from the previous profile.
-  if (!sameUser) invalidate();
+  if (!sameUser) {
+    invalidate();
+    forgetWatchlist();
+  }
   who = user;
   again = () => useUser(user, want);
   resetHomeReady();
@@ -216,7 +244,7 @@ async function useUser(user: User, want?: string): Promise<void> {
       resources = await servers(user.authToken);
       setSession('servers', resources.map(choiceOf));
     }
-    if (!resources.length) throw new Error(`No Plex server is shared with ${user.title}.`);
+    if (!resources.length) throw new Error(t('start.noServer', { user: user.title }));
     server = want ? await connectTo(user, want) : await connectFirst(user, saved.servers?.[user.uuid]);
     if (want && saved.servers?.[user.uuid] !== server.id) {
       saved.servers = { ...saved.servers, [user.uuid]: server.id };
@@ -224,9 +252,9 @@ async function useUser(user: User, want?: string): Promise<void> {
     }
     // Configure the proxy with this server and its token for Kodi playback.
     await call({ cmd: 'media-source', base: server.uri, headers: { 'X-Plex-Token': server.token } });
-    const libraries = await sections(server);
+    const [libraries, playlists] = await Promise.all([sections(server), playlistCount(server).catch(() => 0)]);
     console.log(`session: ${user.title} on ${server.name} via ${server.uri}`);
-    setSession({ phase: 'ready', serverName: server.name, serverId: server.id, sections: libraries });
+    setSession({ phase: 'ready', serverName: server.name, serverId: server.id, sections: libraries, playlists });
   } catch (e) {
     fail(e);
   }
@@ -243,12 +271,12 @@ function choiceOf(r: Resource): ServerChoice {
 
 async function connectTo(user: User, id: string): Promise<Server> {
   const resource = resources.find((r) => r.clientIdentifier === id);
-  if (!resource) throw new Error('That server is no longer shared with you.');
+  if (!resource) throw new Error(t('start.serverGone'));
   setSession({ serverId: id, connectingTo: resource.name });
   try {
     return await connect(resource, user.authToken);
   } catch (e) {
-    throw e instanceof Unreachable ? new Error(`${resource.name} is not answering.`) : e;
+    throw e instanceof Unreachable ? new Error(t('start.notAnswering', { server: resource.name })) : e;
   }
 }
 
@@ -270,9 +298,9 @@ async function connectFirst(user: User, chosen: string | undefined): Promise<Ser
     const found = await attempt;
     if (found) {
       setSession({ serverId: found.id });
-      notice(`${first.name} is not answering. Showing ${found.name}.`);
+      notice(t('start.fellBack', { server: first.name, other: found.name }));
       return found;
     }
   }
-  throw new Error(`None of your servers is answering (${order.map((r) => r.name).join(', ')}).`);
+  throw new Error(t('start.noneAnswering', { servers: order.map((r) => r.name).join(', ') }));
 }

@@ -1,5 +1,5 @@
 import { createSignal, For, type JSX, Show } from 'solid-js';
-import { clean, duration, episodeCode, remaining, seasonCount } from '../../plex/format';
+import { ageRating, clean, duration, episodeCode, remaining, seasonCount } from '../../plex/format';
 import { logoOf, logoUrl, preload } from '../../plex/images';
 import type { Metadata } from '../../plex/types';
 import { currentServer } from '../../session';
@@ -49,28 +49,28 @@ export function Meta(props: { parts: (JSX.Element | string | number | undefined 
 
 /** Format item metadata and remaining time: episode code, title and duration,
  * or year, duration/season count and ratings for other items. */
-export function metaFor(m: Metadata): JSX.Element {
+export function metaFor(m: Metadata, showRemaining = true): JSX.Element {
+  const left = showRemaining ? remaining(m) : undefined;
   if (m.type === 'episode') {
-    return <Meta parts={[episodeCode(m), clean(m.title), duration(m.duration)]} accent={remaining(m)} />;
+    return <Meta parts={[episodeCode(m), clean(m.title), duration(m.duration)]} accent={left} />;
   }
   const length = m.type === 'show' || m.type === 'season' ? seasonCount(m) : duration(m.duration);
   return (
     <Meta
-      parts={[m.year, length, m.contentRating, m.audienceRating ? `★ ${m.audienceRating.toFixed(1)}` : '']}
-      accent={remaining(m)}
+      parts={[m.year, length, ageRating(m.contentRating), m.audienceRating ? `★ ${m.audienceRating.toFixed(1)}` : '']}
+      accent={left}
     />
   );
 }
 
-/** Reduce long title text to fit within two lines. */
-function Title(props: { text: string; size: 'hero' | 'page' }) {
+/** Reduce long title text from the layout's --title-size to fit within two lines. */
+function Title(props: { text: string }) {
   const scale = () => {
     const n = props.text.length;
-    const base = props.size === 'hero' ? 76 : 60;
-    return n > 40 ? base * 0.66 : n > 24 ? base * 0.8 : base;
+    return n > 40 ? 0.62 : n > 24 ? 0.78 : 1;
   };
   return (
-    <h1 class="info-title" style={{ 'font-size': `${scale()}px` }}>
+    <h1 class="info-title" style={{ 'font-size': `calc(var(--title-size) * ${scale()})` }}>
       {props.text}
     </h1>
   );
@@ -84,8 +84,6 @@ export interface InfoProps {
   title?: string;
   meta?: JSX.Element;
   badges?: string[];
-  /** Reserve badge space so late metadata does not move the summary. */
-  reserveBadges?: boolean;
   /** Fade in badges that arrive after the other metadata. */
   badgesLate?: boolean;
   summary?: string;
@@ -102,16 +100,14 @@ export function Info(props: InfoProps) {
       <div class="info-head">
         <Show
           when={props.logo !== failedLogo() ? props.logo : undefined}
-          fallback={<Title text={props.title ?? clean(props.item.title)} size={size()} />}
+          fallback={<Title text={props.title ?? clean(props.item.title)} />}
         >
           {(src) => <img class="info-logo" src={src()} alt="" onError={() => setFailedLogo(src())} />}
         </Show>
       </div>
-      <Show when={props.meta}>
-        <div class="info-meta">{props.meta}</div>
-      </Show>
-      <Show when={props.badges?.length || props.reserveBadges}>
-        <div class="badges">
+      <Show when={props.meta || props.badges?.length}>
+        <div class="info-meta">
+          {props.meta}
           <Show when={props.badges?.length}>
             {/* Remount changed badge sets so they fade in together. */}
             <Show when={props.badges!.join(' ')} keyed>

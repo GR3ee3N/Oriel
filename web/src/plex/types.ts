@@ -15,6 +15,16 @@ export interface Metadata {
   key: string;
   type: MetadataType;
   title: string;
+  /** Plex agent identity, e.g. 'plex://movie/5d77…'; matches Watchlist items to library copies. */
+  guid?: string;
+  studio?: string;
+  originallyAvailableAt?: string;
+  /** Collections containing the item. */
+  Collection?: Tag[];
+  /** Trailers and other extras from includeExtras. */
+  Extras?: { Metadata?: Metadata[] };
+  /** Extra kind for clips, e.g. 1 for trailers. */
+  extraType?: number;
   summary?: string;
   year?: number;
   thumb?: string;
@@ -65,6 +75,9 @@ export interface UltraBlurColors {
 
 export interface Tag {
   tag: string;
+  id?: number;
+  /** Library filter for the tag, e.g. 'collection=1234'. */
+  filter?: string;
 }
 
 export interface Role extends Tag {

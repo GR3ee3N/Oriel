@@ -1,5 +1,9 @@
-/* Clip scrolled rows beneath the header and limit the viewport to two rows
-   at Grid's PITCH. Insets leave room for focus rings and scaling. */
-.grid { position: absolute; left: calc(var(--edge) - 20px); right: 0; top: 210px; bottom: 20px; overflow: hidden; }
-.grid-body { position: absolute; left: 20px; right: 0; top: 20px; bottom: 0; transition: transform var(--normal) var(--ease); will-change: transform; }
+/* Root pages place the grid at x=192 beside the rail; detail pages at x=120.
+   The 24px insets leave room for focus rings and zoom. Rows scroll to the
+   grid's top edge. */
+.grid { position: absolute; left: calc(var(--root-x) - 24px); width: 1488px; top: 308px; bottom: 0; overflow: hidden; }
+.grid.detail-grid { left: calc(var(--detail-x) - 24px); top: 160px; }
+.detail-actions ~ .grid.detail-grid { top: 252px; }
+.grid-body { position: absolute; left: 24px; right: 0; top: 24px; bottom: 0; transition: transform var(--move) var(--ease); will-change: transform; }
 .grid .cell { position: absolute; }
+.grid > .message { position: absolute; left: 24px; top: 48px; }

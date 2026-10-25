@@ -1,5 +1,5 @@
 import { For, onCleanup, Show } from 'solid-js';
-import { activeScope, focusable, onBack, setScope } from '@oriel/web';
+import { activeScope, focusable, onBack, setScope } from '../../nav';
 import './menu.css';
 
 export interface MenuOption<T> {

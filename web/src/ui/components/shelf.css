@@ -5,10 +5,10 @@
 .shelf { position: absolute; left: 0; right: 0; top: 590px; bottom: 0; overflow: hidden; }
 .shelf-inner {
   position: absolute;
-  left: var(--edge);
+  left: var(--shelf-left, var(--edge));
   right: 0;
   top: 22px;
-  transition: transform var(--normal) var(--ease);
+  transition: transform var(--move) var(--ease);
   will-change: transform;
 }
-.shelf-inner > * { padding-bottom: 40px; }
+.shelf-inner > * { padding-bottom: 44px; }

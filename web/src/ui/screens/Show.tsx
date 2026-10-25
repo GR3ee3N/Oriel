@@ -1,48 +1,58 @@
-import { createEffect, createResource, createSignal, For, on, Show as When } from 'solid-js';
-import { open, openPerson, play } from '../../actions';
+import { createEffect, createResource, createSignal, For, Match, on, Show as When, Switch } from 'solid-js';
+import { open, openPerson } from '../../actions';
 import { dataVersion } from '../../data';
-import { focusable } from '@oriel/web';
+import { t } from '../../i18n';
 import { children, metadata, related } from '../../plex/api';
-import { badges, clean, duration, episodeCode, remaining } from '../../plex/format';
+import { badges, clean, duration, hubTitle, remaining, shortCode } from '../../plex/format';
 import type { Metadata } from '../../plex/types';
 import { currentServer } from '../../session';
+import { episodeTitle, hidden, setRevealed } from '../spoilers';
 import { Backdrop } from '../components/Backdrop';
+import { Button, Message, Tab } from '../components/Controls';
+import { Reader } from '../components/Dialog';
 import { Info, logoReady, metaFor } from '../components/Info';
+import { WatchedButton, WatchlistButton } from '../components/ItemActions';
+import { Panel } from '../components/Panel';
 import { People } from '../components/People';
 import { Row } from '../components/Row';
 import { Shelf } from '../components/Shelf';
-import { WatchedButton } from '../components/WatchedButton';
+import { DetailHead } from '../components/Status';
+import { usePlay } from './Movie';
+
+// Seasons start at y=588 under the info; scrolled rows move up to y=182.
+const SHOW_LEAD = 406;
 import './details.css';
 
-/** Episode caption with number, title and total or remaining duration. */
-const episodeLines = (e: Metadata): [string, string] => [
-  [e.index !== undefined ? `${e.index}.` : '', clean(e.title)].filter(Boolean).join(' '),
-  remaining(e) || duration(e.duration),
-];
-
 /** Show details with season tabs, an episode row, cast and related shows.
- * Focused episodes supply the summary and playback metadata. */
+ * The main button names the episode it starts: the one the page was opened
+ * for, else the server's next episode, else the first unwatched one. */
 export function Show(props: { ratingKey: string; season?: string; episode?: string }) {
-  const [show] = createResource(
+  const [show, { refetch }] = createResource(
     () => [props.ratingKey, dataVersion()] as const,
     async ([key]) => {
       const m = await metadata(currentServer(), key);
-      return m && { item: m, logo: await logoReady(m) };
+      if (!m) throw new Error(`no metadata for ${key}`);
+      return { item: m, logo: await logoReady(m) };
     },
   );
   const [seasons] = createResource(
     () => [props.ratingKey, dataVersion()] as const,
     ([key]) => children(currentServer(), key),
   );
-  const [more] = createResource(() => props.ratingKey, (key) => related(currentServer(), key));
-  const next = () => show()?.item.OnDeck?.Metadata?.[0];
+  const [requested] = createResource(
+    () => (props.episode ? ([props.episode, dataVersion()] as const) : null),
+    ([key]) => metadata(currentServer(), key).catch(() => undefined),
+  );
+  const [more] = createResource(() => props.ratingKey, (key) => related(currentServer(), key).catch(() => []));
+  const next = () => show.latest?.item.OnDeck?.Metadata?.[0];
+
   const [season, setSeason] = createSignal<string>();
   // Prefer the requested season, then the next episode's season, then a
   // non-Specials season. Reevaluate when show metadata arrives after the season list.
   createEffect(
-    on([seasons, show], ([list, s]) => {
+    on([() => seasons.latest, () => show.latest], ([list, s]) => {
       if (!list?.length || !s || season()) return;
-      setSeason(props.season ?? next()?.parentRatingKey ?? (list.find((s) => s.index !== 0) ?? list[0]).ratingKey);
+      setSeason(props.season ?? next()?.parentRatingKey ?? (list.find((x) => x.index !== 0) ?? list[0]).ratingKey);
     }),
   );
   const [episodes] = createResource(
@@ -50,6 +60,7 @@ export function Show(props: { ratingKey: string; season?: string; episode?: stri
     ([key]) => children(currentServer(), key),
   );
   const [focusedEpisode, setFocusedEpisode] = createSignal<Metadata>();
+  const [scroll, setScroll] = createSignal(0);
   // Season lists omit streams needed for badges. Fetch full episode metadata
   // and cache neighbours ahead of focus movement.
   const [episodeFull] = createResource(
@@ -65,108 +76,140 @@ export function Show(props: { ratingKey: string; season?: string; episode?: stri
     const full = episodeFull();
     return full && full.ratingKey === focusedEpisode()?.ratingKey ? badges(full) : [];
   };
-  const startEpisode = () => props.episode ?? next()?.ratingKey;
-  // Play the next episode, falling back to the first episode of the displayed season.
-  const target = () => next() ?? episodes()?.[0];
+
+  const firstUnwatched = () => episodes()?.find((e) => !e.viewCount) ?? episodes()?.[0];
+  const target = () => requested() ?? next() ?? firstUnwatched();
   const playLabel = () => {
     const n = target();
-    if (!n) return 'Play';
-    return `${n.viewOffset ? 'Resume' : 'Play'} ${episodeCode(n)}`;
+    if (!n) return t('action.play');
+    return t(n.viewOffset ? 'action.resumeEpisode' : 'action.playEpisode', { code: shortCode(n) });
+  };
+  const { starting, start } = usePlay();
+  const [panel, setPanel] = createSignal<'more' | 'description' | null>(null);
+  // Spoiler protection applies to the focused episode, or the main button's.
+  const subject = () => focusedEpisode() ?? target();
+  const moreOptions = () => [
+    ...(show.latest?.item.summary ? [{ label: t('action.description'), value: 'description', icon: 'info' as const }] : []),
+    ...(hidden(subject()) ? [{ label: t('action.reveal'), value: 'reveal', icon: 'info' as const }] : []),
+  ];
+  const onMore = (value: string) => {
+    if (value === 'description') return setPanel('description');
+    setPanel(null);
+    if (value === 'reveal') setRevealed(subject()?.ratingKey);
+  };
+  const shown = (list: Metadata[]) =>
+    list.map((e) => (hidden(e) ? { ...e, thumb: e.grandparentArt ?? show.latest?.item.art, summary: undefined } : e));
+  const summary = () => {
+    const e = focusedEpisode();
+    if (!e) return show.latest?.item.summary;
+    return hidden(e) ? undefined : e.summary;
+  };
+  const focusMeta = (item: Metadata) => {
+    const e = focusedEpisode();
+    return metaFor(e ? { ...e, title: episodeTitle(e) } : item);
   };
 
   return (
-    <div class="details">
-      <Backdrop art={show()?.item.art} colors={show()?.item.UltraBlurColors} delay={0} />
-      <When when={show.error}>
-        <p class="error details-error">Could not load this show: {String(show.error)}</p>
-      </When>
-      <When when={show()}>
-        {(s) => (
-          <>
-            <div class="details-info">
-              <Info
-                item={s().item}
-                logo={s().logo}
-                meta={metaFor(focusedEpisode() ?? s().item)}
-                badges={episodeBadges()}
-                reserveBadges={!!focusedEpisode()}
-                badgesLate
-                summary={focusedEpisode()?.summary ?? s().item.summary}
-              >
-                <div class="actions">
-                  <div
-                    class="btn"
-                    ref={(el) =>
-                      focusable(el, { group: 'actions', autofocus: !startEpisode(), onSelect: () => play(target() ?? s().item) })
-                    }
-                  >
-                    ▶ {playLabel()}
-                    <When when={next() && remaining(next()!)}>
-                      <span class="sub">{remaining(next()!)}</span>
+    <div class="details" classList={{ scrolled: scroll() > 0 }} style={{ '--detail-scroll': `${scroll()}px` }}>
+      <Backdrop art={show.latest?.item.art} colors={show.latest?.item.UltraBlurColors} delay={0} />
+      <div class="scroll-dim" />
+      <DetailHead />
+      <Switch>
+        <Match when={!show.latest && show.error}>
+          <Message class="details-message" icon="warning" title={t('details.loadFailed')}>
+            <Button icon="restart" label={t('action.retry')} autofocus onSelect={refetch} />
+          </Message>
+        </Match>
+        <Match when={show.latest}>
+          {(s) => (
+            <>
+              <div class="details-info show-info">
+                <Info item={s().item} logo={s().logo} meta={focusMeta(s().item)} badges={episodeBadges()} badgesLate summary={summary()}>
+                  <div class="actions">
+                    <When when={target()} fallback={<span />}>
+                      {(n) => (
+                        <Button
+                          icon="play"
+                          label={starting() ? t('action.starting') : playLabel()}
+                          sub={starting() ? undefined : remaining(n()) || duration(n().duration)}
+                          busy={starting()}
+                          group="actions"
+                          autofocus={!props.episode}
+                          onSelect={() => start(n())}
+                        />
+                      )}
+                    </When>
+                    <WatchlistButton item={s().item} />
+                    <WatchedButton item={s().item} />
+                    <When when={moreOptions().length}>
+                      <Button icon="more" group="actions" onSelect={() => setPanel('more')} />
                     </When>
                   </div>
-                  <WatchedButton item={s().item} />
-                </div>
-              </Info>
-            </div>
-            <Shelf>
-              <div>
-                <div class="seasons">
-                  <For each={seasons()}>
-                    {(se) => (
-                      <div
-                        class="season"
-                        classList={{ current: se.ratingKey === season() }}
-                        ref={(el) =>
-                          focusable(el, {
-                            group: 'seasons',
-                            onSelect: () => setSeason(se.ratingKey),
-                            onFocus: () => setFocusedEpisode(undefined),
-                          })
-                        }
-                      >
-                        {clean(se.title)}
-                      </div>
-                    )}
-                  </For>
-                </div>
-                <When when={episodes()} keyed>
-                  {(list) => (
-                    <Row
-                      title=""
-                      items={list}
-                      shape="wide"
-                      group={`episodes-${season()}`}
-                      autofocus={false}
-                      lines={episodeLines}
-                      onFocus={setFocusedEpisode}
-                      onSelect={(e) => play(e)}
-                      focusKey={startEpisode()}
-                    />
-                  )}
-                </When>
+                </Info>
               </div>
-              <When when={s().item.Role?.length}>
+              <Shelf class="show-shelf" lead={SHOW_LEAD} onScroll={setScroll}>
                 <div>
-                  <People
-                    title="Cast"
-                    people={s().item.Role!.slice(0, 20)}
-                    group="cast"
-                    onSelect={(p) => openPerson(s().item, p)}
-                  />
-                </div>
-              </When>
-              <For each={more()?.slice(0, 2)}>
-                {(hub) => (
-                  <div>
-                    <Row title={clean(hub.title)} items={hub.Metadata!} group={`related-${hub.hubIdentifier}`} onSelect={open} />
+                  <div class="seasons">
+                    <For each={seasons.latest}>
+                      {(se) => (
+                        <Tab
+                          label={se.index === 0 ? t('details.specials') : clean(se.title)}
+                          active={se.ratingKey === season()}
+                          group="seasons"
+                          entry={se.ratingKey === season()}
+                          onFocus={() => setFocusedEpisode(undefined)}
+                          onSelect={() => setSeason(se.ratingKey)}
+                        />
+                      )}
+                    </For>
                   </div>
-                )}
-              </For>
-            </Shelf>
-          </>
-        )}
-      </When>
+                  <When when={episodes.latest} keyed>
+                    {(list) => (
+                      <When
+                        when={list.length}
+                        fallback={<p class="episode-empty">{t('details.noEpisodes', { season: clean(seasons.latest?.find((x) => x.ratingKey === season())?.title) })}</p>}
+                      >
+                        <Row
+                          title=""
+                          items={shown(list)}
+                          shape="wide"
+                          group={`episodes-${season()}`}
+                          autofocus={false}
+                          lines={(e) => [[e.index !== undefined ? `${e.index}.` : '', clean(episodeTitle(e))].filter(Boolean).join(' '), remaining(e) || duration(e.duration)]}
+                          onFocus={(e) => {
+                            setFocusedEpisode(list.find((x) => x.ratingKey === e.ratingKey));
+                            setRevealed((r) => (r === e.ratingKey ? r : undefined));
+                          }}
+                          onSelect={(e) => start(list.find((x) => x.ratingKey === e.ratingKey) ?? e)}
+                          focusKey={props.episode}
+                        />
+                      </When>
+                    )}
+                  </When>
+                </div>
+                <When when={s().item.Role?.length}>
+                  <div>
+                    <People title={t('details.cast')} people={s().item.Role!.slice(0, 20)} group="cast" onSelect={(p) => openPerson(s().item, p)} />
+                  </div>
+                </When>
+                <For each={more()?.slice(0, 2)}>
+                  {(hub) => (
+                    <div>
+                      <Row title={hubTitle(hub)} items={hub.Metadata!} group={`related-${hub.hubIdentifier}`} onSelect={open} />
+                    </div>
+                  )}
+                </For>
+              </Shelf>
+              <When when={panel() === 'more'}>
+                <Panel title={clean(s().item.title)} options={moreOptions()} onChoose={onMore} onClose={() => setPanel(null)} />
+              </When>
+              <When when={panel() === 'description'}>
+                <Reader title={clean(s().item.title)} text={s().item.summary ?? ''} onClose={() => setPanel(null)} />
+              </When>
+            </>
+          )}
+        </Match>
+      </Switch>
     </div>
   );
 }

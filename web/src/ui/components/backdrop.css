@@ -5,7 +5,7 @@
   position: absolute;
   inset: 0;
   opacity: 0;
-  transition: opacity var(--slow) ease;
+  transition: opacity var(--fade) ease;
   will-change: opacity;
 }
 /* Backdrop.tsx paints each item once; opacity changes do not repaint the canvas. */
@@ -22,6 +22,6 @@
   position: absolute;
   inset: 0;
   background:
-    linear-gradient(180deg, rgba(0, 0, 0, 0.45) 0%, rgba(0, 0, 0, 0) 180px),
+    linear-gradient(180deg, rgba(0, 0, 0, 0.7) 0%, rgba(0, 0, 0, 0) 220px),
     linear-gradient(90deg, rgba(0, 0, 0, 0.45) 0%, rgba(0, 0, 0, 0.15) 45%, rgba(0, 0, 0, 0) 70%);
 }

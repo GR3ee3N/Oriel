@@ -1,12 +1,14 @@
 .row h2 {
-  font-size: var(--fs-h2);
+  font-size: var(--t-heading);
   font-weight: 650;
-  color: var(--text-2);
-  margin-bottom: 18px;
+  line-height: 1.2;
+  color: var(--ink);
+  margin-bottom: 20px;
+  white-space: nowrap;
 }
 .row .tiles {
   display: flex;
-  transition: transform var(--normal) var(--ease);
+  transition: transform var(--move) var(--ease);
   /* Retain the composited layer between moves so scrolling does not recreate
      and rasterize it each time. */
   will-change: transform;

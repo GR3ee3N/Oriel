@@ -1,16 +1,28 @@
-import { createEffect, createResource, createSignal, For, on, onCleanup, onMount, Show } from 'solid-js';
+import { createEffect, createResource, createSignal, For, Match, on, onCleanup, onMount, Show, Switch } from 'solid-js';
+import { activeScope, focusable, useScope } from '../../nav';
 import { open } from '../../actions';
-import { activeScope, focusable, useScope } from '@oriel/web';
+import { type Key, t } from '../../i18n';
 import { search } from '../../plex/api';
-import { clean } from '../../plex/format';
-import { currentServer } from '../../session';
+import { clean, episodeCode, hubTitle } from '../../plex/format';
+import { currentServer, session } from '../../session';
+import { episodeTitle } from '../spoilers';
+import { Button } from '../components/Controls';
+import { Icon } from '../components/Icon';
+import { Rail } from '../components/Rail';
 import { Row } from '../components/Row';
 import { Shelf } from '../components/Shelf';
-import { TopNav } from '../components/TopNav';
+import { Status } from '../components/Status';
+import './library.css';
 import './search.css';
 
 const KEYS = [...'abcdefghijklmnopqrstuvwxyz1234567890'];
-const TITLES: Record<string, string> = { movie: 'Movies', show: 'Shows', episode: 'Episodes', collection: 'Collections' };
+const GROUPS: Record<string, Key> = {
+  movie: 'search.movies',
+  show: 'search.shows',
+  episode: 'search.episodes',
+  collection: 'search.collections',
+};
+const ORDER = ['movie', 'show', 'episode', 'collection'];
 
 /** Debounce typed searches and show result rows beside the on-screen keyboard. */
 export function Search() {
@@ -24,72 +36,103 @@ export function Search() {
     }),
   );
   onCleanup(() => clearTimeout(timer));
-  const [results] = createResource(
+  const [results, { refetch }] = createResource(
     () => settled() || null,
-    (q) => search(currentServer(), q),
+    async (q) => (await search(currentServer(), q)).sort((a, b) => ORDER.indexOf(a.type) - ORDER.indexOf(b.type)),
   );
 
-  const type = (k: string) => setQuery((q) => (k === 'del' ? q.slice(0, -1) : k === 'clear' ? '' : q + k));
+  // Delete removes the last character, including one outside the BMP.
+  const type = (k: string) => setQuery((q) => (k === 'del' ? [...q].slice(0, -1).join('') : k === 'clear' ? '' : q + k));
   // Accept remote keyboard input only while Search is the active screen.
   const scope = useScope();
   const onKey = (e: KeyboardEvent) => {
     if (activeScope() !== scope) return;
     if (e.key.length === 1 && /[\p{L}\p{N} ]/u.test(e.key)) type(e.key.toLowerCase());
   };
-  onMount(() => document.addEventListener('keydown', onKey));
-  onCleanup(() => document.removeEventListener('keydown', onKey));
+  // Kodi sends the remote's Back as Escape, so Backspace comes from a
+  // keyboard: it deletes while there's text and is Back otherwise. Window
+  // capture runs before App's document handler, which treats it as Back.
+  const onBackspace = (e: KeyboardEvent) => {
+    if (e.key !== 'Backspace' || activeScope() !== scope || !query()) return;
+    e.preventDefault();
+    e.stopImmediatePropagation();
+    type('del');
+  };
+  onMount(() => {
+    document.addEventListener('keydown', onKey);
+    window.addEventListener('keydown', onBackspace, true);
+  });
+  onCleanup(() => {
+    document.removeEventListener('keydown', onKey);
+    window.removeEventListener('keydown', onBackspace, true);
+  });
 
   const key = (k: string, label: string, wide = false) => (
-    <div class="key" classList={{ wide }} ref={(el) => focusable(el, { group: 'keyboard', autofocus: k === 'a', onSelect: () => type(k) })}>
+    <div class="key" classList={{ wide }} ref={(el) => focusable(el, { group: 'keyboard', area: 'keyboard', autofocus: k === 'a', onSelect: () => type(k) })}>
       {label}
     </div>
   );
+  const server = () => session.serverName ?? '';
 
   return (
     <div class="search">
       <div class="screen-bg" />
-      <TopNav />
+      <Rail />
+      <Status />
+      <header class="page-head">
+        <h1>{t('nav.search')}</h1>
+      </header>
       <div class="keyboard">
         <div class="query">
-          {query() || <span class="dim">Search</span>}
+          <Icon name="search" />
+          <Show when={query()} fallback={<span class="placeholder">{t('search.placeholder')}</span>}>
+            <span>{query()}</span>
+          </Show>
           <span class="caret" />
         </div>
         <div class="keys">
           <For each={KEYS}>{(k) => key(k, k)}</For>
-          {key(' ', 'Space', true)}
-          {key('del', 'Delete', true)}
-          {key('clear', 'Clear', true)}
+          {key(' ', t('search.space'), true)}
+          {key('del', t('search.delete'), true)}
+          {key('clear', t('search.clear'), true)}
         </div>
       </div>
-      <div class="results">
-        <Show when={!settled()}>
-          <div class="search-hint">
-            <h2>Find movies, shows, episodes and collections</h2>
-            <p class="dim">Results come as you type. A remote with a keyboard types straight in.</p>
+      <Switch>
+        <Match when={!settled()}>
+          <div class="search-note">
+            <h2>{t('search.hint', { server: server() })}</h2>
           </div>
-        </Show>
-        <Show when={settled() && results() && !results()!.length}>
-          <p class="dim">Nothing found for “{settled()}”.</p>
-        </Show>
-        <Show when={results.error}>
-          <p class="error">Search failed: {String(results.error)}</p>
-        </Show>
-        <Shelf class="results-shelf">
-          <For each={results()}>
-            {(hub) => (
-              <div>
-                <Row
-                  title={TITLES[hub.type] ?? clean(hub.title)}
-                  items={hub.Metadata ?? []}
-                  shape={hub.type === 'episode' ? 'wide' : 'poster'}
-                  group={`results-${hub.type}`}
-                  onSelect={open}
-                />
-              </div>
-            )}
-          </For>
-        </Shelf>
-      </div>
+        </Match>
+        <Match when={results.state === 'errored'}>
+          <div class="search-note">
+            <h2>{t('search.failed')}</h2>
+            <div class="message-actions">
+              <Button icon="restart" label={t('action.retry')} onSelect={refetch} />
+            </div>
+          </div>
+        </Match>
+        <Match when={results.state === 'ready' && !results()!.length}>
+          <div class="search-note">
+            <h2>{t('search.none', { server: server(), query: settled() })}</h2>
+          </div>
+        </Match>
+      </Switch>
+      <Shelf class="results-shelf">
+        <For each={results.state === 'errored' ? [] : results.latest}>
+          {(hub) => (
+            <div>
+              <Row
+                title={GROUPS[hub.type] ? t(GROUPS[hub.type]) : hubTitle(hub)}
+                items={hub.Metadata ?? []}
+                shape={hub.type === 'episode' ? 'wide' : 'poster'}
+                group={`results-${hub.type}`}
+                lines={hub.type === 'episode' ? (e) => [clean(e.grandparentTitle), [episodeCode(e), clean(episodeTitle(e))].filter(Boolean).join(' · ')] : undefined}
+                onSelect={open}
+              />
+            </div>
+          )}
+        </For>
+      </Shelf>
     </div>
   );
 }

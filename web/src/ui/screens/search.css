@@ -1,39 +1,40 @@
 .search { position: absolute; inset: 0; }
-.keyboard { position: absolute; left: var(--edge); top: 150px; width: 520px; }
+.keyboard { position: absolute; left: var(--root-x); top: 200px; width: 520px; }
 .keyboard .query {
   height: 72px;
-  padding: 0 20px;
-  border-radius: var(--radius);
-  background: var(--bg-raise);
+  padding: 0 22px;
+  border-radius: 14px;
+  background: var(--surface);
   display: flex;
   align-items: center;
-  font-size: var(--fs-body);
-  font-weight: 600;
+  gap: 14px;
   margin-bottom: 20px;
+  font-size: var(--t-body);
+  font-weight: 600;
   white-space: nowrap;
   overflow: hidden;
 }
-.keyboard .caret { width: 3px; height: 34px; margin-left: 4px; background: var(--accent); }
+.keyboard .query .icon { color: var(--ink-3); }
+.keyboard .query .placeholder { color: var(--ink-3); font-weight: 500; }
+.keyboard .caret { width: 3px; height: 34px; margin-left: -10px; background: var(--accent); }
 .keyboard .keys { display: grid; grid-template-columns: repeat(6, 1fr); gap: 10px; }
 .keyboard .key {
   height: 64px;
-  border-radius: 8px;
-  background: var(--bg-raise);
+  border-radius: 12px;
+  background: var(--surface);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: var(--fs-body);
+  font-size: var(--t-body);
   font-weight: 600;
   text-transform: uppercase;
+  color: var(--ink-2);
 }
-.keyboard .key.wide { grid-column: span 2; text-transform: none; font-size: var(--fs-meta); }
+.keyboard .key.wide { grid-column: span 2; text-transform: none; font-size: var(--t-caption); }
 .keyboard .key.focused { background: var(--accent); color: var(--accent-text); }
-/* Clip scrolled rows above the results viewport, as in shelf.css. */
-.results { position: absolute; left: 700px; right: 0; top: 130px; bottom: 0; overflow: hidden; }
-.results > p, .search-hint { margin-left: 20px; margin-top: 20px; }
-.shelf.results-shelf { top: 0; }
-.shelf.results-shelf .shelf-inner { left: 20px; top: 20px; }
-.shelf.results-shelf .shelf-inner > * { padding-bottom: 36px; }
-.search-hint { margin-top: 8px; }
-.search-hint h2 { font-size: var(--fs-h2); font-weight: 650; color: var(--text-2); }
-.search-hint p { margin-top: 10px; font-size: var(--fs-meta); }
+
+/* Results to the right of the keyboard; the focused row's heading sits at y=200. */
+.shelf.results-shelf { left: 756px; top: 176px; --shelf-left: 24px; }
+.search-note { position: absolute; left: 780px; top: 200px; width: 900px; }
+.search-note h2 { font-size: var(--t-heading); font-weight: 650; line-height: 1.2; }
+.search-note p { margin-top: 12px; font-size: var(--t-meta); color: var(--ink-2); }

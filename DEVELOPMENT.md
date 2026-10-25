@@ -14,6 +14,7 @@ addon/          Kodi add-on
   default.py    VideoApp subclass and entry point
   resources/    icon, fanart and startup mark
 web/            web interface
+  src/nav/      remote navigation: focus, focus scopes and Back handlers
   src/plex/     Plex API: sign-in, servers, libraries and images
   src/player/   playback, tracks, transcoding and episode prompts
   src/ui/       screens and components

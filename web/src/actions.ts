@@ -24,6 +24,8 @@ export function open(item: Metadata): void {
       });
     case 'collection':
       return push({ screen: 'collection', ratingKey: item.ratingKey, title: clean(item.title) });
+    case 'playlist':
+      return push({ screen: 'playlist', ratingKey: item.ratingKey, title: clean(item.title) });
     default:
       console.error(`open: no page for a ${item.type}`);
   }
@@ -52,7 +54,8 @@ export async function play(item: Metadata, fromStart = false): Promise<void> {
     if (next) return play(next);
     return;
   }
-  if (item.type !== 'movie' && item.type !== 'episode') return;
+  // Clips are extras such as trailers.
+  if (item.type !== 'movie' && item.type !== 'episode' && item.type !== 'clip') return;
   await startPlayback(item, fromStart);
 }
 

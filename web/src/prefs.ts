@@ -1,7 +1,8 @@
 // Persist Settings screen preferences in the add-on's store.
 
+import { createSignal } from 'solid-js';
 import { createStore } from 'solid-js/store';
-import { type Saved, save } from './store';
+import { type LibraryState, type Saved, save } from './store';
 
 export interface Prefs {
   /** Local and remote bitrate limits in kbps; 0 requests the original file
@@ -17,6 +18,8 @@ export interface Prefs {
   autoSkipCredits: boolean;
   /** ACCENTS id used for focus rings and highlights. */
   accent: string;
+  /** Drop zoom and slides from focus movement (theme.css). */
+  reduceMotion: boolean;
 }
 
 /** Colours for --accent in theme.css, chosen for contrast with --accent-text.
@@ -47,6 +50,7 @@ const DEFAULTS: Prefs = {
   autoSkipIntro: false,
   autoSkipCredits: false,
   accent: ACCENTS[0].id,
+  reduceMotion: false,
 };
 
 const [prefs, setPrefs] = createStore<Prefs>({ ...DEFAULTS });
@@ -56,10 +60,48 @@ export function loadPrefs(saved: Saved): void {
   const stored = Object.entries(saved).filter(([key, value]) => key in DEFAULTS && value != null);
   setPrefs({ ...DEFAULTS, ...(Object.fromEntries(stored) as Partial<Prefs>) });
   applyAccent(prefs.accent);
+  applyMotion(prefs.reduceMotion);
+  libraries = saved.libraries ?? {};
+  spoilers = saved.hideUnwatched ?? {};
+}
+
+let libraries: Record<string, LibraryState> = {};
+
+export const LIBRARY_DEFAULT: LibraryState = { view: 'library', sort: 'titleSort', unwatched: false, filters: {} };
+
+/** Saved view, sort and filters for a library; `key` is profile/server/section. */
+export function libraryState(key: string): LibraryState {
+  return { ...LIBRARY_DEFAULT, ...libraries[key] };
+}
+
+export function saveLibraryState(key: string, state: LibraryState): void {
+  libraries = { ...libraries, [key]: state };
+  save({ libraries }).catch((e) => console.error(`prefs: ${e}`));
+}
+
+let spoilers: Record<string, boolean> = {};
+const [spoilerVersion, setSpoilerVersion] = createSignal(0);
+
+/** Hide unwatched episode titles, summaries and stills for this profile. Off by default. */
+export function hidesUnwatched(profile: string | undefined): boolean {
+  spoilerVersion();
+  return !!profile && !!spoilers[profile];
+}
+
+export function setHidesUnwatched(profile: string, on: boolean): void {
+  spoilers = { ...spoilers, [profile]: on };
+  setSpoilerVersion((v) => v + 1);
+  save({ hideUnwatched: spoilers }).catch((e) => console.error(`prefs: ${e}`));
+}
+
+function applyMotion(reduced: boolean): void {
+  if (reduced) document.documentElement.dataset.motion = 'reduced';
+  else delete document.documentElement.dataset.motion;
 }
 
 export function setPref<K extends keyof Prefs>(key: K, value: Prefs[K]): void {
   setPrefs(key, value);
   save({ [key]: value }).catch((e) => console.error(`prefs: ${e}`));
   if (key === 'accent') applyAccent(value as string);
+  if (key === 'reduceMotion') applyMotion(value as boolean);
 }

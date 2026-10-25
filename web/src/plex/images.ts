@@ -21,8 +21,9 @@ const MAX = 200;
 const cache = new Map<string, HTMLImageElement>();
 
 /** Wait for a decode attempt without rejecting on failure. Retain images
- * in an LRU cache so nearby items can reuse decoded artwork. */
-export function preload(url: string): Promise<void> {
+ * in an LRU cache so nearby items can reuse decoded artwork. `cors` matches
+ * the request the backdrop painter makes, so it reuses the response. */
+export function preload(url: string, cors = false): Promise<void> {
   const hit = cache.get(url);
   if (hit) {
     cache.delete(url);
@@ -30,6 +31,7 @@ export function preload(url: string): Promise<void> {
     return hit.decode().catch(() => {});
   }
   const img = new Image();
+  if (cors) img.crossOrigin = 'anonymous';
   img.src = url;
   cache.set(url, img);
   if (cache.size > MAX) cache.delete(cache.keys().next().value!);

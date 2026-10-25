@@ -1,0 +1,18 @@
+/* Stack above the splash (30) and notices (35), below the screensaver (40). */
+.dialog-shade { position: absolute; inset: 0; z-index: 38; background: rgba(11, 13, 18, 0.7); }
+.dialog {
+  position: absolute;
+  left: 600px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 720px;
+  padding: 44px;
+  border-radius: var(--r-panel);
+  background: var(--surface);
+}
+.dialog h2 { font-size: 34px; font-weight: 700; }
+.dialog p { margin-top: 12px; font-size: var(--t-meta); line-height: 1.5; color: var(--ink-2); }
+.dialog-choices { margin-top: 36px; display: flex; gap: 18px; }
+.dialog-choices .button { min-width: 180px; justify-content: center; }
+.dialog.wide { left: 360px; width: 1200px; }
+.dialog.wide p { max-height: 600px; overflow: hidden; }

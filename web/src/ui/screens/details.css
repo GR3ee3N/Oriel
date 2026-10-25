@@ -1,26 +1,24 @@
 .details { position: absolute; inset: 0; }
-.details-error { position: absolute; left: var(--edge); top: 140px; }
-.details-info {
-  position: absolute;
-  left: var(--edge);
-  top: 70px;
-  width: 1100px;
-}
-.details-info .genres { margin-top: 12px; font-size: var(--fs-small); color: var(--text-3); white-space: nowrap; }
-.actions { margin-top: 30px; display: flex; gap: 20px; }
-.actions .sub { font-weight: 450; opacity: 0.8; font-size: var(--fs-meta); }
+.details-message { position: absolute; left: var(--detail-x); top: 300px; }
+.details-info { position: absolute; left: var(--detail-x); top: 104px; width: 1400px; }
+.details-info .genres { margin-top: 14px; font-size: var(--t-caption); color: var(--ink-3); white-space: nowrap; }
+.details-info .actions { margin-top: 34px; display: flex; gap: 18px; }
+.details-info .chips { margin-top: 22px; display: flex; gap: 14px; min-height: 52px; }
+/* Cast, extras and related rows. The box starts at y=160 with a lead
+   (Movie.tsx DETAIL_LEAD) that puts the first row at y=770; rows that don't
+   fit there scroll up over the info. */
+.shelf.details-shelf { top: 160px; left: 96px; --shelf-left: 24px; }
+.details-info { transition: opacity var(--move) var(--ease), transform var(--move) var(--ease); }
+/* The info scrolls up as far as the rows (--detail-scroll), so it stays
+   above them: out of Down's path, and Up from the top row reaches it last. */
+.details.scrolled .details-info { opacity: 0; transform: translateY(calc(-1 * var(--detail-scroll))); }
+/* Scrolled rows span the whole width, including the backdrop's bright
+   side, so the backdrop dims behind them. */
+.scroll-dim { position: absolute; inset: 0; background: rgba(11, 13, 18, 0.88); opacity: 0; transition: opacity var(--move) var(--ease); }
+.details.scrolled .scroll-dim { opacity: 1; }
 
-.seasons { display: flex; gap: 12px; margin-bottom: 26px; }
-.season {
-  height: 50px;
-  padding: 0 22px;
-  border-radius: 25px;
-  display: flex;
-  align-items: center;
-  font-size: var(--fs-meta);
-  font-weight: 600;
-  color: var(--text-2);
-  background: rgba(255, 255, 255, 0.08);
-}
-.season.current { color: var(--text); background: rgba(255, 255, 255, 0.18); }
-.season.focused { background: var(--accent); color: var(--accent-text); }
+/* Show page: season tabs above the episode row. */
+.show-info .info-summary { -webkit-line-clamp: 2; }
+.shelf.show-shelf { top: 160px; left: 96px; --shelf-left: 24px; }
+.seasons { display: flex; gap: 8px; margin: 0 0 22px -22px; }
+.episode-empty { height: 300px; padding-top: 20px; font-size: var(--t-meta); color: var(--ink-2); }

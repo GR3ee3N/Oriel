@@ -1,0 +1,79 @@
+.icon { width: 28px; height: 28px; flex: none; }
+
+.button {
+  flex: none;
+  height: 68px;
+  padding: 0 30px;
+  border-radius: 34px;
+  display: inline-flex;
+  align-items: center;
+  gap: 14px;
+  background: var(--surface-2);
+  color: var(--ink);
+  font-size: var(--t-meta);
+  font-weight: 650;
+  white-space: nowrap;
+  transition: transform var(--fast) var(--ease);
+}
+.button .sub { font-weight: 500; color: var(--ink-2); }
+.button.round { width: 68px; padding: 0; justify-content: center; }
+.button.small { height: 56px; padding: 0 24px; font-size: var(--t-caption); }
+.button.small .icon { width: 24px; height: 24px; }
+.button.on { background: var(--surface-3); }
+.button.busy { opacity: 0.7; }
+.button.focused { background: var(--accent); color: var(--accent-text); transform: var(--zoom); }
+.button.focused .sub { color: var(--accent-text); opacity: 0.75; }
+
+.chip {
+  flex: none;
+  height: 52px;
+  padding: 0 20px;
+  border-radius: 26px;
+  border: 2px solid rgba(255, 255, 255, 0.18);
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  font-size: var(--t-caption);
+  color: var(--ink-2);
+  white-space: nowrap;
+}
+.chip .icon { width: 24px; height: 24px; }
+.chip b { color: var(--ink); font-weight: 600; max-width: 520px; overflow: hidden; text-overflow: ellipsis; }
+.chip.on { border-color: var(--accent); }
+.chip.focused { background: var(--accent); border-color: var(--accent); color: var(--accent-text); }
+.chip.focused b { color: var(--accent-text); }
+
+.tab {
+  flex: none;
+  height: 52px;
+  padding: 0 22px;
+  border-radius: 26px;
+  display: flex;
+  align-items: center;
+  position: relative;
+  font-size: var(--t-meta);
+  font-weight: 600;
+  color: var(--ink-2);
+  white-space: nowrap;
+}
+.tab small { margin-left: 10px; font-size: 20px; font-weight: 600; color: var(--ink-3); }
+.tab.active { color: var(--ink); }
+.tab.active::after {
+  content: '';
+  position: absolute;
+  left: 22px;
+  right: 22px;
+  bottom: 2px;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--accent);
+}
+.tab.focused { background: var(--accent); color: var(--accent-text); }
+.tab.focused small { color: var(--accent-text); opacity: 0.7; }
+.tab.focused::after { display: none; }
+
+.message { width: 900px; }
+.message > .icon { width: 64px; height: 64px; color: var(--ink-3); }
+.message h2 { margin-top: 24px; font-size: var(--t-heading); font-weight: 650; }
+.message p { margin-top: 10px; font-size: var(--t-meta); line-height: 1.5; color: var(--ink-2); }
+.message-actions { margin-top: 32px; display: flex; gap: 18px; }

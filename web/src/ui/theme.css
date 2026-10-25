@@ -35,6 +35,42 @@
 
   --edge: 120px;
   --radius: 10px;
+
+  /* Browse interface. The player controls keep the tokens above. */
+  --surface: #171a24;
+  --surface-2: #232838;
+  --surface-3: #2e3448;
+  --ink: #f4f5f9;
+  --ink-2: #c0c4d0;
+  --ink-3: #8d93a4;
+
+  --t-display: 72px;
+  --t-title: 48px;
+  --t-heading: 30px;
+  --t-body: 26px;
+  --t-meta: 24px;
+  --t-caption: 22px;
+  --t-label: 19px;
+
+  --r-card: 12px;
+  --r-panel: 20px;
+
+  /* Safe area and page columns on the 1920×1080 canvas. */
+  --safe-x: 96px;
+  --safe-y: 54px;
+  --root-x: 192px;
+  --detail-x: 120px;
+
+  --zoom: scale(1.05);
+  --move: 200ms;
+  --fade: 400ms;
+}
+
+/* Reduce motion keeps rings and fills but drops zoom and slides. */
+:root[data-motion='reduced'] {
+  --zoom: none;
+  --move: 0ms;
+  --fade: 80ms;
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }

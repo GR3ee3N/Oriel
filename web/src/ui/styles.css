@@ -14,7 +14,7 @@
 .screen-layer { position: absolute; inset: 0; }
 .screen { position: absolute; inset: 0; padding: 80px var(--edge); }
 .screen h1 { font-size: 56px; }
-.lead { margin-top: 24px; font-size: 32px; color: var(--text-2); }
+.lead { margin-top: 24px; font-size: 30px; color: var(--ink-2); }
 .screen .error { margin-top: 24px; }
 
 /* Centre sign-in and profile selection over the background colour field. */
@@ -33,24 +33,28 @@
 }
 
 .users { display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
-.user-row { margin-top: 64px; display: flex; gap: 56px; }
-.user { width: 240px; display: flex; flex-direction: column; align-items: center; gap: 16px; padding: 20px; border-radius: 16px; }
-.user.focused { background: var(--bg-raise-2); }
+.users h1, .signin h1 { font-size: var(--t-title); font-weight: 700; }
+.user-row { margin-top: 72px; display: flex; gap: 56px; }
+.user { width: 220px; display: flex; flex-direction: column; align-items: center; gap: 20px; }
 .user .avatar {
-  width: 160px;
-  height: 160px;
+  width: 180px;
+  height: 180px;
   border-radius: 50%;
-  background: var(--bg-raise-3);
+  object-fit: cover;
+  background: var(--surface-3);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 64px;
+  font-size: 76px;
   font-weight: 700;
-  outline: var(--ring) solid transparent;
-  outline-offset: var(--ring-gap);
+  outline: 6px solid transparent;
+  outline-offset: 6px;
+  transition: transform var(--fast) var(--ease);
 }
-.user.focused .avatar { outline-color: var(--accent); }
-.user small { color: var(--text-3); font-size: var(--fs-small); }
+.user.focused .avatar { outline-color: var(--accent); transform: var(--zoom); }
+.user > span, .user b { font-size: var(--t-body); font-weight: 600; color: var(--ink-2); }
+.user.focused > span, .user.focused b { color: var(--ink); }
+.user small { font-size: var(--t-caption); color: var(--ink-3); min-height: 1.35em; }
 /* Keep all four PIN dots filled and pulsing during validation; shake them
    when plex.tv rejects the PIN. */
 .pinpad { display: flex; flex-direction: column; align-items: center; }
@@ -65,8 +69,8 @@
   font-size: 48px;
   font-weight: 700;
 }
-.pinpad h1 { margin-top: 20px; font-size: var(--fs-title); }
-.pinpad .pin-prompt { margin-top: 6px; font-size: var(--fs-meta); color: var(--text-2); }
+.pinpad h1 { margin-top: 20px; font-size: var(--t-title); }
+.pinpad .pin-prompt { margin-top: 6px; font-size: var(--t-meta); color: var(--ink-2); }
 .pin-dots { margin: 36px 0 40px; display: flex; gap: 28px; }
 .pin-dot {
   width: 24px;
@@ -93,7 +97,7 @@
 .pin-key {
   height: 88px;
   border-radius: 12px;
-  background: var(--bg-raise-2);
+  background: var(--surface-2);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -101,7 +105,7 @@
   font-weight: 600;
   font-variant-numeric: tabular-nums;
 }
-.pin-key.label { font-size: var(--fs-meta); }
+.pin-key.label { font-size: var(--t-caption); }
 .pin-key svg { width: 44px; height: 44px; }
 .pin-key.focused { background: var(--accent); color: var(--accent-text); }
 .pinpad .error { margin-top: 24px; }

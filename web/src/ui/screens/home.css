@@ -1,15 +1,30 @@
 .home { position: absolute; inset: 0; }
 .hero {
   position: absolute;
-  left: var(--edge);
-  top: 120px;
-  width: 1100px;
-  height: 470px;
+  left: var(--root-x);
+  top: 96px;
+  width: 1300px;
+  height: 360px;
   /* Confine text layout and painting to the hero's layer to keep metadata
      changes from invalidating the page and backdrop. */
   contain: strict;
   will-change: transform;
 }
-.home-error { position: absolute; left: var(--edge); top: 620px; }
-.shelf.home-shelf { top: 600px; }
-.shelf.home-shelf .shelf-inner { top: 24px; }
+/* The focused row's heading sits at y=474. Rows clip at x=168 so cards
+   scrolled past don't slide under the rail; 24px is left for the ring. */
+.shelf.home-shelf { top: 452px; left: 168px; --shelf-left: 24px; }
+.home-message { position: absolute; left: var(--root-x); top: 330px; }
+.home-slow { position: absolute; left: var(--root-x); top: 820px; z-index: 2; }
+.home-slow > .icon { display: none; }
+.home-slow h2 { margin-top: 0; }
+
+.home-skeleton i { display: block; border-radius: 8px; background: var(--surface); }
+.hero-skeleton { position: absolute; left: var(--root-x); top: 96px; }
+.hero-skeleton .logo { width: 520px; height: 110px; margin-top: 60px; }
+.hero-skeleton .line { width: 560px; height: 26px; margin-top: 30px; }
+.hero-skeleton .line.long { width: 820px; height: 22px; margin-top: 22px; }
+.rows-skeleton { position: absolute; left: var(--root-x); top: 474px; }
+.rows-skeleton h2 { font-size: var(--t-heading); font-weight: 650; line-height: 1.2; margin-bottom: 20px; }
+.skeleton-cards { display: flex; gap: 32px; }
+.skeleton-cards .line { margin-top: 16px; height: 24px; width: 70%; }
+.skeleton-cards .line.short { margin-top: 10px; height: 20px; width: 45%; }

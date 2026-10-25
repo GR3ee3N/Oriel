@@ -4,7 +4,7 @@
 
 import { createEffect, createMemo, createSignal, type JSX, on, onCleanup, onMount, Show } from 'solid-js';
 import { send, state } from '../bridge';
-import { focusable } from '@oriel/web';
+import { focusable } from '../nav';
 import { badges, clean, episodeCode, hhmm } from '../plex/format';
 import { imageUrl } from '../plex/images';
 import { QUALITIES, quality } from '../player/quality';

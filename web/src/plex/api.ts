@@ -36,11 +36,20 @@ export function invalidate(): void {
 
 const paging = (page?: Page) =>
   page ? { 'X-Plex-Container-Start': page.start, 'X-Plex-Container-Size': page.size } : {};
+// Key pages by start and size, so a size-0 count request never stands in
+// for the first page.
+const pageKey = (page?: Page) => (page ? `${page.start}+${page.size}` : 'all');
 
 /** Include only movie and show libraries. */
 export async function sections(server: Server): Promise<Directory[]> {
   const mc = await cached(`${server.id}/sections`, () => server.get('/library/sections'));
   return (mc.Directory ?? []).filter((d) => d.type === 'movie' || d.type === 'show');
+}
+
+/** Number of video playlists for the current profile. */
+export async function playlistCount(server: Server): Promise<number> {
+  const mc = await server.get('/playlists', { playlistType: 'video', 'X-Plex-Container-Start': 0, 'X-Plex-Container-Size': 0 });
+  return mc.totalSize ?? mc.size ?? 0;
 }
 
 /** Home hubs such as Continue Watching and Recently Added. */
@@ -55,6 +64,8 @@ export interface SectionQuery {
   unwatched?: boolean;
   /** One Plex filter expressed as 'field=value', e.g. 'actor=123'. */
   filter?: string;
+  /** Library filters by field, e.g. { genre: '189', decade: '1990', hdr: '1' }. */
+  filters?: Record<string, string>;
 }
 
 export function sectionItems(server: Server, section: string, query: SectionQuery = {}, page?: Page): Promise<MediaContainer> {
@@ -63,6 +74,7 @@ export function sectionItems(server: Server, section: string, query: SectionQuer
     sort: query.sort,
     unwatched: query.unwatched ? 1 : undefined,
     ...(field ? { [field]: value } : {}),
+    ...query.filters,
     ...paging(page),
   };
   return cached(`${server.id}/all/${section}/${JSON.stringify(params)}`, () =>
@@ -82,6 +94,7 @@ export async function metadata(server: Server, ratingKey: string): Promise<Detai
       includeMarkers: 1,
       includeOnDeck: 1,
       includeImages: 1,
+      includeExtras: 1,
     }),
   );
   return mc.Metadata?.[0];
@@ -95,9 +108,41 @@ export async function related(server: Server, ratingKey: string): Promise<Hub[]>
   return (mc.Hub ?? []).filter((h) => h.Metadata?.length);
 }
 
+/** Values for a library filter field such as 'genre' or 'decade', in the
+ * server's order. Keys are decoded, e.g. 'de/12' rather than 'de%2F12'. */
+export async function filterValues(server: Server, section: string, field: string): Promise<{ key: string; title: string }[]> {
+  const mc = await cached(`${server.id}/values/${section}/${field}`, () => server.get(`/library/sections/${section}/${field}`));
+  return (mc.Directory ?? []).map((d) => ({ key: decodeURIComponent(d.key), title: d.title }));
+}
+
+/** Recommendation hubs for one library, such as Recently Added and Top Unwatched. */
+export async function sectionHubs(server: Server, section: string): Promise<Hub[]> {
+  const mc = await cached(`${server.id}/hubs/${section}`, () =>
+    server.get(`/hubs/sections/${section}`, { count: 20, includeImages: 1 }),
+  );
+  return (mc.Hub ?? []).filter((h) => h.Metadata?.length);
+}
+
+/** Paginated collections of a library, in the server's order. */
+export function sectionCollections(server: Server, section: string, page?: Page): Promise<MediaContainer> {
+  return cached(`${server.id}/collections/${section}/${pageKey(page)}`, () =>
+    server.get(`/library/sections/${section}/collections`, paging(page)),
+  );
+}
+
+/** The profile's video playlists. */
+export function playlists(server: Server, page?: Page): Promise<MediaContainer> {
+  return cached(`${server.id}/playlists/${pageKey(page)}`, () => server.get('/playlists', { playlistType: 'video', ...paging(page) }));
+}
+
+/** Paginated playlist items in playlist order. */
+export function playlistItems(server: Server, ratingKey: string, page?: Page): Promise<MediaContainer> {
+  return cached(`${server.id}/playlist/${ratingKey}/${pageKey(page)}`, () => server.get(`/playlists/${ratingKey}/items`, paging(page)));
+}
+
 /** Paginated collection items. */
 export function collectionItems(server: Server, ratingKey: string, page?: Page): Promise<MediaContainer> {
-  return cached(`${server.id}/collection/${ratingKey}/${page?.start}`, () =>
+  return cached(`${server.id}/collection/${ratingKey}/${pageKey(page)}`, () =>
     server.get(`/library/collections/${ratingKey}/children`, paging(page)),
   );
 }
@@ -109,9 +154,14 @@ export async function children(server: Server, ratingKey: string): Promise<Metad
 }
 
 /** Counts by initial character for navigation through a title-sorted library. */
-export async function firstCharacters(server: Server, section: string, unwatched: boolean): Promise<{ key: string; size: number }[]> {
-  const mc = await cached(`${server.id}/first/${section}/${unwatched}`, () =>
-    server.get<never>(`/library/sections/${section}/firstCharacter`, { unwatched: unwatched ? 1 : undefined }),
+export async function firstCharacters(
+  server: Server,
+  section: string,
+  unwatched: boolean,
+  filters: Record<string, string> = {},
+): Promise<{ key: string; size: number }[]> {
+  const mc = await cached(`${server.id}/first/${section}/${unwatched}/${JSON.stringify(filters)}`, () =>
+    server.get<never>(`/library/sections/${section}/firstCharacter`, { unwatched: unwatched ? 1 : undefined, ...filters }),
   );
   // Use the literal title; Plex URL-encodes the key, e.g. '%23' for '#'.
   return (mc.Directory ?? []).map((d) => ({ key: d.title, size: (d as unknown as { size: number }).size }));

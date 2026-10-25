@@ -3,7 +3,8 @@
 
 import { createEffect, createSignal, on, onCleanup, Show } from 'solid-js';
 import { homeReady } from '../boot';
-import { focusable } from '@oriel/web';
+import { t } from '../i18n';
+import { focusable } from '../nav';
 import { root } from '../router';
 import { chooseServer, retry, serverOptions, session } from '../session';
 import { Backdrop } from './components/Backdrop';
@@ -68,11 +69,11 @@ export function Splash() {
   const status = () => {
     switch (session.phase) {
       case 'connecting':
-        return session.connectingTo ? `Connecting to ${session.connectingTo}` : 'Connecting to your server';
+        return session.connectingTo ? t('start.connecting', { server: session.connectingTo }) : t('start.connectingAny');
       case 'ready':
-        return 'Loading your library';
+        return t('start.loading');
       default:
-        return 'Starting';
+        return t('start.starting');
     }
   };
 
@@ -96,7 +97,7 @@ export function Splash() {
                       {session.user?.title?.[0]}
                       <Show when={session.user?.thumb}>{(src) => <img src={src()} alt="" />}</Show>
                     </span>
-                    <span>Welcome back, {session.user?.title}</span>
+                    <span>{t('start.welcome', { user: session.user?.title ?? '' })}</span>
                   </div>
                 </Show>
                 <p class="splash-status">{status()}</p>
@@ -106,16 +107,12 @@ export function Splash() {
               </>
             }
           >
-            <h2>Something went wrong</h2>
+            <h2>{t('start.failed')}</h2>
             <p class="splash-error">{session.error}</p>
             <div class="splash-buttons">
-              <div class="btn" ref={(el) => focusable(el, { autofocus: true, onSelect: () => void retry() })}>
-                Try again
-              </div>
+              <div class="btn" ref={(el) => focusable(el, { autofocus: true, onSelect: () => void retry() })}>{t('action.retry')}</div>
               <Show when={session.servers.length > 1}>
-                <div class="btn" ref={(el) => focusable(el, { onSelect: () => setChoosing(true) })}>
-                  Choose a server
-                </div>
+                <div class="btn" ref={(el) => focusable(el, { onSelect: () => setChoosing(true) })}>{t('start.chooseServer')}</div>
               </Show>
             </div>
           </Show>

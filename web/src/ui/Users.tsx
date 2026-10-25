@@ -1,7 +1,8 @@
 import { createEffect, createSignal, For, on, onCleanup, onMount, Show } from 'solid-js';
 import { PlexError } from '../plex/client';
 import type { HomeUser } from '../plex/types';
-import { focusable, onBack } from '@oriel/web';
+import { focusable, onBack } from '../nav';
+import { t } from '../i18n';
 import { keepUser, pickUser, session } from '../session';
 import { Backdrop } from './components/Backdrop';
 import { askExit } from './exit';
@@ -24,7 +25,7 @@ export function Users() {
     try {
       await pickUser(user, pin);
     } catch (e) {
-      setError(e instanceof PlexError && (e.status === 401 || e.status === 403) ? 'Wrong PIN' : String(e));
+      setError(e instanceof PlexError && (e.status === 401 || e.status === 403) ? t('start.pinWrong') : t('start.pinFailed'));
     } finally {
       setBusy(false);
     }
@@ -38,7 +39,7 @@ export function Users() {
           when={asking()}
           fallback={
             <>
-              <h1>Who's watching?</h1>
+              <h1>{t('start.whoWatching')}</h1>
               <div class="user-row">
                 <For each={session.users}>
                   {(user, i) => (
@@ -59,7 +60,7 @@ export function Users() {
                       </Show>
                       <span>{user.title}</span>
                       <Show when={user.protected}>
-                        <small>PIN</small>
+                        <small>{t('start.pin')}</small>
                       </Show>
                     </div>
                   )}
@@ -138,7 +139,7 @@ function PinPad(props: {
         {(src) => <img class="avatar" src={src()} alt="" />}
       </Show>
       <h1>{props.user.title}</h1>
-      <p class="pin-prompt">Enter your PIN</p>
+      <p class="pin-prompt">{t('start.pinPrompt')}</p>
       <div class="pin-dots" classList={{ checking: props.busy, wrong: wrong() }}>
         <For each={Array.from({ length: PIN_LENGTH })}>
           {(_, i) => <div class="pin-dot" classList={{ filled: i() < pin().length }} />}
@@ -152,7 +153,7 @@ function PinPad(props: {
               classList={{ label: k === 'cancel' }}
               ref={(el) => focusable(el, { autofocus: k === '1', onSelect: () => press(k) })}
             >
-              {k === 'cancel' ? 'Cancel' : k === 'del' ? <BackspaceIcon /> : k}
+              {k === 'cancel' ? t('action.cancel') : k === 'del' ? <BackspaceIcon /> : k}
             </div>
           )}
         </For>

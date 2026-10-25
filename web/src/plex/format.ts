@@ -1,5 +1,7 @@
 // Format Plex metadata for the interface.
 
+import { type Key, t } from '../i18n';
+import { en } from '../i18n/en';
 import type { Metadata, Stream } from './types';
 
 // Strip invisible characters used by tools such as Kometa to distinguish
@@ -10,22 +12,38 @@ export function clean(text: string | undefined): string {
   return (text ?? '').replace(INVISIBLE, '').trim();
 }
 
+/** Oriel's title for a hub it knows, such as "Up Next" for On Deck;
+ * other hubs, including Kometa collections, keep the server's title. */
+export function hubTitle(hub: { hubIdentifier: string; title: string }): string {
+  const key = `hub.${hub.hubIdentifier}` as Key;
+  return key in en ? t(key) : clean(hub.title);
+}
+
 /** Format milliseconds as hours and minutes, e.g. "1 h 52 min" or "48 min". */
 export function duration(ms: number | undefined): string {
   if (!ms) return '';
   const min = Math.round(ms / 60000);
-  return min >= 60 ? `${Math.floor(min / 60)} h ${min % 60} min` : `${min} min`;
+  if (min < 60) return t('time.m', { m: min });
+  return min % 60 ? t('time.hm', { h: Math.floor(min / 60), m: min % 60 }) : t('time.h', { h: min / 60 });
 }
 
 /** Remaining duration, e.g. "41 min left"; blank for items without progress. */
 export function remaining(m: Metadata): string {
   if (!m.viewOffset || !m.duration) return '';
-  return `${duration(Math.max(60000, m.duration - m.viewOffset))} left`;
+  return t('time.left', { time: duration(Math.max(60000, m.duration - m.viewOffset)) });
 }
 
 /** Season count with singular or plural wording, e.g. "3 seasons". */
 export function seasonCount(m: Metadata): string {
-  return m.childCount ? `${m.childCount} season${m.childCount === 1 ? '' : 's'}` : '';
+  return m.childCount ? t('count.seasons', { n: m.childCount }) : '';
+}
+
+/** Age rating without Plex's country prefix: "de/12" becomes "FSK 12",
+ * other countries show the bare value such as "PG-13". */
+export function ageRating(rating: string | undefined): string {
+  if (!rating) return '';
+  const [country, value] = rating.includes('/') ? rating.split('/', 2) : ['', rating];
+  return country === 'de' ? `FSK ${value}` : value;
 }
 
 /** Local time in 24-hour HH:MM format. */
@@ -35,7 +53,12 @@ export function hhmm(d: Date): string {
 
 /** Season and episode code, e.g. "S2 · E5". */
 export function episodeCode(m: Metadata): string {
-  return m.parentIndex !== undefined && m.index !== undefined ? `S${m.parentIndex} · E${m.index}` : '';
+  return m.parentIndex !== undefined && m.index !== undefined ? t('episode.code', { season: m.parentIndex, episode: m.index }) : '';
+}
+
+/** Compact code for button labels, e.g. "S2·E5". */
+export function shortCode(m: Metadata): string {
+  return m.parentIndex !== undefined && m.index !== undefined ? t('episode.codeShort', { season: m.parentIndex, episode: m.index }) : '';
 }
 
 /** Use the show title for episodes and seasons, otherwise the item title. */
@@ -43,12 +66,15 @@ export function tileTitle(m: Metadata): string {
   return clean(m.type === 'episode' ? m.grandparentTitle : m.type === 'season' ? m.parentTitle : m.title);
 }
 
-/** Tile caption: episode code and title, season title, season count or year. */
-export function tileSubtitle(m: Metadata): string {
-  if (m.type === 'episode') return [episodeCode(m), clean(m.title)].filter(Boolean).join(' · ');
+/** Tile caption: episode code with remaining time or title, season title,
+ * season or item count, or year with remaining time or duration. */
+export function tileSubtitle(m: Metadata, wide = false): string {
+  const left = remaining(m);
+  if (m.type === 'episode') return [episodeCode(m), left || clean(m.title)].filter(Boolean).join(' · ');
   if (m.type === 'season') return clean(m.title);
-  if (m.type === 'show' && m.childCount) return seasonCount(m);
-  return m.year ? String(m.year) : '';
+  if (m.type === 'show') return seasonCount(m);
+  if (m.type === 'collection' || m.type === 'playlist') return m.childCount || m.leafCount ? t('count.items', { n: m.childCount ?? m.leafCount ?? 0 }) : '';
+  return [m.year, left || (wide || m.duration ? duration(m.duration) : '')].filter(Boolean).join(' · ');
 }
 
 export function isWatched(m: Metadata): boolean {

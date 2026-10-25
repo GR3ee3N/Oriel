@@ -1,4 +1,6 @@
 // Requests to plex.tv and Plex servers.
+import { LANGUAGE } from '../i18n';
+
 // Put X-Plex-* identity in the query string so GET and POST requests with
 // only an Accept header avoid CORS preflights and their extra round trip.
 // Never log tokens: the page's console is captured in shell.log.
@@ -24,6 +26,7 @@ export function identity(token?: string): Record<string, string> {
     'X-Plex-Platform': 'CoreELEC',
     'X-Plex-Device': 'CoreELEC',
     'X-Plex-Device-Name': 'Oriel',
+    'X-Plex-Language': LANGUAGE,
   };
   if (token) params['X-Plex-Token'] = token;
   return params;
