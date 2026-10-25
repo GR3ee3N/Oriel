@@ -61,9 +61,10 @@ export function Rail() {
 
   const leave = () => setScope(page);
   // Fresh entry focuses the active destination, marked autofocus below.
-  // The root page stays mounted under detail pages; its rail opens only on top.
+  // The root page stays mounted under detail pages; its rail opens only on
+  // top, and not from a panel or dialog over the page.
   const enter = () => {
-    if (top().scope !== page) return false;
+    if (top().scope !== page || activeScope() !== page) return false;
     setScope(scope, true);
     return true;
   };
