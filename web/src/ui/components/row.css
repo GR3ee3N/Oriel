@@ -13,6 +13,7 @@
      and rasterize it each time. */
   will-change: transform;
 }
-/* Keep the focused row's artwork on layers of its own. Zooming a tile
-   otherwise creates its layer and repaints the row when the zoom ends. */
-.row:has(.tile.focused) .tile .art { will-change: transform; }
+/* Keep every tile's artwork on a layer of its own, so a focus move repaints
+   only the two tiles whose ring and zoom change. A layer that comes and
+   goes with focus repaints the whole row around it. */
+.row .tile .art { will-change: transform; }
