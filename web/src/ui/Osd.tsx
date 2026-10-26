@@ -6,7 +6,7 @@
 
 import { createEffect, createMemo, createSignal, For, type JSX, on, onCleanup, onMount, Show } from 'solid-js';
 import { send, state } from '../bridge';
-import { type Direction, focusable, focusOn, onBack } from '../nav';
+import { type Direction, focusable, focused, focusOn, onBack } from '../nav';
 import { t } from '../i18n';
 import { badges, clean, duration as length, episodeCode, hhmm, remaining } from '../plex/format';
 import { imageUrl } from '../plex/images';
@@ -409,10 +409,11 @@ function Strip(props: { page: Page; pages: Page[]; onPage: (page: Page) => void;
   onBack(props.onClose);
 
   const at = props.pages.indexOf(props.page);
-  const arrow = (i: number) => (d: Direction) => {
+  const arrow = (el: HTMLElement) => (d: Direction) => {
     if (d === 'left' || d === 'right') {
-      const to = cards[i + (d === 'left' ? -1 : 1)];
-      if (to?.isConnected) focusOn(to);
+      // The neighbouring card, which stays right as queue entries load before the window.
+      const to = d === 'left' ? el.previousElementSibling : el.nextElementSibling;
+      if (to) focusOn(to as HTMLElement);
     } else if (d === 'up') {
       if (at > 0) props.onPage(props.pages[at - 1]);
       else props.onClose();
@@ -423,11 +424,13 @@ function Strip(props: { page: Page; pages: Page[]; onPage: (page: Page) => void;
   const place = (i: number) => setFirst((f) => (i <= f ? Math.max(0, i - 1) : i >= f + SHOWN - 1 ? i - SHOWN + 2 : f));
   const card = (i: () => number, onSelect: () => void, onFocus?: () => void) => (el: HTMLElement) => {
     cards[i()] = el;
+    // Entries loaded before the window move the focused card along; keep it where it is on screen.
+    createEffect(on(i, (n, was) => focused() === el && setFirst((f) => f + n - was!), { defer: true }));
     focusable(el, {
       scope: 'osd',
       group: 'osd-strip',
       onSelect,
-      onArrow: (d) => arrow(i())(d),
+      onArrow: arrow(el),
       onFocus: () => {
         place(i());
         onFocus?.();

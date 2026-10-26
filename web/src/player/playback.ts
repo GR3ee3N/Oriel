@@ -2,7 +2,7 @@
 // Check viewCount before marking a completion watched to prevent double counting.
 
 import { createEffect, createRoot, createSignal, on } from 'solid-js';
-import { createStore } from 'solid-js/store';
+import { createStore, reconcile } from 'solid-js/store';
 import { call, send, state } from '../bridge';
 import { refresh } from '../data';
 import { t } from '../i18n';
@@ -146,12 +146,13 @@ async function begin(entry: Metadata, fromStart: boolean, media: number, queue: 
 
 /** Load the queue's entries around `entry`: as each entry starts, for
  * fresh progress & watched state and so Up next has the one after it, and
- * as the strip nears either end of the loaded window. */
+ * as the strip nears either end of the loaded window. Entries already loaded
+ * keep their objects, so the strip keeps their cards and focus. */
 export function loadAround(entry: number | undefined): void {
   const q = store.queue;
   if (!q || !server || entry === undefined) return;
   loadQueue(server, q.id, entry)
-    .then((w) => store.queue?.id === w.id && setStore('queue', merge(store.queue, w)))
+    .then((w) => store.queue?.id === w.id && setStore('queue', reconcile(merge(store.queue, w), { key: 'playQueueItemID', merge: true })))
     .catch(warn('queue'));
 }
 
