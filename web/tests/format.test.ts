@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { t } from '../src/i18n';
-import { ageRating, badges, clean, duration, hubTitle, tileSubtitle, versionLabel } from '../src/plex/format';
+import { ageRating, badges, clean, duration, hubTitle, isWatched, tileSubtitle, versionLabel } from '../src/plex/format';
 import type { Metadata } from '../src/plex/types';
 
 const item = (m: Partial<Metadata>): Metadata => ({ ratingKey: '1', key: '/1', type: 'movie', title: 'A', ...m });
@@ -78,5 +78,12 @@ describe('versionLabel', () => {
     expect(badges(dv(8, 1))).toEqual(['4K', 'Dolby Vision P8.1']);
     expect(badges(dv(8, 6))).toEqual(['4K', 'Dolby Vision P8.6']);
     expect(badges(dv(10, 1))).toEqual(['4K', 'Dolby Vision P10.1']);
+  });
+});
+
+describe('isWatched', () => {
+  it('marks a played movie, but not a played playlist', () => {
+    expect(isWatched({ ratingKey: '1', type: 'movie', title: 'A', viewCount: 1 } as Metadata)).toBe(true);
+    expect(isWatched({ ratingKey: '2', type: 'playlist', title: 'B', viewCount: 1 } as Metadata)).toBe(false);
   });
 });

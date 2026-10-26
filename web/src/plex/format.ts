@@ -78,7 +78,9 @@ export function tileSubtitle(m: Metadata, wide = false): string {
   return [m.year, left || (wide || m.duration ? duration(m.duration) : '')].filter(Boolean).join(' · ');
 }
 
+/** A playlist's view count says it was played, not that its titles were watched. */
 export function isWatched(m: Metadata): boolean {
+  if (m.type === 'playlist') return false;
   if (m.type === 'show' || m.type === 'season') return !!m.leafCount && m.viewedLeafCount === m.leafCount;
   return (m.viewCount ?? 0) > 0 && !m.viewOffset;
 }
