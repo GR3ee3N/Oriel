@@ -2,6 +2,7 @@
 .tile .art {
   position: relative;
   border-radius: var(--r-card);
+  overflow: hidden;
   background: var(--surface);
   outline: var(--ring) solid transparent;
   outline-offset: var(--ring-gap);
@@ -49,12 +50,15 @@
 .tile .watched .icon { width: 22px; height: 22px; stroke-width: 3; }
 .tile .count {
   position: absolute;
-  top: 0;
-  right: 0;
-  min-width: 40px;
-  height: 36px;
-  padding: 0 10px;
-  border-radius: 0 var(--r-card) 0 var(--r-card);
+  /* Square top-left and bottom-right corners come from the card clipping
+     12px of the badge: WebKit draws its first shape with mixed corner
+     radii slowly enough to drop frames. */
+  top: -12px;
+  right: -12px;
+  min-width: 52px;
+  height: 48px;
+  padding: 12px 22px 0 10px;
+  border-radius: var(--r-card);
   background: var(--accent);
   color: var(--accent-text);
   font-size: var(--t-label);
