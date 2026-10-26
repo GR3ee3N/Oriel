@@ -13,3 +13,6 @@
      and rasterize it each time. */
   will-change: transform;
 }
+/* Keep the focused row's artwork on layers of its own. Zooming a tile
+   otherwise creates its layer and repaints the row when the zoom ends. */
+.row:has(.tile.focused) .tile .art { will-change: transform; }
