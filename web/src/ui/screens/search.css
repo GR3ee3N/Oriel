@@ -14,9 +14,12 @@
   white-space: nowrap;
   overflow: hidden;
 }
-.keyboard .query .icon { color: var(--ink-3); }
+.keyboard .query .icon { flex: none; color: var(--ink-3); }
 .keyboard .query .placeholder { color: var(--ink-3); font-weight: 500; }
-.keyboard .caret { width: 3px; height: 34px; margin-left: -10px; background: var(--accent); }
+/* A query wider than the field loses its start, keeping the newest characters beside the caret. */
+.keyboard .query .text { min-width: 0; display: flex; justify-content: flex-end; overflow: hidden; }
+.keyboard .query .text span { flex: none; }
+.keyboard .caret { flex: none; width: 3px; height: 34px; margin-left: -10px; background: var(--accent); }
 .keyboard .keys { display: grid; grid-template-columns: repeat(6, 1fr); gap: 10px; }
 .keyboard .key {
   height: 64px;
@@ -36,5 +39,5 @@
 /* Results to the right of the keyboard; the focused row's heading sits at y=200. */
 .shelf.results-shelf { left: 756px; top: 176px; --shelf-left: 24px; }
 .search-note { position: absolute; left: 780px; top: 200px; width: 900px; }
-.search-note h2 { font-size: var(--t-heading); font-weight: 650; line-height: 1.2; }
+.search-note h2 { font-size: var(--t-heading); font-weight: 650; line-height: 1.2; overflow-wrap: anywhere; }
 .search-note p { margin-top: 12px; font-size: var(--t-meta); color: var(--ink-2); }

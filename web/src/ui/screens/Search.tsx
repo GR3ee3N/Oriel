@@ -73,7 +73,9 @@ export function Search() {
         <div class="query">
           <Icon name="search" />
           <Show when={query()} fallback={<span class="placeholder">{t('search.placeholder')}</span>}>
-            <span>{query()}</span>
+            <span class="text">
+              <span>{query()}</span>
+            </span>
           </Show>
           <span class="caret" />
         </div>
