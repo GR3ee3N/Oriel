@@ -13,11 +13,12 @@
 .osd-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 48px; }
 .osd-title { min-width: 0; transition: opacity var(--fast) ease; }
 .osd-badges { margin-top: 12px; display: flex; gap: 10px; }
-.osd-clock { flex: none; text-align: right; }
+.osd-clock { flex: none; text-align: right; transition: opacity var(--fast) ease; }
 .osd-clock b { display: block; font-size: 40px; font-weight: 700; font-variant-numeric: tabular-nums; }
 .osd-clock span { display: block; font-size: var(--fs-meta); color: rgba(255, 255, 255, 0.75); }
-/* Hide the title while the scrub preview occupies its space. */
-.osd-title.hidden { opacity: 0; }
+/* Hide the title and clock while the scrub preview can cover them. */
+.osd-title.hidden,
+.osd-clock.hidden { opacity: 0; }
 /* Long titles end in an ellipsis so the panel keeps its height. */
 .osd-title b,
 .osd-title span { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }

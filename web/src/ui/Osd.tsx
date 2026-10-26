@@ -271,7 +271,7 @@ export function Osd() {
                       </Show>
                     </div>
                   </div>
-                  <div class="osd-clock">
+                  <div class="osd-clock" classList={{ hidden: target() !== null }}>
                     <b>{now()}</b>
                     <span>{t('player.endsAt', { time: endsAt() })}</span>
                   </div>
