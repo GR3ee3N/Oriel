@@ -1,6 +1,6 @@
 import { createEffect, createResource, createSignal, For, Match, on, Show as When, Switch } from 'solid-js';
 import { open, openPerson } from '../../actions';
-import { dataVersion } from '../../data';
+import { dataVersion, loaded } from '../../data';
 import { t } from '../../i18n';
 import { children, metadata, related } from '../../plex/api';
 import { badges, clean, duration, hubTitle, remaining, shortCode } from '../../plex/format';
@@ -27,7 +27,7 @@ import './details.css';
  * The main button names the episode it starts: the one the page was opened
  * for, else the server's next episode, else the first unwatched one. */
 export function Show(props: { ratingKey: string; season?: string; episode?: string }) {
-  const [show, { refetch }] = createResource(
+  const [show, { refetch: refetchShow }] = createResource(
     () => [props.ratingKey, dataVersion()] as const,
     async ([key]) => {
       const m = await metadata(currentServer(), key);
@@ -35,22 +35,30 @@ export function Show(props: { ratingKey: string; season?: string; episode?: stri
       return { item: m, logo: await logoReady(m) };
     },
   );
-  const [seasons] = createResource(
+  const current = loaded(show);
+  const [seasons, { refetch: refetchSeasons }] = createResource(
     () => [props.ratingKey, dataVersion()] as const,
     ([key]) => children(currentServer(), key),
   );
+  const seasonList = loaded(seasons);
+  // Without its seasons the page has nothing to play, so either failure offers Retry.
+  const failed = () => (!current() && show.error) || (!seasonList() && seasons.error);
+  const retry = () => {
+    if (show.error) refetchShow();
+    if (seasons.error) refetchSeasons();
+  };
   const [requested] = createResource(
     () => (props.episode ? ([props.episode, dataVersion()] as const) : null),
     ([key]) => metadata(currentServer(), key).catch(() => undefined),
   );
   const [more] = createResource(() => props.ratingKey, (key) => related(currentServer(), key).catch(() => []));
-  const next = () => show.latest?.item.OnDeck?.Metadata?.[0];
+  const next = () => current()?.item.OnDeck?.Metadata?.[0];
 
   const [season, setSeason] = createSignal<string>();
   // Prefer the requested season, then the next episode's season, then a
   // non-Specials season. Reevaluate when show metadata arrives after the season list.
   createEffect(
-    on([() => seasons.latest, () => show.latest], ([list, s]) => {
+    on([() => seasonList(), () => current()], ([list, s]) => {
       if (!list?.length || !s || season()) return;
       setSeason(props.season ?? next()?.parentRatingKey ?? (list.find((x) => x.index !== 0) ?? list[0]).ratingKey);
     }),
@@ -59,6 +67,8 @@ export function Show(props: { ratingKey: string; season?: string; episode?: stri
     () => (season() ? ([season()!, dataVersion()] as const) : null),
     ([key]) => children(currentServer(), key),
   );
+  // Another season's episodes don't stand in for a season that failed to load.
+  const episodeList = () => (episodes.error ? undefined : episodes.latest);
   const [focusedEpisode, setFocusedEpisode] = createSignal<Metadata>();
   const [scroll, setScroll] = createSignal(0);
   // Season lists omit streams needed for badges. Fetch full episode metadata
@@ -66,7 +76,7 @@ export function Show(props: { ratingKey: string; season?: string; episode?: stri
   const [episodeFull] = createResource(
     () => focusedEpisode()?.ratingKey,
     (key) => {
-      const list = episodes() ?? [];
+      const list = episodeList() ?? [];
       const i = list.findIndex((e) => e.ratingKey === key);
       for (const n of [list[i - 1], list[i + 1]]) if (n) void metadata(currentServer(), n.ratingKey).catch(() => undefined);
       return metadata(currentServer(), key).catch(() => undefined);
@@ -77,7 +87,7 @@ export function Show(props: { ratingKey: string; season?: string; episode?: stri
     return full && full.ratingKey === focusedEpisode()?.ratingKey ? badges(full) : [];
   };
 
-  const firstUnwatched = () => episodes()?.find((e) => !e.viewCount) ?? episodes()?.[0];
+  const firstUnwatched = () => episodeList()?.find((e) => !e.viewCount) ?? episodeList()?.[0];
   const target = () => requested() ?? next() ?? firstUnwatched();
   const playLabel = () => {
     const n = target();
@@ -89,7 +99,7 @@ export function Show(props: { ratingKey: string; season?: string; episode?: stri
   // Spoiler protection applies to the focused episode, or the main button's.
   const subject = () => focusedEpisode() ?? target();
   const moreOptions = () => [
-    ...(show.latest?.item.summary ? [{ label: t('action.description'), value: 'description', icon: 'info' as const }] : []),
+    ...(current()?.item.summary ? [{ label: t('action.description'), value: 'description', icon: 'info' as const }] : []),
     ...(hidden(subject()) ? [{ label: t('action.reveal'), value: 'reveal', icon: 'info' as const }] : []),
   ];
   const onMore = (value: string) => {
@@ -98,10 +108,10 @@ export function Show(props: { ratingKey: string; season?: string; episode?: stri
     if (value === 'reveal') setRevealed(subject()?.ratingKey);
   };
   const shown = (list: Metadata[]) =>
-    list.map((e) => (hidden(e) ? { ...e, thumb: e.grandparentArt ?? show.latest?.item.art, summary: undefined } : e));
+    list.map((e) => (hidden(e) ? { ...e, thumb: e.grandparentArt ?? current()?.item.art, summary: undefined } : e));
   const summary = () => {
     const e = focusedEpisode();
-    if (!e) return show.latest?.item.summary;
+    if (!e) return current()?.item.summary;
     return hidden(e) ? undefined : e.summary;
   };
   const focusMeta = (item: Metadata) => {
@@ -111,16 +121,16 @@ export function Show(props: { ratingKey: string; season?: string; episode?: stri
 
   return (
     <div class="details" classList={{ scrolled: scroll() > 0 }} style={{ '--detail-scroll': `${scroll()}px` }}>
-      <Backdrop art={show.latest?.item.art} colors={show.latest?.item.UltraBlurColors} />
+      <Backdrop art={current()?.item.art} colors={current()?.item.UltraBlurColors} />
       <div class="scroll-dim" />
       <DetailHead />
       <Switch>
-        <Match when={!show.latest && show.error}>
+        <Match when={failed()}>
           <Message class="details-message" icon="warning" title={t('details.loadFailed')}>
-            <Button icon="restart" label={t('action.retry')} autofocus onSelect={refetch} />
+            <Button icon="restart" label={t('action.retry')} autofocus onSelect={retry} />
           </Message>
         </Match>
-        <Match when={show.latest}>
+        <Match when={current()}>
           {(s) => (
             <>
               <div class="details-info show-info">
@@ -150,7 +160,7 @@ export function Show(props: { ratingKey: string; season?: string; episode?: stri
               <Shelf class="show-shelf" lead={SHOW_LEAD} onScroll={setScroll}>
                 <div>
                   <div class="seasons">
-                    <For each={seasons.latest}>
+                    <For each={seasonList()}>
                       {(se) => (
                         <Tab
                           label={se.index === 0 ? t('details.specials') : clean(se.title)}
@@ -163,11 +173,11 @@ export function Show(props: { ratingKey: string; season?: string; episode?: stri
                       )}
                     </For>
                   </div>
-                  <When when={episodes.latest} keyed>
+                  <When when={episodeList()} keyed>
                     {(list) => (
                       <When
                         when={list.length}
-                        fallback={<p class="episode-empty">{t('details.noEpisodes', { season: clean(seasons.latest?.find((x) => x.ratingKey === season())?.title) })}</p>}
+                        fallback={<p class="episode-empty">{t('details.noEpisodes', { season: clean(seasonList()?.find((x) => x.ratingKey === season())?.title) })}</p>}
                       >
                         <Row
                           title=""

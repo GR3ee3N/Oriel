@@ -1,6 +1,6 @@
 import { createResource, createSignal, For, Match, Show, Switch } from 'solid-js';
 import { open, openPerson, play } from '../../actions';
-import { dataVersion } from '../../data';
+import { dataVersion, loaded } from '../../data';
 import { t } from '../../i18n';
 import { metadata, related } from '../../plex/api';
 import { badges, clean, duration, hubTitle, remaining } from '../../plex/format';
@@ -49,7 +49,8 @@ export function Movie(props: { ratingKey: string }) {
   const [more] = createResource(() => props.ratingKey, (key) => related(currentServer(), key).catch(() => []));
   const { starting, start } = usePlay();
   const [panel, setPanel] = createSignal<'more' | 'description' | null>(null);
-  const item = () => meta.latest?.item;
+  const current = loaded(meta);
+  const item = () => current()?.item;
   // Rows that don't fit below the info scroll the page up over it.
   const [scroll, setScroll] = createSignal(0);
 
@@ -76,12 +77,12 @@ export function Movie(props: { ratingKey: string }) {
       <div class="scroll-dim" />
       <DetailHead />
       <Switch>
-        <Match when={meta.error && !meta.latest}>
+        <Match when={meta.error && !current()}>
           <Message class="details-message" icon="warning" title={t('details.loadFailed')}>
             <Button icon="restart" label={t('action.retry')} autofocus onSelect={refetch} />
           </Message>
         </Match>
-        <Match when={meta.latest}>
+        <Match when={current()}>
           {(m) => (
             <>
               <div class="details-info">

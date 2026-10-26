@@ -5,6 +5,7 @@
 import { createEffect, createMemo, createResource, createSignal, For, Match, on, Show, Switch } from 'solid-js';
 import { type Direction, focusable, focusGroup, focusOn } from '../../nav';
 import { open } from '../../actions';
+import { loaded } from '../../data';
 import { t } from '../../i18n';
 import { filterValues, firstCharacters, sectionCollections, sectionHubs, sectionItems } from '../../plex/api';
 import { ageRating, hubTitle } from '../../plex/format';
@@ -110,11 +111,12 @@ export function Library(props: { section: string; title: string; type?: string }
 
 function Recommended(props: { section: string; hero: Hero }) {
   const [hubs] = createResource(() => props.section, (section) => sectionHubs(currentServer(), section));
+  const current = loaded(hubs);
   // Focus stays on the tabs when this view is chosen there, so the hero
   // starts at the first row's first title.
   createEffect(
     on(
-      () => hubs()?.[0]?.Metadata,
+      () => current()?.[0]?.Metadata,
       (items) => items?.[0] && props.hero.show(items[0], neighbours(items, items[0])),
     ),
   );
@@ -127,7 +129,7 @@ function Recommended(props: { section: string; hero: Hero }) {
         <Message class="lib-message" icon="warning" title={t('error.server', { server: session.serverName ?? '' })} body={t('error.serverHint')} />
       </Show>
       <Shelf class="lib-shelf">
-        <For each={hubs()}>
+        <For each={current()}>
           {(hub, i) => (
             <div>
               <Row

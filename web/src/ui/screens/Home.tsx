@@ -1,7 +1,7 @@
 import { createEffect, createResource, createSignal, For, Match, on, onCleanup, Show, Switch } from 'solid-js';
 import { open } from '../../actions';
 import { markHomeReady } from '../../boot';
-import { dataVersion } from '../../data';
+import { dataVersion, loaded } from '../../data';
 import { t } from '../../i18n';
 import { homeHubs } from '../../plex/api';
 import { hubTitle } from '../../plex/format';
@@ -44,10 +44,11 @@ const owner = () => `${session.picks}/${session.user?.uuid}/${session.serverId}`
 
 export function Home() {
   const [hubs, { refetch }] = createResource(dataVersion, () => homeHubs(currentServer()));
-  const rows = () => homeRows(hubs.latest ?? []);
+  const current = loaded(hubs);
+  const rows = () => homeRows(current() ?? []);
   // Release the splash when Home has no rows or failed to load.
   createEffect(() => {
-    if (hubs.error || (hubs.latest && !rows().length)) markHomeReady();
+    if (hubs.error || (current() && !rows().length)) markHomeReady();
   });
   const [slow, setSlow] = createSignal(false);
   let slowTimer: ReturnType<typeof setTimeout> | undefined;
@@ -98,7 +99,7 @@ export function Home() {
       <Rail />
       <Status />
       <Switch>
-        <Match when={hubs.error && !hubs.latest}>
+        <Match when={hubs.error && !current()}>
           <Message class="home-message" icon="warning" title={t('error.server', { server: session.serverName ?? '' })} body={t('error.serverHint')}>
             <Button icon="restart" label={t('action.retry')} autofocus onSelect={refetch} />
             <Show when={session.servers.length > 1}>
@@ -106,7 +107,7 @@ export function Home() {
             </Show>
           </Message>
         </Match>
-        <Match when={!hubs.latest}>
+        <Match when={!current()}>
           <HomeSkeleton />
           <Show when={slow()}>
             <Message class="home-slow" icon="server" title={t('error.slow', { server: session.serverName ?? '' })}>
