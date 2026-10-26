@@ -105,7 +105,7 @@ export function Search() {
         </Match>
       </Switch>
       <Shelf class="results-shelf">
-        <For each={results.state === 'errored' ? [] : results.latest}>
+        <For each={!settled() || results.state === 'errored' ? [] : results.latest}>
           {(hub) => (
             <div>
               <Row
