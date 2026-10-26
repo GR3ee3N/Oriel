@@ -107,8 +107,15 @@ export function Show(props: { ratingKey: string; season?: string; episode?: stri
     setPanel(null);
     if (value === 'reveal') setRevealed(subject()?.ratingKey);
   };
-  const shown = (list: Metadata[]) =>
-    list.map((e) => (hidden(e) ? { ...e, thumb: e.grandparentArt ?? current()?.item.art, summary: undefined } : e));
+  // Each episode keeps one concealed copy, so revealing or concealing one
+  // episode leaves the other tiles, and the focused one, in place.
+  const concealed = new WeakMap<Metadata, Metadata>();
+  const conceal = (e: Metadata) => {
+    let c = concealed.get(e);
+    if (!c) concealed.set(e, (c = { ...e, thumb: e.grandparentArt ?? current()?.item.art, summary: undefined }));
+    return c;
+  };
+  const shown = (list: Metadata[]) => list.map((e) => (hidden(e) ? conceal(e) : e));
   const summary = () => {
     const e = focusedEpisode();
     if (!e) return current()?.item.summary;
