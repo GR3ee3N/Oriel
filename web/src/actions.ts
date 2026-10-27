@@ -70,14 +70,16 @@ export function openPerson(item: Metadata, person: Role): void {
   push({ screen: 'person', section: String(item.librarySectionID), filter, title: person.tag });
 }
 
-// Version chosen per title on its detail page, for this run of Oriel.
+// Version chosen per title on its detail page, for this run of Oriel. Rating
+// keys are local to a server, so each choice is scoped to the current one.
 const [versions, setVersions] = createSignal<Record<string, number>>({});
+const versionKey = (ratingKey: string) => `${currentServer().id}|${ratingKey}`;
 
 /** Index in item.Media of the version Play starts. */
-export const chosenVersion = (ratingKey: string): number => versions()[ratingKey] ?? 0;
+export const chosenVersion = (ratingKey: string): number => versions()[versionKey(ratingKey)] ?? 0;
 
 export function chooseVersion(ratingKey: string, index: number): void {
-  setVersions((v) => ({ ...v, [ratingKey]: index }));
+  setVersions((v) => ({ ...v, [versionKey(ratingKey)]: index }));
 }
 
 /** Resume movies and episodes unless `fromStart` is set; an episode plays

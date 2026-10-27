@@ -69,7 +69,7 @@ export function Home() {
   // the cached image when Home appears.
   const hero = createHero((item) => {
     const path = backdropOf(item);
-    (path ? preload(backdropUrl(path), true) : Promise.resolve()).then(markHomeReady);
+    (path ? preload(backdropUrl(currentServer(), path), true) : Promise.resolve()).then(markHomeReady);
   });
 
   const shapeOf = (hub: Hub) =>

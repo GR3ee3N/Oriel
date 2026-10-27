@@ -1,5 +1,6 @@
 import { createEffect, on, onCleanup } from 'solid-js';
 import { useScope } from '../../nav';
+import type { Server } from '../../plex/client';
 import { imageUrl } from '../../plex/images';
 import type { UltraBlurColors } from '../../plex/types';
 import { top } from '../../router';
@@ -10,8 +11,8 @@ const W = 1920;
 const H = 1080;
 
 /** Use the painted backdrop dimensions when preloading artwork. */
-export function backdropUrl(art: string): string {
-  return imageUrl(currentServer(), art, W, H);
+export function backdropUrl(server: Server, art: string): string {
+  return imageUrl(server, art, W, H);
 }
 
 // Interpolate Plex's UltraBlurColors across a 16×9 field and scale it to
@@ -105,8 +106,8 @@ function paintScene(canvas: HTMLCanvasElement, colors: UltraBlurColors, img: HTM
 
 /** 90th-percentile linear luminance of the text zone as paintScene draws
  * it: the faded artwork over the dimmed colour field. */
-async function measure(art: string, colors: UltraBlurColors): Promise<number> {
-  const small = await decoded(imageUrl(currentServer(), art, PW, PH), true).catch(() => undefined);
+async function measure(server: Server, art: string, colors: UltraBlurColors): Promise<number> {
+  const small = await decoded(imageUrl(server, art, PW, PH), true).catch(() => undefined);
   if (!small) return UNMEASURED;
   probeContext.drawImage(small, 0, 0, PW, PH);
   let d: Uint8ClampedArray;
@@ -167,24 +168,27 @@ interface Scene {
   lum: number;
 }
 
-const sceneKey = (art: string | undefined, colors: UltraBlurColors | undefined) => `${art ?? ''}|${JSON.stringify(colors ?? null)}`;
+// Artwork paths are local to a server, so a key with artwork names its server.
+const sceneKey = (serverId: string | undefined, art: string | undefined, colors: UltraBlurColors | undefined) =>
+  `${serverId ?? ''}|${art ?? ''}|${JSON.stringify(colors ?? null)}`;
 // The last scenes prepared; each holds a decoded full-screen image.
 const prepared = new Map<string, Promise<Scene>>();
 const KEEP = 2;
 
 /** Decode and measure a backdrop. A Backdrop given the same artwork and
- * colours next shows it in the same frame. */
+ * colours on the same server next shows it in the same frame. */
 export function prepareBackdrop(art: string | undefined, colors: UltraBlurColors | undefined): Promise<Scene> {
   const c = colors ?? FALLBACK;
   if (!art) return Promise.resolve({ colors: c, lum: 0 });
-  const key = sceneKey(art, colors);
+  const server = currentServer();
+  const key = sceneKey(server.id, art, colors);
   const scene =
     prepared.get(key) ??
     Promise.all([
-      decoded(backdropUrl(art), true)
-        .catch(() => decoded(backdropUrl(art), false))
+      decoded(backdropUrl(server, art), true)
+        .catch(() => decoded(backdropUrl(server, art), false))
         .catch(() => undefined),
-      measure(art, c),
+      measure(server, art, c),
     ]).then(([img, lum]) => ({ colors: c, img, lum }));
   prepared.delete(key);
   prepared.set(key, scene);
@@ -203,10 +207,12 @@ export function Backdrop(props: { art?: string; colors?: UltraBlurColors }) {
   let painted: [UltraBlurColors, HTMLImageElement | undefined, number] | undefined;
 
   const show = async (art: string | undefined, colors: UltraBlurColors | undefined) => {
-    const key = sceneKey(art, colors);
+    // Without artwork, as on the splash and sign-in, there may be no server yet.
+    const serverId = art ? currentServer().id : undefined;
+    const key = sceneKey(serverId, art, colors);
     if (key === showing) return;
     const { img, lum } = await prepareBackdrop(art, colors);
-    if (sceneKey(props.art, props.colors) !== key) return;
+    if (sceneKey(serverId, props.art, props.colors) !== key) return;
     const next = shown === 0 ? 1 : 0;
     const scene = scenes[next];
     painted = [colors ?? FALLBACK, img, lum];
