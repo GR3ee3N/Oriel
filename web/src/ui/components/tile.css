@@ -80,5 +80,6 @@
 .tile.focused .caption b { color: var(--ink); }
 .tile.focused .caption span { color: var(--ink-2); }
 .tile.poster .caption b { font-size: var(--t-caption); }
-.tile .caption.placeholder i { display: block; height: 22px; width: 70%; border-radius: 6px; background: var(--surface); }
-.tile .caption.placeholder i + i { margin-top: 10px; width: 45%; }
+/* Bars inside the caption's own lines, so a placeholder is as tall as a caption. */
+.tile .caption.placeholder i { display: inline-block; vertical-align: middle; height: 0.8em; width: 70%; border-radius: 6px; background: var(--surface); }
+.tile .caption.placeholder span i { width: 45%; }

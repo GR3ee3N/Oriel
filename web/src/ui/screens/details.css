@@ -22,3 +22,17 @@
 .shelf.show-shelf { top: 160px; left: 96px; --shelf-left: 24px; }
 .seasons { display: flex; gap: 8px; margin: 0 0 22px -22px; }
 .episode-empty { height: 300px; padding-top: 20px; font-size: var(--t-meta); color: var(--ink-2); }
+
+/* Loading blocks at the info's and the show page's line positions. */
+.detail-skeleton .logo { width: 400px; height: 100px; margin-top: 50px; }
+.detail-skeleton .meta { width: 420px; height: 26px; margin-top: 30px; }
+.detail-skeleton .line { width: 820px; height: 22px; margin-top: 14px; }
+.detail-skeleton .meta + .line { margin-top: 25px; }
+.detail-skeleton .line.short { width: 560px; }
+.detail-skeleton .genres { width: 360px; height: 20px; margin-top: 25px; }
+.detail-skeleton .buttons { margin-top: 37px; display: flex; gap: 18px; }
+.detail-skeleton.show-info .buttons { margin-top: 41px; }
+.detail-skeleton .buttons i { width: 68px; height: 68px; border-radius: 34px; }
+.detail-skeleton .buttons .play { width: 280px; }
+.episodes-skeleton { position: absolute; left: 120px; top: 588px; }
+.seasons.skeleton i { width: 140px; height: 52px; border-radius: 26px; }

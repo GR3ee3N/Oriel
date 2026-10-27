@@ -33,6 +33,12 @@ export function open(item: Metadata): void {
   }
 }
 
+/** The season a show page opens on: the next episode's, else the first
+ * season that isn't Specials. */
+export function firstSeason(seasons: Metadata[] | undefined, next?: Metadata): string | undefined {
+  return next?.parentRatingKey ?? (seasons?.find((s) => s.index !== 0) ?? seasons?.[0])?.ratingKey;
+}
+
 /** List titles featuring `person` in the item's library. */
 export function openPerson(item: Metadata, person: Role): void {
   const filter = person.filter ?? (person.id !== undefined ? `actor=${person.id}` : undefined);

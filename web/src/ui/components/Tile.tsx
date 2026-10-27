@@ -53,10 +53,11 @@ export interface TileProps {
 export function Tile(props: TileProps) {
   const shape = () => props.shape ?? 'poster';
   const size = () => SIZES[shape()];
-  const [failed, setFailed] = createSignal(false);
+  // The URL that failed, so a placeholder or a reused tile's new item still loads.
+  const [failed, setFailed] = createSignal<string>();
   const src = () => {
-    const m = props.item;
-    return m && !failed() ? tileImageUrl(m, shape()) : undefined;
+    const url = props.item && tileImageUrl(props.item, shape());
+    return url !== failed() ? url : undefined;
   };
   const lines = (m: Metadata): [string, string] =>
     props.lines?.(m) ?? [tileTitle(m), tileSubtitle(hidden(m) ? { ...m, title: episodeTitle(m) } : m, shape() === 'wide')];
@@ -85,7 +86,7 @@ export function Tile(props: TileProps) {
           {(item) => (
             <>
               <Show when={src()} keyed fallback={<div class="noimg">{tileTitle(item())}</div>}>
-                {(s) => <img src={s} alt="" decoding="async" onError={() => setFailed(true)} />}
+                {(s) => <img src={s} alt="" decoding="async" onError={() => setFailed(s)} />}
               </Show>
               <Show when={progress(item()) > 0}>
                 <div class="progress">
@@ -102,7 +103,19 @@ export function Tile(props: TileProps) {
           )}
         </Show>
       </div>
-      <Show when={props.item} fallback={<div class="caption placeholder"><i /><i /></div>}>
+      <Show
+        when={props.item}
+        fallback={
+          <div class="caption placeholder">
+            <b>
+              <i />
+            </b>
+            <span>
+              <i />
+            </span>
+          </div>
+        }
+      >
         {(item) => (
           <div class="caption">
             <b>{lines(item())[0]}</b>

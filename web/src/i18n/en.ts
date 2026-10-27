@@ -110,6 +110,7 @@ export const en = {
   'details.trackHint': 'Saved for this title on {server}.',
   'details.specials': 'Specials',
   'details.noEpisodes': 'No episodes in {season}',
+  'details.episodesFailed': "Couldn't load these episodes",
   'details.inCollection': 'Part of {collection}',
   'details.loadFailed': "Couldn't load this title",
   'details.notOnServer': 'Not on {server}',

@@ -1,0 +1,4 @@
+.skeleton i { display: block; border-radius: 8px; background: var(--surface); }
+.skeleton-cards { display: flex; gap: 32px; }
+.skeleton-cards .line { margin-top: 16px; height: 24px; width: 70%; }
+.skeleton-cards .line.short { margin-top: 10px; height: 20px; width: 45%; }

@@ -15,6 +15,7 @@ import { openRail, Rail } from '../components/Rail';
 import { Row } from '../components/Row';
 import { ServerPicker } from '../components/ServerPicker';
 import { Shelf } from '../components/Shelf';
+import { SkeletonCards } from '../components/Skeleton';
 import { Status } from '../components/Status';
 import './home.css';
 
@@ -154,23 +155,10 @@ export function Home() {
   );
 }
 
-/** Final-geometry blocks while Home loads; no shimmer, which costs a raster per frame. */
+/** Home's hero and first row while it loads. */
 function HomeSkeleton() {
-  const cards = (n: number, w: number, h: number) => (
-    <div class="skeleton-cards">
-      <For each={Array.from({ length: n })}>
-        {() => (
-          <div style={{ width: `${w}px` }}>
-            <i style={{ height: `${h}px` }} />
-            <i class="line" />
-            <i class="line short" />
-          </div>
-        )}
-      </For>
-    </div>
-  );
   return (
-    <div class="home-skeleton">
+    <div class="skeleton home-skeleton">
       <div class="hero-skeleton">
         <i class="logo" />
         <i class="line" />
@@ -178,7 +166,7 @@ function HomeSkeleton() {
       </div>
       <div class="rows-skeleton">
         <h2>{t('hub.home.continue')}</h2>
-        {cards(4, 400, 225)}
+        <SkeletonCards count={4} width={400} height={225} />
       </div>
     </div>
   );

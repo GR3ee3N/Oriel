@@ -18,13 +18,9 @@
 .home-slow > .icon { display: none; }
 .home-slow h2 { margin-top: 0; }
 
-.home-skeleton i { display: block; border-radius: 8px; background: var(--surface); }
 .hero-skeleton { position: absolute; left: var(--root-x); top: 96px; }
 .hero-skeleton .logo { width: 520px; height: 110px; margin-top: 60px; }
 .hero-skeleton .line { width: 560px; height: 26px; margin-top: 30px; }
 .hero-skeleton .line.long { width: 820px; height: 22px; margin-top: 22px; }
 .rows-skeleton { position: absolute; left: var(--root-x); top: 474px; }
 .rows-skeleton h2 { font-size: var(--t-heading); font-weight: 650; line-height: 1.2; margin-bottom: 20px; }
-.skeleton-cards { display: flex; gap: 32px; }
-.skeleton-cards .line { margin-top: 16px; height: 24px; width: 70%; }
-.skeleton-cards .line.short { margin-top: 10px; height: 20px; width: 45%; }

@@ -16,6 +16,7 @@ import { Panel } from '../components/Panel';
 import { People } from '../components/People';
 import { Row } from '../components/Row';
 import { Shelf } from '../components/Shelf';
+import { DetailSkeleton } from '../components/Skeleton';
 import { DetailHead } from '../components/Status';
 import './details.css';
 
@@ -76,7 +77,7 @@ export function Movie(props: { ratingKey: string }) {
       <Backdrop art={item()?.art} colors={item()?.UltraBlurColors} />
       <div class="scroll-dim" />
       <DetailHead />
-      <Switch>
+      <Switch fallback={<DetailSkeleton />}>
         <Match when={meta.error && !current()}>
           <Message class="details-message" icon="warning" title={t('details.loadFailed')}>
             <Button icon="restart" label={t('action.retry')} autofocus onSelect={refetch} />

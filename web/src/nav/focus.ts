@@ -104,6 +104,14 @@ export function setScope(scope: string, fresh = false): void {
   });
 }
 
+/** Focus `el` as if it had just mounted with autofocus, such as a tile whose
+ * item arrived after its placeholder: only while focus was never chosen. */
+export function claimFocus(el: HTMLElement): void {
+  if (entries.get(el)?.scope !== activeScope() || (current() && !implicit)) return;
+  implicit = false;
+  focus(el);
+}
+
 export function focusOn(el: HTMLElement): void {
   if (entries.get(el)?.scope !== activeScope()) return;
   implicit = false;
