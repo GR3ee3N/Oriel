@@ -15,6 +15,7 @@ addon/          Kodi add-on
   fonts.py      download of the optional extra fonts
   resources/    icon, fanart and startup mark
 web/            web interface
+  src/i18n/     interface text, placeholders and plural forms
   src/nav/      remote navigation: focus, focus scopes and Back handlers
   src/plex/     Plex API: sign-in, servers, libraries and images
   src/player/   playback, tracks, transcoding and episode prompts
@@ -63,6 +64,9 @@ Logs are in `/storage/.kodi/userdata/addon_data/script.oriel.oriel/`:
 
 Both logs are overwritten each time Oriel opens.
 
+Development pages log `focus: <label>` in `shell.log` after focus moves.
+Installed builds omit these lines; use screenshots to check focus there.
+
 To capture Oriel's interface, set a screenshot folder in Kodi under
 **System → Logging**, then run:
 
@@ -87,6 +91,33 @@ names. Settings, including Plex tokens, are stored in
 `.cache/desktop-store.json`. The optional fonts download from a package built
 from `web/node_modules` into `.cache/desktop-files`.
 
+## Interface code
+
+Root pages use `ui/components/Rail.tsx` for Search, Home, Watchlist,
+libraries, playlists & Settings. The rail has its own focus scope. Left at
+the page's edge or Back opens it; Right returns to the page. Panels &
+dialogs also have separate scopes. `src/nav/` owns focus movement & Back
+handlers; `@oriel/web` supplies remote key names & the add-on connection.
+
+`plex/playqueue.ts` creates Plex play queues & loads windows of their
+entries. `player/queue.ts` joins those windows by `playQueueItemID`, so a
+title can appear more than once. `player/playback.ts` controls the playing
+entry, Up Next & timeline reports. The strip below the OSD controls shows
+chapters for the selected media version & the play queue.
+
+Interface text lives in `src/i18n/en.ts`. Use `t()` with named placeholders;
+plural entries use `one` & `other`, selected by `n`. English is the only
+interface language. Another language needs a matching table, its selection
+in `i18n/index.ts`, a matching plural rule & the Plex request language.
+Fonts for Plex metadata in other scripts are a separate download.
+
+Spoiler protection is saved per Plex Home profile. `ui/spoilers.ts`
+checks whether an episode is unwatched or explicitly revealed.
+`episodeTitle` and `episodeText` put "[Spoilers removed]" in place of its
+title, summary and chapter names, and Plex blurs its images through
+`plex/images.ts`. Use these paths when adding episode information to a
+screen.
+
 ## Checks and builds
 
 ```sh
@@ -107,9 +138,9 @@ includes the page in `resources/web`, `LICENSE.txt` and
 `THIRD-PARTY-NOTICES.txt`. `build/notices.py` collects the notices for npm
 packages shipped with the page.
 
-The extra fonts, colour emoji and scripts such as Chinese, Japanese, Korean,
-Thai and the Indian scripts, are too large to ship with the page, so the box
-downloads them when asked. `build/fonts.py` packs the Fontsource development
+The optional font package adds colour emoji & text in Chinese, Japanese,
+Korean, Thai & Indian scripts. The box downloads it when asked.
+`build/fonts.py` packs the Fontsource development
 dependencies it lists into `.cache/runtime/oriel-fonts-<hash>.zip` and writes
 `resources/fonts.json`, which gives the ZIP's address in the `v<version>`
 release, its size, its SHA-256 and the scripts it adds. Add a script by
@@ -129,6 +160,41 @@ matching `@oriel/web` release:
 ```sh
 (cd web && npm install https://github.com/GR3ee3N/oriel-framework/releases/download/v<version>/oriel-web-<version>.tgz)
 ```
+
+## Benchmarks
+
+`tools/bench.sh` measures Oriel and its stack on `$BOX` and copies the
+report into `.cache/bench/<time>`:
+
+```sh
+tools/bench.sh --label "new rail"
+tools/bench.sh compare .cache/bench/<base> .cache/bench/<new>
+```
+
+To measure one thing while working on it, name its cases; `tools/bench.sh
+--list` prints them:
+
+```sh
+tools/bench.sh --case row-right --case scroll --repeat 2 --warmup 0
+```
+
+With dev mode on, `--dev-page` measures the page from Vite. Vite serves
+unbundled modules, so its startup times run longer than the installed
+page's; compare a Vite run with another Vite run.
+
+`tools/bench.sh compare` exits with status 3 when a measure got worse. If
+the connection to the box drops, the run carries on there; `tools/bench.sh
+fetch` copies its report once it's done, and `tools/bench.sh stop` ends it.
+
+It runs the framework's stack suite, then the scenario in `tools/bench.json`:
+Home's rows, a details page, the rail and the first library's rows. Oriel
+must open as the Plex Home profile Test, or the run stops. A full run opens
+Oriel 12 times and takes about 20 minutes. Options such as `--repeat 3` or
+`--suite stack` pass through to `bench.py run`; the framework README
+describes the suites and the report.
+
+Compare reports from the same display mode. The scenario plays against the
+Test profile's live library, so its Home rows change as the library does.
 
 ## Releases
 

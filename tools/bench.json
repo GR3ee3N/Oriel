@@ -1,0 +1,19 @@
+{
+  "name": "oriel-home-library",
+  "app": "script.oriel.oriel",
+  "startup": {"log": "session: ", "quiet": 1.0, "timeout": 40},
+  "require": {"match": "session: Test on ", "message": "Oriel opened as another Plex profile; switch to the profile Test, exit Oriel and run again"},
+  "steps": [
+    {"name": "home-down", "keys": ["down", "down", "down"], "interval": 0.8},
+    {"name": "home-up", "keys": ["up", "up", "up"], "interval": 0.8},
+    {"name": "row-right", "keys": ["right", "right", "right", "right", "right", "right"], "interval": 0.3},
+    {"name": "row-left", "keys": ["left", "left", "left", "left", "left", "left"], "interval": 0.3},
+    {"name": "open-details", "keys": ["select"], "timeout": 10},
+    {"name": "close-details", "keys": ["back"]},
+    {"name": "open-rail", "keys": ["left"]},
+    {"name": "rail-down", "keys": ["down", "down"], "interval": 0.6},
+    {"name": "open-library", "keys": ["select"], "timeout": 10},
+    {"name": "library-down", "keys": ["down", "down", "down", "down", "down", "down"], "interval": 0.5},
+    {"name": "library-up", "keys": ["up", "up", "up", "up", "up", "up"], "interval": 0.5}
+  ]
+}

@@ -161,7 +161,7 @@ export interface PlaybackNote {
   ratingKey: string;
   quality: number;
   transcoded: boolean;
-  /** Version index; older notes have none and played the first version. */
+  /** Version index; omission selects the first version. */
   media?: number;
   /** Play queue & the playing entry's playQueueItemID. */
   queue?: number;
@@ -409,7 +409,7 @@ function restart(p: Playback): Promise<void> | undefined {
   return store.current?.id === p.id ? launch(state.player.time) : undefined;
 }
 
-/** Accept the active prompt: skip the intro or start the next episode. */
+/** Accept the active prompt: skip the intro or start the next queue entry. */
 export function acceptPrompt(): void {
   const p = store.current;
   const which = prompt();
@@ -538,7 +538,7 @@ createRoot(() => {
     }
   });
 
-  // Report the final position before starting a queued or automatically selected episode.
+  // Report the final position before starting the next queue entry.
   createEffect(
     on(
       () => state.player.state,
@@ -573,7 +573,7 @@ createRoot(() => {
   );
 
   // Use markers for Skip intro and Up next; without credits, offer the next
-  // episode during the final 30 s.
+  // queue entry during the final 30 s.
   createEffect(() => {
     const p = store.current;
     const t = state.player.time * 1000;
@@ -638,7 +638,7 @@ createRoot(() => {
   });
 
   // Skip credits only while playing. Preserve scenes after intermediate credits;
-  // final credits complete the item and start the next episode when available.
+  // final credits complete the item and start the next queue entry when available.
   createEffect(() => {
     const p = store.current;
     const t = state.player.time * 1000;
