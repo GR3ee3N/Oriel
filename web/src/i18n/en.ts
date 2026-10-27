@@ -45,7 +45,7 @@ export const en = {
   'time.left': '{time} left',
   'episode.code': 'S{season} · E{episode}',
   'episode.codeShort': 'S{season}·E{episode}',
-  'episode.number': 'Episode {n}',
+  'episode.spoilers': '[Spoilers removed]',
   'count.seasons': { one: '{n} season', other: '{n} seasons' },
   'count.episodes': { one: '{n} episode', other: '{n} episodes' },
   'count.movies': { one: '{n} movie', other: '{n} movies' },

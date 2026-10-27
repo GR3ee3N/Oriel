@@ -1,9 +1,8 @@
 import { createSignal, For, onCleanup, Show } from 'solid-js';
 import type { Direction } from '../../nav';
-import { imageUrl, preload } from '../../plex/images';
+import { preload } from '../../plex/images';
 import type { Metadata } from '../../plex/types';
-import { currentServer } from '../../session';
-import { SIZES, Tile, tileImage, type TileShape } from './Tile';
+import { SIZES, Tile, tileImageUrl, type TileShape } from './Tile';
 import './row.css';
 
 const GAP = 32;
@@ -39,10 +38,9 @@ export function Row(props: RowProps) {
     // Decode nearby images after scrolling settles to keep loading work out of the animation.
     clearTimeout(preloadTimer);
     preloadTimer = setTimeout(() => {
-      const { w, h } = SIZES[shape()];
       for (const m of props.items.slice(i + 1, i + 7)) {
-        const path = tileImage(m, shape());
-        if (path) preload(imageUrl(currentServer(), path, w, h));
+        const url = tileImageUrl(m, shape());
+        if (url) preload(url);
       }
     }, 300);
   };

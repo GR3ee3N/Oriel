@@ -4,6 +4,7 @@ import { ageRating, clean, duration, episodeCode, remaining, seasonCount } from 
 import { logoOf, logoUrl, preload } from '../../plex/images';
 import type { Metadata } from '../../plex/types';
 import { currentServer } from '../../session';
+import { episodeTitle } from '../spoilers';
 import './info.css';
 
 export const LOGO = { w: 720, h: 240 };
@@ -54,7 +55,7 @@ export function Meta(props: { parts: (JSX.Element | string | number | undefined 
 export function metaFor(m: Metadata, showRemaining = true): JSX.Element {
   const left = showRemaining ? remaining(m) : undefined;
   if (m.type === 'episode') {
-    return <Meta parts={[episodeCode(m), clean(m.title), duration(m.duration)]} accent={left} />;
+    return <Meta parts={[episodeCode(m), clean(episodeTitle(m)), duration(m.duration)]} accent={left} />;
   }
   if (m.type === 'season') {
     return <Meta parts={[clean(m.title), m.leafCount && t('count.episodes', { n: m.leafCount }), m.parentYear]} accent={left} />;

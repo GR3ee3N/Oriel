@@ -6,7 +6,7 @@ import { children, metadata, related } from '../../plex/api';
 import { badges, clean, duration, hubTitle, remaining, shortCode } from '../../plex/format';
 import type { Metadata } from '../../plex/types';
 import { currentServer } from '../../session';
-import { episodeTitle, hidden, setRevealed } from '../spoilers';
+import { episodeText, episodeTitle, hidden, setRevealed } from '../spoilers';
 import { Backdrop } from '../components/Backdrop';
 import { Button, Message, Tab } from '../components/Controls';
 import { Reader } from '../components/Dialog';
@@ -107,23 +107,14 @@ export function Show(props: { ratingKey: string; season?: string; episode?: stri
     setPanel(null);
     if (value === 'reveal') setRevealed(subject()?.ratingKey);
   };
-  // Each episode keeps one concealed copy, so revealing or concealing one
-  // episode leaves the other tiles, and the focused one, in place.
-  const concealed = new WeakMap<Metadata, Metadata>();
-  const conceal = (e: Metadata) => {
-    let c = concealed.get(e);
-    if (!c) concealed.set(e, (c = { ...e, thumb: e.grandparentArt ?? current()?.item.art, summary: undefined }));
-    return c;
-  };
-  const shown = (list: Metadata[]) => list.map((e) => (hidden(e) ? conceal(e) : e));
   const summary = () => {
     const e = focusedEpisode();
     if (!e) return current()?.item.summary;
-    return hidden(e) ? undefined : e.summary;
+    return episodeText(e, e.summary);
   };
   const focusMeta = (item: Metadata) => {
     const e = focusedEpisode();
-    return metaFor(e ? { ...e, title: episodeTitle(e) } : item);
+    return metaFor(e ?? item);
   };
 
   return (
@@ -188,7 +179,7 @@ export function Show(props: { ratingKey: string; season?: string; episode?: stri
                       >
                         <Row
                           title=""
-                          items={shown(list)}
+                          items={list}
                           shape="wide"
                           group={`episodes-${season()}`}
                           autofocus={false}

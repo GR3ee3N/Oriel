@@ -25,6 +25,12 @@ export function tileImage(m: Metadata, shape: TileShape): string | undefined {
   return m.thumb;
 }
 
+export function tileImageUrl(m: Metadata, shape: TileShape): string | undefined {
+  const path = tileImage(m, shape);
+  const { w, h } = SIZES[shape];
+  return path ? imageUrl(currentServer(), path, w, h, hidden(m) && (shape === 'wide' || !(m.grandparentThumb || m.parentThumb))) : undefined;
+}
+
 export interface TileProps {
   /** Undefined items render focusable placeholders while loading. */
   item?: Metadata;
@@ -34,7 +40,7 @@ export interface TileProps {
   entry?: boolean;
   autofocus?: boolean;
   /** Override the default title/year or show/episode caption pair. */
-  lines?: (m: Metadata) => [string, string];
+  lines?: (m: Metadata) => [string, string] | undefined;
   /** Dim the artwork, e.g. for a Watchlist title the server doesn't have. */
   dim?: boolean;
   index?: number;
@@ -48,11 +54,9 @@ export function Tile(props: TileProps) {
   const shape = () => props.shape ?? 'poster';
   const size = () => SIZES[shape()];
   const [failed, setFailed] = createSignal(false);
-  // Spoiler protection swaps an unwatched episode's still for the show's art.
   const src = () => {
     const m = props.item;
-    const path = m && (hidden(m) && shape() === 'wide' ? (m.grandparentArt ?? m.grandparentThumb) : tileImage(m, shape()));
-    return path && !failed() ? imageUrl(currentServer(), path, size().w, size().h) : undefined;
+    return m && !failed() ? tileImageUrl(m, shape()) : undefined;
   };
   const lines = (m: Metadata): [string, string] =>
     props.lines?.(m) ?? [tileTitle(m), tileSubtitle(hidden(m) ? { ...m, title: episodeTitle(m) } : m, shape() === 'wide')];
@@ -80,8 +84,8 @@ export function Tile(props: TileProps) {
         <Show when={props.item}>
           {(item) => (
             <>
-              <Show when={src()} fallback={<div class="noimg">{tileTitle(item())}</div>}>
-                {(s) => <img src={s()} alt="" decoding="async" onError={() => setFailed(true)} />}
+              <Show when={src()} keyed fallback={<div class="noimg">{tileTitle(item())}</div>}>
+                {(s) => <img src={s} alt="" decoding="async" onError={() => setFailed(true)} />}
               </Show>
               <Show when={progress(item()) > 0}>
                 <div class="progress">

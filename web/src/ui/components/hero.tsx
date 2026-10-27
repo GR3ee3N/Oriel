@@ -8,7 +8,7 @@ import { metadata } from '../../plex/api';
 import { badges, tileTitle } from '../../plex/format';
 import type { Metadata } from '../../plex/types';
 import { currentServer } from '../../session';
-import { episodeTitle, hidden } from '../spoilers';
+import { episodeText } from '../spoilers';
 import { prepareBackdrop } from './Backdrop';
 import { Info, logoReady, metaFor } from './Info';
 
@@ -75,8 +75,7 @@ export function createHero(onFirst?: (item: Metadata) => void) {
 
 export type Hero = ReturnType<typeof createHero>;
 
-/** The hero's item information: the show's title for episodes and seasons,
- * and no episode title or summary while spoilers are hidden. */
+/** The hero's item information uses the show's title for episodes and seasons. */
 export function HeroInfo(props: { hero: Hero }) {
   return (
     <Show when={props.hero.hero()}>
@@ -85,10 +84,10 @@ export function HeroInfo(props: { hero: Hero }) {
           item={h().item}
           logo={h().logo}
           title={tileTitle(h().item)}
-          meta={metaFor(hidden(h().item) ? { ...h().item, title: episodeTitle(h().item) } : h().item)}
+          meta={metaFor(h().item)}
           badges={h().full ? badges(h().full) : []}
           badgesLate={h().late}
-          summary={hidden(h().item) ? undefined : h().item.summary || h().full?.summary}
+          summary={episodeText(h().item, h().item.summary || h().full?.summary)}
           size="hero"
         />
       )}

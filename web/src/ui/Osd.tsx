@@ -40,7 +40,7 @@ import { SUBTITLES_OFF, type Track } from '../player/tracks';
 import { currentServer, session } from '../session';
 import { Menu } from './components/Menu';
 import { Panel } from './components/Panel';
-import { episodeTitle, hidden } from './spoilers';
+import { episodeText, episodeTitle, hidden } from './spoilers';
 import './osd.css';
 
 function clock(seconds: number): string {
@@ -126,6 +126,11 @@ export function Osd() {
     const step = STEPS[Math.min(held, STEPS.length - 1)] * (direction === 'left' ? -1 : 1);
     const t = Math.min(Math.max((target() ?? state.player.time) + step, 0), Math.max(duration() - 1, 0));
     setTarget(t);
+    // Seek previews would show unwatched scenes.
+    if (hidden(playback()?.item)) {
+      setThumb(undefined);
+      return true;
+    }
     thumbs().then((b) => {
       if (target() === t) setThumb(b?.frameAt(t));
     });
@@ -205,8 +210,8 @@ export function Osd() {
                     };
                     return (
                       <div class="next-card">
-                        <Show when={!hidden(next()) && still(next())} fallback={<div class="next-blank" />}>
-                          {(path) => <img src={imageUrl(currentServer(), path(), 320, 180)} alt="" />}
+                        <Show when={still(next())} fallback={<div class="next-blank" />}>
+                          {(path) => <img src={imageUrl(currentServer(), path(), 320, 180, hidden(next()))} alt="" />}
                         </Show>
                         <div>
                           <small>{at()}</small>
@@ -261,7 +266,7 @@ export function Osd() {
                 <div class="osd-head">
                   <div class="osd-title" classList={{ hidden: target() !== null }}>
                     <b>{p().heading}</b>
-                    <span>{p().subheading}</span>
+                    <span>{p().item.type === 'episode' ? entryLine(p().item) : p().subheading}</span>
                     <div class="osd-badges">
                       {badges(p().item, p().audio.find((t) => t.id === p().audioId)?.stream).map((b) => (
                         <span class="badge">{b}</span>
@@ -387,11 +392,11 @@ const SHOWN = 5;
 
 /** Show or movie title of a queue entry. */
 const entryTitle = (m: Metadata) => clean(m.type === 'episode' ? m.grandparentTitle : m.title);
-/** An episode's number & title (number only while concealed), or a movie's
+/** An episode's number & title, or a movie's
  * year & length; with `left`, the number or year & the time left. */
 function entryLine(m: Metadata, left = false): string {
   const episode = m.type === 'episode';
-  const parts = left ? [episode ? episodeCode(m) : m.year, remaining(m)] : episode ? [episodeCode(m), hidden(m) ? '' : clean(episodeTitle(m))] : [m.year, length(m.duration)];
+  const parts = left ? [episode ? episodeCode(m) : m.year, remaining(m)] : episode ? [episodeCode(m), clean(episodeTitle(m))] : [m.year, length(m.duration)];
   return parts.filter(Boolean).join(' · ');
 }
 /** A 16:9 picture of an entry: an episode's still, a movie's backdrop. */
@@ -445,7 +450,6 @@ function Strip(props: { page: Page; pages: Page[]; onPage: (page: Page) => void;
 
   if (props.page === 'chapters') {
     const now = () => currentChapter(p.chapters, state.player.time);
-    const conceal = hidden(p.item);
     open(Math.max(0, now()));
     return (
       <div class="strip">
@@ -461,14 +465,14 @@ function Strip(props: { page: Page; pages: Page[]; onPage: (page: Page) => void;
                 })}
               >
                 <div class="pic">
-                  <Show when={!conceal && c.thumb} fallback={<div class="num">{c.n}</div>}>
-                    {(thumb) => <img src={imageUrl(server, thumb(), 304, 171)} alt="" />}
+                  <Show when={c.thumb} fallback={<div class="num">{c.n}</div>}>
+                    {(thumb) => <img src={imageUrl(server, thumb(), 304, 171, hidden(p.item))} alt="" />}
                   </Show>
                   <Show when={i() === now()}>
                     <span class="tag">{t('player.now')}</span>
                   </Show>
                 </div>
-                <b>{!conceal && c.title ? c.title : t('player.chapter', { n: c.n })}</b>
+                <b>{episodeText(p.item, c.title) || t('player.chapter', { n: c.n })}</b>
                 <span>{clock(c.start)}</span>
               </div>
             )}
@@ -502,8 +506,8 @@ function Strip(props: { page: Page; pages: Page[]; onPage: (page: Page) => void;
             return (
               <div class="s-card" ref={card(i, () => (playing() ? props.onClose() : playEntry(m)), () => near(i()))}>
                 <div class="pic">
-                  <Show when={!hidden(m) && still(m)} fallback={<div class="num">{m.type === 'episode' ? `E${m.index ?? ''}` : ''}</div>}>
-                    {(path) => <img src={imageUrl(server, path(), 304, 171)} alt="" />}
+                  <Show when={still(m)} fallback={<div class="num">{m.type === 'episode' ? `E${m.index ?? ''}` : ''}</div>}>
+                    {(path) => <img src={imageUrl(server, path(), 304, 171, hidden(m))} alt="" />}
                   </Show>
                   <Show when={playing()}>
                     <span class="tag">{t('player.playing')}</span>

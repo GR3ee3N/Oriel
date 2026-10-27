@@ -2,7 +2,6 @@ import { createEffect, createMemo, createSignal, For, type JSX, on, onCleanup, S
 import { focusOn } from '../../nav';
 import { dataVersion } from '../../data';
 import { t } from '../../i18n';
-import { tileSubtitle, tileTitle } from '../../plex/format';
 import type { MediaContainer, Metadata } from '../../plex/types';
 import { Button, Message } from './Controls';
 import { SIZES, Tile } from './Tile';
@@ -200,7 +199,7 @@ export function Grid(props: GridProps) {
                   entry={index === last()}
                   autofocus={index === 0}
                   dim={!!item() && props.dim?.(item()!)}
-                  lines={props.lines && ((m) => props.lines!(m) ?? [tileTitle(m), tileSubtitle(m)])}
+                  lines={props.lines}
                   onFocus={() => {
                     setLast(index);
                     setRow(Math.floor(index / COLS));

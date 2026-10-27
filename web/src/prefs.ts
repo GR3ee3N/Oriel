@@ -82,7 +82,7 @@ export function saveLibraryState(key: string, state: LibraryState): void {
 let spoilers: Record<string, boolean> = {};
 const [spoilerVersion, setSpoilerVersion] = createSignal(0);
 
-/** Hide unwatched episode titles, summaries and stills for this profile. Off by default. */
+/** Hide unwatched episode titles and summaries and blur their stills for this profile. Off by default. */
 export function hidesUnwatched(profile: string | undefined): boolean {
   spoilerVersion();
   return !!profile && !!spoilers[profile];
