@@ -16,6 +16,7 @@ import { noticeMessage } from '../notice';
 import { Dialog } from './components/Dialog';
 import { answerExit, askExit, exitAsked } from './exit';
 import { answerFonts, fontsOffered, fontsSize, linkFonts } from '../fonts';
+import { homeReady } from '../boot';
 import { openRail } from './components/Rail';
 import { t } from '../i18n';
 
@@ -161,7 +162,9 @@ export function App() {
           onCancel={() => answerExit(false)}
         />
       </Show>
-      <Show when={fontsOffered() && session.phase === 'ready' && state.mode === 'browse' && !exitAsked()}>
+      {/* Offered once Home has appeared: the dialog takes focus, and Home's
+          backdrop and the end of the splash wait for a focused tile. */}
+      <Show when={fontsOffered() && session.phase === 'ready' && homeReady() && state.mode === 'browse' && !exitAsked()}>
         <Dialog
           title={t('fonts.offerTitle')}
           body={t('fonts.offerBody', { size: fontsSize() })}
