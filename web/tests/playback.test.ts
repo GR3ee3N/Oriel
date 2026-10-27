@@ -23,6 +23,7 @@ vi.mock('../src/player/bif', () => ({ Bif: {} }));
 vi.mock('../src/plex/playqueue', () => ({ createQueue: vi.fn(async () => Promise.reject(new Error('no queue'))), loadQueue: vi.fn() }));
 
 const { chooseAudio, playback, startPlayback } = await import('../src/player/playback');
+const { createQueue } = await import('../src/plex/playqueue');
 
 /** Movie fixture with bitrate `kbps`; values above the 4000 kbps limit require transcoding. */
 const movie = (ratingKey: string, kbps: number) =>
@@ -72,10 +73,40 @@ test('an older choice whose metadata comes late does not replace the newer playb
   const slow = deferred<Metadata>();
   api.metadata.mockReturnValueOnce(slow.promise).mockResolvedValueOnce(movie('B', 1000));
   const first = startPlayback(movie('A', 1000));
+  await vi.waitFor(() => expect(api.metadata).toHaveBeenCalledTimes(1));
   await startPlayback(movie('B', 1000));
   slow.resolve(movie('A', 1000));
   await first;
   expect(playback()?.item.ratingKey).toBe('B');
+  expect(paths()).toEqual(['/B']);
+});
+
+test('an older choice whose play queue comes late does not replace the newer playback', async () => {
+  const queue = deferred<Awaited<ReturnType<typeof createQueue>>>();
+  vi.mocked(createQueue).mockReturnValueOnce(queue.promise);
+  api.metadata.mockResolvedValue(movie('B', 1000));
+  const first = startPlayback(movie('A', 1000));
+  await startPlayback(movie('B', 1000));
+  queue.resolve({ queue: {} as never, selected: movie('A', 1000) });
+  await first;
+  expect(playback()?.item.ratingKey).toBe('B');
+  expect(paths()).toEqual(['/B']);
+});
+
+test('an older choice whose transcode decision returns while a newer one loads does not start', async () => {
+  const decision = deferred<{ generalDecisionCode: number }>();
+  const later = deferred<Metadata>();
+  api.metadata.mockResolvedValueOnce(movie('A', 20000)).mockReturnValueOnce(later.promise);
+  server.get.mockReturnValueOnce(decision.promise);
+  const first = startPlayback(movie('A', 20000));
+  await vi.waitFor(() => expect(server.get).toHaveBeenCalled());
+  const second = startPlayback(movie('B', 1000));
+  await vi.waitFor(() => expect(api.metadata).toHaveBeenCalledTimes(2));
+  decision.resolve({ generalDecisionCode: 1000 });
+  await first;
+  expect(played()).toEqual([]);
+  later.resolve(movie('B', 1000));
+  await second;
   expect(paths()).toEqual(['/B']);
 });
 

@@ -97,6 +97,14 @@ export { nextIn, nextShare, nextTimed };
 
 let bif: Promise<Bif | undefined> | undefined;
 let server: Server | undefined;
+/** The newest request to play something: a selection, a restore or an
+ * automatic next entry. Deferred and async steps drop out once it is superseded. */
+let requests = 0;
+/** Start a new request. It also cancels a stop waiting to start an earlier one. */
+function newRequest(): number {
+  playAfterStop = undefined;
+  return ++requests;
+}
 
 /** Play an item in a new play queue: an episode with the rest of its show,
  * anything else on its own. `media` picks a version of an item with several
@@ -108,32 +116,44 @@ export function startPlayback(item: Metadata, fromStart = false, media = 0): Pro
 /** Play a new play queue from its first entry, e.g. a shuffled collection.
  * Without one from the server, `fallback` plays on its own. */
 export async function startQueue(source: QueueSource, fromStart = false, media = 0, fallback?: Metadata): Promise<void> {
+  const request = newRequest();
   server = currentServer();
   const built = await createQueue(server, source).catch((e) => {
     console.warn(`playback: no play queue: ${e}`);
     return undefined;
   });
+  // A newer selection arrived while the queue was being created.
+  if (request !== requests) return;
   const first = built?.selected ?? fallback;
   if (!first) throw new Error('nothing to play');
   // A version chosen on the detail page applies to that item only.
-  await begin(first, fromStart, first.ratingKey === fallback?.ratingKey ? media : 0, built?.queue);
+  await begin(first, fromStart, first.ratingKey === fallback?.ratingKey ? media : 0, built?.queue, request);
 }
 
 /** Play `entry` of the current queue, resuming where it has a saved position. */
 export function playEntry(entry: Metadata, fromCredits = false): void {
+  const request = newRequest();
   if (state.player.state === 'idle' || !store.current) {
-    begin(entry, false, 0, store.queue).catch(warn('entry'));
+    begin(entry, false, 0, store.queue, request).catch(warn('entry'));
     return;
   }
-  playAfterStop = entry;
+  playAfterStop = { entry, request };
   stopFinished = fromCredits;
   send({ cmd: 'stop' });
 }
 
-async function begin(entry: Metadata, fromStart: boolean, media: number, queue: PlayQueue | undefined): Promise<void> {
+async function begin(
+  entry: Metadata,
+  fromStart: boolean,
+  media: number,
+  queue: PlayQueue | undefined,
+  request: number,
+): Promise<void> {
+  // A deferred start, such as one after a stop, may be superseded before it runs.
+  if (request !== requests) return;
   const s = (server = currentServer());
   const quality = s.local ? prefs.qualityLocal : prefs.qualityRemote;
-  const p = await prepare(s, entry.ratingKey, uuid(), quality, media, queue, entry.playQueueItemID);
+  const p = await prepare(s, entry.ratingKey, uuid(), quality, media, queue, entry.playQueueItemID, request);
   if (!p) return;
   try {
     await launch(fromStart ? 0 : (p.item.viewOffset ?? 0) / 1000);
@@ -170,20 +190,18 @@ export interface PlaybackNote {
 
 /** Restore page state for the existing Kodi playback without restarting it. */
 export async function adoptPlayback(note: PlaybackNote, id: string): Promise<void> {
+  const request = newRequest();
   const s = (server = currentServer());
   const queue = note.queue ? await loadQueue(s, note.queue, note.entry).catch(() => undefined) : undefined;
-  const p = await prepare(s, note.ratingKey, id, note.quality, note.media ?? 0, queue, queue && note.entry);
+  const p = await prepare(s, note.ratingKey, id, note.quality, note.media ?? 0, queue, queue && note.entry, request);
   if (!p) return;
   setStore('current', 'transcoded', note.transcoded);
   // The next position update triggers a timeline report for the restored session.
   console.log(`playback: picked up ${p.heading} (${id})`);
 }
 
-/** Reject metadata from requests superseded by a newer item selection. */
-let prepares = 0;
-
-/** Prepare the current item as `entry` of `queue`; return undefined if a
- * newer request supersedes it. */
+/** Prepare the current item as `entry` of `queue`; return undefined if
+ * `request` has been superseded by a newer one. */
 async function prepare(
   server: Server,
   ratingKey: string,
@@ -191,11 +209,11 @@ async function prepare(
   quality: number,
   media: number,
   queue: PlayQueue | undefined,
-  entry?: number,
+  entry: number | undefined,
+  request: number,
 ): Promise<Playback | undefined> {
-  const ours = ++prepares;
   const meta = await metadata(server, ratingKey);
-  if (ours !== prepares) {
+  if (request !== requests) {
     console.log(`playback: a newer playback replaced ${ratingKey}`);
     return undefined;
   }
@@ -244,7 +262,8 @@ async function prepare(
   return store.current!;
 }
 
-/** Prevent a launch waiting on Plex from replacing a newer launch, such as a seek. */
+/** Prevent a launch waiting on Plex from replacing a newer launch, such as a
+ * seek, or from starting once a newer request is under way. */
 let launches = 0;
 
 /** Start or replace Kodi playback at `at` seconds. Request a transcode when
@@ -253,9 +272,10 @@ async function launch(at: number): Promise<void> {
   const p = store.current;
   if (!p || !server) return;
   const ours = ++launches;
+  const request = requests;
   const overtaken = () => {
-    if (ours === launches) return false;
-    console.log(`playback: a newer launch replaced the one from ${Math.floor(at)} s`);
+    if (ours === launches && request === requests) return false;
+    console.log(`playback: a newer launch or request replaced the one from ${Math.floor(at)} s`);
     return true;
   };
   let q = quality(p.quality);
@@ -480,7 +500,7 @@ function finalCredits(m: Marker, p: Playback): boolean {
   return !!m.final || (end > 0 && m.endTimeOffset >= end);
 }
 /** The entry to start once Kodi has stopped the playing one. */
-let playAfterStop: Metadata | undefined;
+let playAfterStop: { entry: Metadata; request: number } | undefined;
 /** Report a stop during final credits as completion; long credits can start
  * before Plex's watched threshold. */
 let stopFinished = false;
@@ -563,11 +583,13 @@ createRoot(() => {
           p.transcoded && ending
             ? new Promise((done) => setTimeout(done, 2000)).then(() => stopTranscode(ending, p.id))
             : Promise.resolve();
-        const next = playAfterStop ?? (ended && !store.nextCancelled ? nextEntry() : undefined);
+        const queued = playAfterStop;
         playAfterStop = undefined;
+        const auto = !queued && ended && !store.nextCancelled ? nextEntry() : undefined;
+        const next = queued ?? (auto ? { entry: auto, request: newRequest() } : undefined);
         // The queue lives with playback: it ends when nothing follows.
         setStore({ current: undefined, ...(next ? {} : { queue: undefined }) });
-        if (next) stopped.then(() => begin(next, false, 0, store.queue)).catch(warn('next entry'));
+        if (next) stopped.then(() => begin(next.entry, false, 0, store.queue, next.request)).catch(warn('next entry'));
       },
     ),
   );
