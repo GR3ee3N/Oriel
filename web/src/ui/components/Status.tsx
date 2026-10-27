@@ -23,7 +23,7 @@ export function useClock() {
   return () => hhmm(now());
 }
 
-/** Clock at the top right of root pages; the rail's avatar names the profile. */
+/** Clock at the top right of browse and detail pages. */
 export function Status() {
   const clock = useClock();
   return (
@@ -33,7 +33,7 @@ export function Status() {
   );
 }
 
-/** Home button at the top right of detail pages. Down returns to the
+/** Home button beside the clock at the top right of detail pages. Down returns to the
  * page's main button, or its first item on collection and cast pages,
  * rather than the nearest thing below the corner. */
 export function DetailHead() {
@@ -48,6 +48,7 @@ export function DetailHead() {
   return (
     <div class="detail-head" ref={box}>
       <Button class="small" icon="home" label={t('action.home')} group="head" onSelect={goHome} onArrow={down} />
+      <Status />
     </div>
   );
 }

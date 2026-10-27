@@ -149,3 +149,4 @@
   color: var(--ink-2);
   z-index: 4;
 }
+.detail-head .status { position: static; }
