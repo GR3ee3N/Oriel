@@ -47,7 +47,7 @@ export function DetailHead() {
   };
   return (
     <div class="detail-head" ref={box}>
-      <Button class="small" icon="home" label={t('action.home')} group="head" onSelect={goHome} onArrow={down} />
+      <Button class="small" icon="home" label={t('action.home')} group="head" initial={false} onSelect={goHome} onArrow={down} />
       <Status />
     </div>
   );

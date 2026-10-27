@@ -81,6 +81,59 @@ test('an autofocus element that mounts later takes focus', async () => {
   expect(focused()).toBe(later);
 });
 
+test('a detail header waits for the primary action to mount', async () => {
+  const home = element();
+  const start = element();
+  const visits: string[] = [];
+  page([[home, { initial: false, onFocus: () => visits.push('home') }]]);
+  setScope('main', true);
+  await Promise.resolve();
+  expect(focused()).toBeNull();
+  const disposeHeader = dispose;
+  createRoot((cleanup) => {
+    dispose = () => {
+      cleanup();
+      disposeHeader();
+    };
+    focusable(start, { autofocus: true, onFocus: () => visits.push('start') });
+  });
+  await Promise.resolve();
+  expect(focused()).toBe(start);
+  expect(visits).toEqual(['start']);
+});
+
+test('arrows can focus Home while loading and keep it when the action arrives', async () => {
+  const home = element();
+  page([[home, { initial: false }]]);
+  await Promise.resolve();
+  expect(focused()).toBeNull();
+  expect(move('up')).toBe(true);
+  expect(focused()).toBe(home);
+  const disposeHeader = dispose;
+  createRoot((cleanup) => {
+    dispose = () => {
+      cleanup();
+      disposeHeader();
+    };
+    focusable(element(), { autofocus: true });
+  });
+  await Promise.resolve();
+  expect(focused()).toBe(home);
+});
+
+test('Home remains reachable and remembered after opening a detail page', async () => {
+  const home = box(1500, 64, 150, 56);
+  const start = box(120, 512, 250, 68);
+  page([[home, { initial: false }], [start, { autofocus: true }], [element(), { scope: 'other', autofocus: true }]]);
+  await Promise.resolve();
+  expect(focused()).toBe(start);
+  move('up');
+  expect(focused()).toBe(home);
+  setScope('other');
+  setScope('main');
+  expect(focused()).toBe(home);
+});
+
 // An element at a fixed place on a 1920×1080 page; `at` moves it.
 const box = (left: number, top: number, width: number, height: number) => {
   const el = element() as HTMLElement & { at: (left: number) => void };

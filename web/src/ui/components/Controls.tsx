@@ -10,6 +10,7 @@ interface ControlProps {
   sub?: JSX.Element;
   group?: string;
   autofocus?: boolean;
+  initial?: boolean;
   entry?: boolean;
   /** Show the selected state, such as a filter that is set. */
   on?: boolean;
@@ -24,6 +25,7 @@ function register(el: HTMLElement, props: ControlProps) {
   focusable(el, {
     group: props.group,
     autofocus: props.autofocus,
+    initial: props.initial,
     get entry() {
       return props.entry;
     },

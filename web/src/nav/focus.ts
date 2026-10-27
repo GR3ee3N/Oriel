@@ -17,6 +17,8 @@ export interface Options {
   onPlay?: () => unknown;
   onFocus?: () => void;
   autofocus?: boolean;
+  /** False keeps a control out of automatic initial focus; arrows still reach it. */
+  initial?: boolean;
   /** Target when entering the group from outside it. */
   entry?: boolean;
   /** Up and down stay among elements of the same area, such as an on-screen
@@ -57,10 +59,10 @@ function inScope(scope: string): HTMLElement[] {
   return out;
 }
 
-function restore(scope: string): void {
+function restore(scope: string, manual = false): void {
   const remembered = last.get(scope);
   if (remembered?.isConnected && entries.has(remembered) && !implicit) return focus(remembered);
-  const els = inScope(scope);
+  const els = inScope(scope).filter((el) => manual || entries.get(el)!.initial !== false);
   const auto = els.find((el) => entries.get(el)!.autofocus);
   const entry = els.find((el) => entries.get(el)!.entry);
   focus(auto ?? entry ?? els[0] ?? null);
@@ -172,7 +174,8 @@ let column: { el: HTMLElement; left: number; x: number } | null = null;
 export function move(direction: Direction): boolean {
   const from = current();
   if (!from?.isConnected) {
-    restore(activeScope());
+    restore(activeScope(), true);
+    implicit = false;
     return current() !== null;
   }
   const fromEntry = entries.get(from);
