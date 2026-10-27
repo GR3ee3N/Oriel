@@ -1,5 +1,5 @@
 import { createSignal, Show } from 'solid-js';
-import { play } from '../../actions';
+import { play, prefetch } from '../../actions';
 import { type Direction, focusable } from '../../nav';
 import { isWatched, progress, tileSubtitle, tileTitle, unwatched } from '../../plex/format';
 import { imageUrl } from '../../plex/images';
@@ -74,7 +74,10 @@ export function Tile(props: TileProps) {
             return props.entry;
           },
           autofocus: props.autofocus,
-          onFocus: props.onFocus,
+          onFocus: () => {
+            props.onFocus?.();
+            if (props.item) prefetch(props.item);
+          },
           onArrow: props.onArrow,
           onSelect: () => props.item && props.onSelect(),
           onPlay: () => props.item && play(props.item),

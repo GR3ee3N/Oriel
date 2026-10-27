@@ -39,6 +39,30 @@ export function firstSeason(seasons: Metadata[] | undefined, next?: Metadata): s
   return next?.parentRatingKey ?? (seasons?.find((s) => s.index !== 0) ?? seasons?.[0])?.ratingKey;
 }
 
+let prefetchTimer: ReturnType<typeof setTimeout> | undefined;
+
+/** Once focus settles on `item`, fetch what its page loads first, so
+ * opening it shows the page from the cache. Entries last one minute. */
+export function prefetch(item: Metadata): void {
+  clearTimeout(prefetchTimer);
+  prefetchTimer = setTimeout(() => {
+    const server = currentServer();
+    const quiet = <T>(p: Promise<T>) => p.catch(() => undefined);
+    if (item.type === 'movie') return void quiet(metadata(server, item.ratingKey));
+    const show = item.type === 'show' ? item.ratingKey : item.type === 'season' ? item.parentRatingKey : item.type === 'episode' ? item.grandparentRatingKey : undefined;
+    if (!show) return;
+    const details = quiet(metadata(server, show));
+    const seasons = quiet(children(server, show));
+    const season = item.type === 'season' ? item.ratingKey : item.type === 'episode' ? item.parentRatingKey : undefined;
+    if (season) return void quiet(children(server, season));
+    void details.then(async (s) => {
+      const next = s?.OnDeck?.Metadata?.[0];
+      const key = firstSeason(next ? undefined : await seasons, next);
+      if (key) await quiet(children(server, key));
+    });
+  }, 300);
+}
+
 /** List titles featuring `person` in the item's library. */
 export function openPerson(item: Metadata, person: Role): void {
   const filter = person.filter ?? (person.id !== undefined ? `actor=${person.id}` : undefined);
