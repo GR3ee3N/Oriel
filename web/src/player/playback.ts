@@ -464,7 +464,7 @@ async function ensureWatched(s: Server, p: Playback): Promise<void> {
   if (now > (p.item.viewCount ?? 0)) return;
   console.log(`playback: the server did not count ${p.heading}; marking it watched`);
   await setWatched(s, p.item.ratingKey, true);
-  // Refresh again because the initial post-playback reload preceded this update.
+  // Refresh again because the reload after the stop report preceded this update.
   refresh();
 }
 
@@ -570,11 +570,14 @@ createRoot(() => {
         const finished = ended || stopFinished;
         stopFinished = false;
         const end = finished ? (state.player.duration ?? state.player.time) : state.player.time;
-        const reported = report(p, 'stopped', end, state.player.duration);
-        if (finished && server) {
-          const s = server;
-          reported.then(() => ensureWatched(s, p)).catch(warn('watched'));
-        }
+        // Reload watch state and progress once the server has the final position.
+        const s = server;
+        report(p, 'stopped', end, state.player.duration)
+          .then(() => {
+            refresh();
+            if (finished && s) return ensureWatched(s, p);
+          })
+          .catch(warn('watched'));
         setPrompt(null);
         // Delay transcode cleanup until Kodi releases the stream; a late reconnect
         // would otherwise start the stopped transcode again.

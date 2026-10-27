@@ -66,7 +66,14 @@ export function Row(props: RowProps) {
           waiting = true;
           return setCol(0);
         }
-        if (!waiting) return;
+        if (!waiting) {
+          // A reload can change the focused tile's item without moving focus;
+          // report the new one so the page's information follows.
+          const held = focusedEl();
+          const i = held && section.contains(held) ? Number(held.dataset.index) : -1;
+          if (items[i]) focused(i, items[i]);
+          return;
+        }
         waiting = false;
         // A focused placeholder that had no item is gone, and nothing has the focus.
         const held = focusedEl();

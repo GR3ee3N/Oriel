@@ -1,6 +1,5 @@
 import { createEffect, createSignal, Match, on, onCleanup, onMount, Show, Switch } from 'solid-js';
 import { connect, ready, send, state } from '../bridge';
-import { refresh } from '../data';
 import { action } from '@oriel/web';
 import { back, move, playFocused, select, setScope } from '../nav';
 import { pop, top } from '../router';
@@ -41,8 +40,6 @@ export function App() {
     ),
   );
   linkFonts();
-  // Reload progress and watched state when returning from playback.
-  createEffect(on(() => state.mode, (mode, prev) => mode === 'browse' && prev && prev !== 'browse' && refresh()));
 
   // Use Kodi's configured idle delay for the browsing screensaver.
   const [saver, setSaver] = createSignal(false);
