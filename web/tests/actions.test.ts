@@ -6,7 +6,9 @@ vi.mock('../src/router', () => ({ push: vi.fn(), tab: vi.fn() }));
 vi.mock('../src/plex/api', () => ({ children: vi.fn(), metadata: vi.fn() }));
 vi.mock('../src/player/playback', () => ({ startPlayback: vi.fn(), startQueue: vi.fn() }));
 
-const { chooseVersion, chosenVersion } = await import('../src/actions');
+const { chooseVersion, chosenVersion, play } = await import('../src/actions');
+const { metadata } = await import('../src/plex/api');
+const { startPlayback } = await import('../src/player/playback');
 
 test('a version choice applies only on the server it was made on', () => {
   chooseVersion('1', 2);
@@ -16,4 +18,11 @@ test('a version choice applies only on the server it was made on', () => {
   chooseVersion('1', 1);
   session.serverId = 'A';
   expect(chosenVersion('1')).toBe(2);
+});
+
+test("playing a show starts the next episode Plex names in the show's reply", async () => {
+  const next = { ratingKey: 'e5', key: '', type: 'episode', title: 'E5' };
+  vi.mocked(metadata).mockResolvedValueOnce({ ratingKey: 's', key: '', type: 'show', title: 'S', OnDeck: { Metadata: next } });
+  await play({ ratingKey: 's', key: '', type: 'show', title: 'S' });
+  expect(startPlayback).toHaveBeenCalledWith(next, false, 0);
 });

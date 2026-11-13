@@ -3,7 +3,7 @@ import type { Server } from '../src/plex/client';
 import type { Metadata } from '../src/plex/types';
 
 const get = vi.fn(async (path: string): Promise<unknown> => {
-  if (path === '/library/metadata/next') return { Metadata: [{ ratingKey: 'next', OnDeck: { Metadata: [{ parentRatingKey: 'season-2' }] } }] };
+  if (path === '/library/metadata/next') return { Metadata: [{ ratingKey: 'next', OnDeck: { Metadata: { parentRatingKey: 'season-2' } } }] };
   if (path === '/library/metadata/next/children' || path === '/library/metadata/first/children')
     return { Metadata: [{ ratingKey: 'specials', index: 0 }, { ratingKey: 'season-1', index: 1 }] };
   if (path.startsWith('/library/metadata/')) return { Metadata: [{ ratingKey: path.split('/')[3] }] };

@@ -83,8 +83,8 @@ export function sectionItems(server: Server, section: string, query: SectionQuer
 }
 
 export interface Details extends Metadata {
-  /** Next episode supplied by includeOnDeck. */
-  OnDeck?: { Metadata?: Metadata[] };
+  /** Next episode supplied by includeOnDeck, as one object rather than a list. */
+  OnDeck?: { Metadata?: Metadata };
 }
 
 /** Item metadata including media versions, parts, streams, markers, chapters and images. */

@@ -56,7 +56,7 @@ export function prefetch(item: Metadata): void {
     const season = item.type === 'season' ? item.ratingKey : item.type === 'episode' ? item.parentRatingKey : undefined;
     if (season) return void quiet(children(server, season));
     void details.then(async (s) => {
-      const next = s?.OnDeck?.Metadata?.[0];
+      const next = s?.OnDeck?.Metadata;
       const key = firstSeason(next ? undefined : await seasons, next);
       if (key) await quiet(children(server, key));
     });
@@ -89,7 +89,7 @@ export async function play(item: Metadata, fromStart = false): Promise<void> {
   const server = currentServer();
   if (item.type === 'show') {
     const show = await metadata(server, item.ratingKey);
-    const next = show?.OnDeck?.Metadata?.[0] ?? (await firstEpisode(show?.ratingKey));
+    const next = show?.OnDeck?.Metadata ?? (await firstEpisode(show?.ratingKey));
     if (next) return play(next);
     return;
   }

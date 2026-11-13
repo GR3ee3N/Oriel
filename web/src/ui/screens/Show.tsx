@@ -53,7 +53,7 @@ export function Show(props: { ratingKey: string; season?: string; episode?: stri
     ([key]) => metadata(currentServer(), key).catch(() => undefined),
   );
   const [more] = createResource(() => props.ratingKey, (key) => related(currentServer(), key).catch(() => []));
-  const next = () => current()?.item.OnDeck?.Metadata?.[0];
+  const next = () => current()?.item.OnDeck?.Metadata;
 
   // The requested season, else the next episode's: either starts its
   // episodes loading alongside the season list. Without both, wait for the list.
