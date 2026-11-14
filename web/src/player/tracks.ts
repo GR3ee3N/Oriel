@@ -7,6 +7,7 @@
 // Fall back to container order when the match is missing or ambiguous.
 
 import type { SubtitleTrack } from '@oriel/web';
+import { t } from '../i18n';
 import type { AudioStream, SubtitleStream, Version } from '../media/model';
 
 export interface Track<S extends AudioStream | SubtitleStream = AudioStream | SubtitleStream> {
@@ -42,7 +43,7 @@ function language(s: AudioStream | SubtitleStream): string {
       // Invalid language tags fall through to the track title.
     }
   }
-  return s.name || 'Unknown';
+  return s.name || t('track.unknown');
 }
 
 const plain = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, '');
@@ -56,19 +57,18 @@ function audioDetail(s: AudioStream): string {
 }
 
 function subtitleDetail(s: SubtitleStream): string {
-  return [s.forced ? 'Forced' : '', s.hearingImpaired ? 'SDH' : '', s.title, s.codec?.toUpperCase(), s.file ? 'File' : '']
+  return [s.forced ? t('track.forced') : '', s.hearingImpaired ? t('track.sdh') : '', s.title, s.codec?.toUpperCase(), s.file ? t('track.file') : '']
     .filter(Boolean)
     .join(' · ');
 }
 
 /** Append file track numbers to otherwise identical labels. */
 function distinct<T extends Track>(tracks: T[]): T[] {
+  const key = (x: T) => `${x.label}|${x.detail}`;
   const seen = new Map<string, number>();
-  for (const t of tracks) seen.set(`${t.label}|${t.detail}`, (seen.get(`${t.label}|${t.detail}`) ?? 0) + 1);
-  return tracks.map((t, i) =>
-    (seen.get(`${t.label}|${t.detail}`) ?? 0) > 1
-      ? { ...t, detail: [t.detail, `track ${i + 1}`].filter(Boolean).join(' · ') }
-      : t,
+  for (const x of tracks) seen.set(key(x), (seen.get(key(x)) ?? 0) + 1);
+  return tracks.map((x, i) =>
+    (seen.get(key(x)) ?? 0) > 1 ? { ...x, detail: [x.detail, t('track.number', { n: i + 1 })].filter(Boolean).join(' · ') } : x,
   );
 }
 
@@ -106,7 +106,7 @@ export function subtitleTracks(version: Version): Track<SubtitleStream>[] {
   ]);
 }
 
-export const SUBTITLES_OFF: Track<SubtitleStream> = { id: 0, label: 'Off', detail: '', kodi: -1, selected: false };
+export const SUBTITLES_OFF: Track<SubtitleStream> = { id: 0, label: t('details.subtitlesOff'), detail: '', kodi: -1, selected: false };
 
 /** Compare Kodi's and the server's language tags such as "de" and "pt-BR". */
 const sameLanguage = (kodi: string, s: SubtitleStream) =>
