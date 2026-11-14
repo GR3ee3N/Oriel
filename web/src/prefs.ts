@@ -13,7 +13,7 @@ interface Prefs {
   /** Reuse the last profile at startup without asking for its PIN
    * (session.ts). */
   autoSignIn: boolean;
-  /** Skip intros after the countdown unless dismissed (player/playback.ts). */
+  /** Skip intros after the countdown unless dismissed (player/prompts.ts). */
   autoSkipIntro: boolean;
   /** Skip credits automatically, including credits followed by another scene. */
   autoSkipCredits: boolean;
