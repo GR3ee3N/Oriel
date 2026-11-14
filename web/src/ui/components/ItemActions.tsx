@@ -111,13 +111,13 @@ export function WatchlistButton(props: { item: Item; group?: string; class?: str
 export const trackHint = () =>
   provider().features.savedTracks ? t('details.trackHint', { server: session.serverName ?? '' }) : t('details.trackHintHere');
 
-export type TrackPanel = 'audio' | 'subtitles' | 'version';
+type TrackPanel = 'audio' | 'subtitles' | 'version';
 
 /** Version, audio & subtitle choice for the file Play starts. A choice is
  * saved where `trackHint` says, and used by the next Play. The tracks come
  * from the item's full details, as the player reads them. `Panels` renders
  * the list `open` asked for. */
-export function useTracks(item: () => Item | undefined) {
+function useTracks(item: () => Item | undefined) {
   const [details] = createResource(
     () => {
       const i = item();

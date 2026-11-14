@@ -8,7 +8,7 @@ import { createImage } from './image';
 import { episodeTitle } from '../../media/spoilers';
 import './info.css';
 
-export const LOGO = { w: 720, h: 240 };
+const LOGO = { w: 720, h: 240 };
 
 /** Sized title-logo URL when the server supplied one; episodes use the show logo. */
 export function logoFor(item: Item | undefined): string | undefined {
@@ -83,7 +83,7 @@ function Title(props: { text: string }) {
   );
 }
 
-export interface InfoProps {
+interface InfoProps {
   item: Item;
   /** Fall back to title text when the logo is absent or fails to load. */
   logo?: string;

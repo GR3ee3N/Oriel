@@ -4,7 +4,7 @@ import type { FoundServer } from './media/account';
 import type { PlaybackNote } from './player/playback';
 
 /** The optional fonts' download (addon/fonts.py); null when the build has none. */
-export interface Fonts {
+interface Fonts {
   status: 'missing' | 'downloading' | 'installed' | 'outdated' | 'failed';
   /** Download size in bytes. */
   size: number;
@@ -17,12 +17,12 @@ export interface Fonts {
 }
 
 /** Jellyfin servers that answered on the box's network (addon/discovery.py). */
-export interface Discovery {
+interface Discovery {
   searching: boolean;
   servers: FoundServer[];
 }
 
-export type State = VideoState<PlaybackNote> & {
+type State = VideoState<PlaybackNote> & {
   /** Enables page-side key handling for the simulated add-on in tools/desktop.py. */
   desktop?: boolean;
   fonts: Fonts | null;

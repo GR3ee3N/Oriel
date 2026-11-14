@@ -44,7 +44,7 @@ export interface MediaSource {
 
 /** Scrub previews at one width: sheets of `TileWidth`×`TileHeight` frames,
  * one every `Interval` ms. */
-export interface TrickplayInfo {
+interface TrickplayInfo {
   Width: number;
   Height: number;
   TileWidth: number;

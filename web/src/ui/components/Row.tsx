@@ -7,7 +7,7 @@ import './row.css';
 
 const GAP = 32;
 
-export interface RowProps {
+interface RowProps {
   title: string;
   /** Undefined while loading: placeholder tiles hold the row's place and
    * take focus, and the same tiles show the items when they arrive. */

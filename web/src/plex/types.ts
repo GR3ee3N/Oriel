@@ -15,7 +15,7 @@ export interface MediaContainer<T = Metadata> {
   Hub?: Hub[];
 }
 
-export type MetadataType = 'movie' | 'show' | 'season' | 'episode' | 'collection' | 'clip' | string;
+type MetadataType = 'movie' | 'show' | 'season' | 'episode' | 'collection' | 'clip' | string;
 
 export interface Metadata {
   ratingKey: string;

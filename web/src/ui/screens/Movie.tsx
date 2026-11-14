@@ -20,7 +20,7 @@ import { createItem } from './item';
 import './details.css';
 
 // Rows start at y=770 under the info; scrolled rows move up to y=182.
-export const DETAIL_LEAD = 588;
+const DETAIL_LEAD = 588;
 
 /** Movie details, playback and watched controls, followed by cast, extras and recommendations. */
 export function Movie(props: { id: string }) {

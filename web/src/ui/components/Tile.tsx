@@ -18,7 +18,7 @@ export const SIZES: Record<TileShape, { w: number; h: number }> = {
 
 /** Use posters for portrait tiles, including the show's poster for episodes.
  * Wide tiles use episode stills or item artwork. */
-export function tileImage(item: Item, shape: TileShape): string | undefined {
+function tileImage(item: Item, shape: TileShape): string | undefined {
   const art = item.art;
   if (shape === 'wide') return item.kind === 'episode' ? (art.image ?? art.backdrop) : (art.backdrop ?? art.image);
   if (item.kind === 'episode') return art.showImage ?? art.seasonImage ?? art.image;
@@ -34,7 +34,7 @@ export function tileImageUrl(item: Item, shape: TileShape): string | undefined {
     : undefined;
 }
 
-export interface TileProps {
+interface TileProps {
   /** Undefined items render focusable placeholders while loading. */
   item?: Item;
   shape?: TileShape;

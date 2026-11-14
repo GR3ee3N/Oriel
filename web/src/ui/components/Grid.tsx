@@ -7,7 +7,7 @@ import { Button, Message } from './Controls';
 import { SIZES, Tile } from './Tile';
 import './grid.css';
 
-export const COLS = 6;
+const COLS = 6;
 const GAP = 24;
 // Poster, caption and row gap.
 const PITCH = 436;
@@ -17,7 +17,7 @@ const PAGE = 72;
 const BEFORE = 2;
 const AFTER = 3;
 
-export interface GridProps {
+interface GridProps {
   /** Load `size` items at offset `start`. */
   load: (start: number, size: number) => Promise<Paged<Item>>;
   /** A new key reloads from the first page; the old items stay until it arrives. */

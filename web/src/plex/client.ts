@@ -45,7 +45,7 @@ export interface RequestOptions {
   timeout?: number;
 }
 
-export function withParams(url: string, params: Record<string, string | number | boolean | undefined>): string {
+function withParams(url: string, params: Record<string, string | number | boolean | undefined>): string {
   const u = new URL(url);
   for (const [k, v] of Object.entries(params)) if (v !== undefined) u.searchParams.set(k, String(v));
   return u.toString();

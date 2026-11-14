@@ -29,7 +29,7 @@ export async function homeHubs(server: Server): Promise<Hub[]> {
   return mc.Hub ?? [];
 }
 
-export interface SectionQuery {
+interface SectionQuery {
   /** Plex sort expression, e.g. 'titleSort' or 'addedAt:desc'. */
   sort?: string;
   unwatched?: boolean;

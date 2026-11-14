@@ -14,7 +14,7 @@ import { Info, logoReady, metaFor } from './Info';
 // Longest wait for slow artwork; the backdrop follows when it arrives.
 const BACKDROP_WAIT = 1000;
 
-export interface HeroState {
+interface HeroState {
   item: Item;
   logo?: string;
   /** Full item with streams, for HDR and audio badges. */

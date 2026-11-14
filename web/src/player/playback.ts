@@ -76,8 +76,8 @@ export { introIn };
 /** Up next counts down this many seconds of playback in the final credits,
  * then starts the next entry; Back cancels that. Without a credits marker
  * it shows NEXT_BEFORE_END s before the end and the next entry follows the end. */
-export const NEXT_AFTER = 10;
-export const NEXT_BEFORE_END = 30;
+const NEXT_AFTER = 10;
+const NEXT_BEFORE_END = 30;
 /** In the credits: milliseconds of playback left, when they last ran down
  * (performance.now()) and the timer running them, as for Skip intro. */
 let nextLeft: number | undefined;
@@ -108,7 +108,7 @@ function newRequest(): number {
 }
 
 /** What starting an item reads from it. */
-export type PlayRef = Pick<Item, 'id' | 'kind'>;
+type PlayRef = Pick<Item, 'id' | 'kind'>;
 
 /** Play an item in a new play queue: an episode with the rest of its show,
  * anything else on its own. `version` picks one of an item's files, e.g. 4K

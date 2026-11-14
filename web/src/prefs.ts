@@ -5,7 +5,7 @@ import { createStore } from 'solid-js/store';
 import type { Sort } from './media/model';
 import { type LibraryState, type Saved, save } from './store';
 
-export interface Prefs {
+interface Prefs {
   /** Local and remote bitrate limits in kbps; 0 requests the original file
    * (player/quality.ts). */
   qualityLocal: number;
@@ -68,7 +68,7 @@ export function loadPrefs(saved: Saved): void {
 
 let libraries: Record<string, LibraryState> = {};
 
-export const LIBRARY_DEFAULT: LibraryState = { view: 'library', sort: 'title', unwatched: false, filters: {} };
+const LIBRARY_DEFAULT: LibraryState = { view: 'library', sort: 'title', unwatched: false, filters: {} };
 
 // Oriel 0.4 saved library sorts and filter fields under Plex's names.
 const PLEX_SORTS: Record<string, Sort> = {

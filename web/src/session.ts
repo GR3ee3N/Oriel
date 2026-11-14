@@ -28,7 +28,7 @@ import type { MenuOption } from './ui/components/Menu';
 
 export type { ServerChoice };
 
-export type Phase = 'loading' | 'address' | 'signin' | 'users' | 'connecting' | 'ready' | 'error';
+type Phase = 'loading' | 'address' | 'signin' | 'users' | 'connecting' | 'ready' | 'error';
 
 interface Session {
   phase: Phase;

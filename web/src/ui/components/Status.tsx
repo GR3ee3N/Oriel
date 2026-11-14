@@ -15,7 +15,7 @@ function tick() {
   clockTimer = setTimeout(tick, 60_000 - (Date.now() % 60_000) + 50);
 }
 
-export function useClock() {
+function useClock() {
   if (clockUsers++ === 0) tick();
   onCleanup(() => {
     if (--clockUsers === 0) clearTimeout(clockTimer);

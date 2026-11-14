@@ -6,7 +6,7 @@
 import { PlexError, plexTv } from './client';
 import type { HomeUser, User } from './types';
 
-export interface Pin {
+interface Pin {
   id: number;
   code: string;
   /** Expiry timestamp in milliseconds since the Unix epoch. */
