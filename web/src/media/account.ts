@@ -6,6 +6,7 @@ import type { Provider } from './provider';
 
 /** A code the user enters on another device to sign in. */
 export interface SignInCode {
+  /** Empty when the server takes no codes, leaving only the password. */
   code: string;
   /** The sign-in screen's heading, e.g. "Sign in to Plex". */
   title: string;
@@ -18,7 +19,7 @@ export interface Profile {
   id: string;
   name: string;
   photo?: string;
-  /** Switching to it asks for a PIN. */
+  /** Switching to it asks for a PIN; signing in as it asks for a password. */
   protected?: boolean;
 }
 
@@ -48,6 +49,13 @@ export interface Account {
     /** Keep a server found on the network, at the first of its addresses
      * that answers as that server; throws a sentence when none does. */
     choose(server: FoundServer): Promise<void>;
+  };
+  /** For accounts that also sign in with a user name and password. */
+  password?: {
+    /** Users the server lists for its sign-in screen; servers can hide them. */
+    users(): Promise<Profile[]>;
+    /** Sign in and add the profile; a wrong name or password throws ServerError 401. */
+    signIn(name: string, password: string): Promise<void>;
   };
   /** `signIn` adds a profile beside the saved ones, so the picker offers it. */
   addsProfiles?: boolean;

@@ -44,6 +44,8 @@ interface Session {
   multiUser: boolean;
   /** The picker can add a profile by signing in another person. */
   canAddUser: boolean;
+  /** Sign-in also takes a user name and password. */
+  canUsePassword: boolean;
   /** Last profile id, used for initial focus in the picker. */
   lastUser?: string;
   /** Counts profiles picked in the picker; each pick starts Home at its first row. */
@@ -67,6 +69,7 @@ const [session, setSession] = createStore<Session>({
   playlists: 0,
   multiUser: false,
   canAddUser: false,
+  canUsePassword: false,
   picks: 0,
 });
 export { session };
@@ -106,7 +109,7 @@ export async function start(): Promise<void> {
       await save({ clientId: saved.clientId });
     }
     account = await openAccount(saved.clientId);
-    setSession({ canAddUser: !!account.addsProfiles });
+    setSession({ canAddUser: !!account.addsProfiles, canUsePassword: !!account.password });
     if (account.address && !account.address.known()) return setSession({ phase: 'address' });
     if (!(await account.restore())) return signIn();
     await afterSignIn(account);
@@ -151,6 +154,24 @@ export async function setAddress(text: string): Promise<void> {
 export async function setFoundServer(server: FoundServer): Promise<void> {
   await account!.address!.choose(server);
   await signIn();
+}
+
+/** Users the server lists on its sign-in screen. */
+export function passwordUsers(): Promise<Profile[]> {
+  return account?.password?.users() ?? Promise.resolve([]);
+}
+
+/** Sign in with a user name and password in place of the code. A wrong
+ * name or password throws ServerError for the sign-in screen to display. */
+export async function signInWithPassword(name: string, password: string): Promise<void> {
+  const a = account!;
+  await a.password!.signIn(name, password);
+  signin?.abort();
+  try {
+    await afterSignIn(a);
+  } catch (e) {
+    fail(e);
+  }
 }
 
 /** Sign in another person beside the saved profiles. */

@@ -58,6 +58,20 @@
 .user > span, .user b { font-size: var(--t-body); font-weight: 600; color: var(--ink-2); }
 .user.focused > span, .user.focused b { color: var(--ink); }
 .user small { font-size: var(--t-caption); color: var(--ink-3); min-height: 1.35em; }
+/* The server's users under the sign-in code, smaller than the profile picker's. */
+.signin .user-row { margin-top: 32px; gap: 40px; }
+.signin .user { min-width: 160px; gap: 14px; white-space: nowrap; }
+.signin .user .avatar { width: 120px; height: 120px; font-size: 52px; }
+.signin .user .avatar .icon { width: 56px; height: 56px; }
+.signin .code + .lead, .signin .code.dim + .lead { margin-top: 0; }
+/* User name and password fields above the keyboard; keys keep their case. */
+.credentials .keyboard { top: 180px; }
+.credentials .keyboard .query { margin-bottom: 14px; outline: 4px solid transparent; outline-offset: -4px; }
+.credentials .keyboard .query + .keys { margin-top: 20px; }
+.credentials .keyboard .query.focused { outline-color: var(--accent); }
+.keyboard.exact .key { text-transform: none; }
+.keyboard .key.on { color: var(--accent); }
+.keyboard .key.on.focused { color: var(--accent-text); }
 /* Keep all four PIN dots filled and pulsing during validation; shake them
    when plex.tv rejects the PIN. */
 .pinpad { display: flex; flex-direction: column; align-items: center; }

@@ -13,7 +13,7 @@ vi.mock('../src/store', () => ({
 vi.mock('../src/bridge', () => ({ runId: vi.fn(async () => 'run-1') }));
 
 /** A Jellyfin server answering Quick Connect; `approve` lets the next poll through. */
-const server = vi.hoisted(() => ({ approved: false, user: 'u1', calls: [] as { path: string; auth: string }[] }));
+const server = vi.hoisted(() => ({ approved: false, quickConnect: true, user: 'u1', calls: [] as { path: string; auth: string }[] }));
 vi.stubGlobal(
   'fetch',
   vi.fn(async (url: URL, init: RequestInit) => {
@@ -21,7 +21,13 @@ vi.stubGlobal(
     server.calls.push({ path, auth: (init.headers as Record<string, string>).Authorization });
     const json = (body: unknown) => new Response(JSON.stringify(body), { status: 200 });
     if (path === '/System/Info/Public') return url.protocol === 'https:' ? json({ Id: 'srv', ServerName: 'Home', Version: '12.4.0' }) : new Response('', { status: 404 });
-    if (path === '/QuickConnect/Enabled') return json(true);
+    if (path === '/QuickConnect/Enabled') return json(server.quickConnect);
+    if (path === '/Users/Public') return json([{ Id: 'u1', Name: 'Ann', PrimaryImageTag: 'p1', HasPassword: true }, { Id: 'u3', Name: 'Kid', HasPassword: false }]);
+    if (path === '/Users/AuthenticateByName') {
+      const { Username, Pw } = JSON.parse(init.body as string);
+      if (Username !== 'Ann' || Pw !== 'right') return new Response('', { status: 401 });
+      return json({ AccessToken: 'token-ann', User: { Id: 'u1', Name: 'Ann', PrimaryImageTag: 'p1' } });
+    }
     if (path === '/QuickConnect/Initiate') return json({ Code: '123456', Secret: 'sec', Authenticated: false });
     if (path === '/QuickConnect/Connect') return json({ Code: '123456', Secret: 'sec', Authenticated: server.approved });
     if (path === '/Users/AuthenticateWithQuickConnect') return json({ AccessToken: `token-${server.user}`, User: { Id: server.user, Name: server.user.toUpperCase() } });
@@ -34,6 +40,7 @@ const { candidates, jellyfinAccount } = await import('../src/jellyfin/account');
 beforeEach(() => {
   store.data = {};
   server.approved = false;
+  server.quickConnect = true;
   server.calls = [];
 });
 
@@ -76,4 +83,31 @@ test('a server found on the network is kept at the first of its addresses that a
   expect(store.data.server).toBeUndefined();
   await account.address!.choose({ id: 'srv', name: 'Home', addresses: ['http://172.17.0.2:8096', 'https://media.example.com'] });
   expect(store.data.server).toEqual({ address: 'https://media.example.com', id: 'srv', name: 'Home' });
+});
+
+test('a user name and password sign in and add a profile; the listed users say who needs a password', async () => {
+  const account = await jellyfinAccount('device-1');
+  await account.address!.set('media.example.com');
+  expect(await account.password!.users()).toEqual([
+    { id: 'u1', name: 'Ann', photo: 'https://media.example.com/Users/u1/Images/Primary?tag=p1&maxHeight=240', protected: true },
+    { id: 'u3', name: 'Kid', photo: undefined, protected: false },
+  ]);
+  await expect(account.password!.signIn('Ann', 'wrong')).rejects.toMatchObject({ status: 401 });
+  expect(store.data.users).toEqual([]);
+  await account.password!.signIn('Ann', 'right');
+  expect(store.data).toMatchObject({ users: [{ id: 'u1', name: 'Ann', token: 'token-ann', photo: expect.stringContaining('tag=p1') }], userId: 'u1' });
+  expect(server.calls.find((c) => c.path === '/Users/AuthenticateByName')?.auth).toMatch(/^MediaBrowser Client="Oriel", Device="Kodi", DeviceId="device-1"/);
+});
+
+test('without Quick Connect the sign-in screen shows no code and waits for the password', async () => {
+  server.quickConnect = false;
+  const account = await jellyfinAccount('device-1');
+  await account.address!.set('media.example.com');
+  const show = vi.fn();
+  const abort = new AbortController();
+  const waiting = account.signIn(show, abort.signal);
+  await vi.waitFor(() => expect(show).toHaveBeenCalledWith({ code: '', title: 'Sign in to Home', hint: '' }));
+  abort.abort();
+  await waiting;
+  expect(server.calls.some((c) => c.path === '/QuickConnect/Initiate')).toBe(false);
 });

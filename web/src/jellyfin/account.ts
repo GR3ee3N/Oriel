@@ -1,9 +1,9 @@
 // A Jellyfin server's users as an Account. The user picks a server found on
 // the network or types its address; each person then signs in with Quick
-// Connect: Dormer shows a code, and
-// they approve it in a browser where they're signed in to the server. Servers
-// can hide their user list, so the profiles are the users who signed in on
-// this box, each with its own token; signing in again adds another.
+// Connect, approving the code Dormer shows in a browser where they're signed
+// in to the server, or with their user name and password. Servers can hide
+// their user list, so the profiles are the users who signed in on this box,
+// each with its own token; signing in again adds another.
 
 import { runId } from '../bridge';
 import { t } from '../i18n';
@@ -26,6 +26,13 @@ interface Authenticated {
   User: { Id: string; Name: string; PrimaryImageTag?: string };
 }
 
+interface PublicUser {
+  Id: string;
+  Name: string;
+  PrimaryImageTag?: string;
+  HasPassword: boolean;
+}
+
 /** Quick Connect codes last ten minutes on the server; start a new one before. */
 const CODE_LIFE = 9 * 60_000;
 
@@ -39,6 +46,7 @@ export function candidates(text: string): string[] {
 }
 
 const profileOf = (u: SavedUser): Profile => ({ id: u.id, name: u.name, photo: u.photo });
+const photoOf = (address: string, id: string, tag?: string) => (tag ? `${address}/Users/${id}/Images/Primary?tag=${tag}&maxHeight=240` : undefined);
 
 export async function jellyfinAccount(clientId: string): Promise<Account> {
   setDeviceId(clientId);
@@ -79,6 +87,16 @@ export async function jellyfinAccount(clientId: string): Promise<Account> {
     }
     return false;
   };
+  /** Keep a signed-in user as a profile beside the others and use it. */
+  const added = async (auth: Authenticated) => {
+    const u = auth.User;
+    const user: SavedUser = { id: u.Id, name: u.Name, token: auth.AccessToken };
+    const photo = photoOf(server!.address, u.Id, u.PrimaryImageTag);
+    if (photo) user.photo = photo;
+    users = [...users.filter((x) => x.id !== user.id), user];
+    await keep({ users });
+    await use(user);
+  };
 
   return {
     addsProfiles: true,
@@ -91,6 +109,16 @@ export async function jellyfinAccount(clientId: string): Promise<Account> {
         if (!(await reach(found.addresses, found.id))) throw new Error(t('start.notAnswering', { server: found.name }));
       },
     },
+    password: {
+      users: async () => {
+        const at = server!.address;
+        const list = await request<PublicUser[]>(at, '/Users/Public').catch(() => []);
+        return list.map((u) => ({ id: u.Id, name: u.Name, photo: photoOf(at, u.Id, u.PrimaryImageTag), protected: u.HasPassword }));
+      },
+      signIn: async (name, password) => {
+        await added(await request<Authenticated>(server!.address, '/Users/AuthenticateByName', { method: 'POST', body: { Username: name, Pw: password } }));
+      },
+    },
     restore: async () => {
       if (!server) return false;
       const last = users.find((u) => u.id === saved.userId) ?? users[0];
@@ -99,7 +127,12 @@ export async function jellyfinAccount(clientId: string): Promise<Account> {
     },
     signIn: async (show, signal) => {
       const at = server!;
-      if (!(await request<boolean>(at.address, '/QuickConnect/Enabled'))) throw new Error(t('start.quickConnectOff', { server: at.name }));
+      // Without Quick Connect the sign-in screen offers only the password.
+      if (!(await request<boolean>(at.address, '/QuickConnect/Enabled', { signal }))) {
+        show({ code: '', title: t('start.signInTo', { server: at.name }), hint: '' });
+        await new Promise((done) => signal.addEventListener('abort', done, { once: true }));
+        return;
+      }
       while (!signal.aborted) {
         const started = Date.now();
         let qc = await request<QuickConnect>(at.address, '/QuickConnect/Initiate', { method: 'POST', signal });
@@ -113,13 +146,7 @@ export async function jellyfinAccount(clientId: string): Promise<Account> {
           });
           if (!qc.Secret) break;
           if (!qc.Authenticated) continue;
-          const auth = await request<Authenticated>(at.address, '/Users/AuthenticateWithQuickConnect', { method: 'POST', body: { Secret: qc.Secret }, signal });
-          const u = auth.User;
-          const user: SavedUser = { id: u.Id, name: u.Name, token: auth.AccessToken };
-          if (u.PrimaryImageTag) user.photo = `${at.address}/Users/${u.Id}/Images/Primary?tag=${u.PrimaryImageTag}&maxHeight=240`;
-          users = [...users.filter((x) => x.id !== user.id), user];
-          await keep({ users });
-          await use(user);
+          await added(await request<Authenticated>(at.address, '/Users/AuthenticateWithQuickConnect', { method: 'POST', body: { Secret: qc.Secret }, signal }));
           return;
         }
       }

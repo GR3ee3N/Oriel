@@ -47,9 +47,9 @@ Oriel signs in through **plex.tv/link**: open it on your phone or computer
 and enter the code shown on the TV.
 
 Dormer lists the Jellyfin servers it finds on your network; pick yours or
-type its address. It then shows a Quick Connect code. Enter it under
-**Quick Connect** in your Jellyfin user settings; the code signs in the user
-who enters it. The server's administrator has to switch Quick Connect on in
-the dashboard's general settings.
+type its address. Sign in with your user name and password, or enter the
+Quick Connect code it shows under **Quick Connect** in your Jellyfin user
+settings; the code signs in the user who enters it. Quick Connect works once
+the server's administrator switches it on in the dashboard's general settings.
 
 See [DEVELOPMENT.md](DEVELOPMENT.md) for setup, builds and device testing.
