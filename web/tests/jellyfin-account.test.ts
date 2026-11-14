@@ -11,6 +11,8 @@ vi.mock('../src/store', () => ({
   }),
 }));
 vi.mock('../src/bridge', () => ({ runId: vi.fn(async () => 'run-1') }));
+const fonts = vi.hoisted(() => ({ noteText: vi.fn() }));
+vi.mock('../src/fonts', () => fonts);
 
 /** A Jellyfin server answering Quick Connect; `approve` lets the next poll through. */
 const server = vi.hoisted(() => ({ approved: false, quickConnect: true, user: 'u1', calls: [] as { path: string; auth: string }[] }));
@@ -110,4 +112,10 @@ test('without Quick Connect the sign-in screen shows no code and waits for the p
   abort.abort();
   await waiting;
   expect(server.calls.some((c) => c.path === '/QuickConnect/Initiate')).toBe(false);
+});
+
+test('text the server sends is checked for characters only the extra fonts draw', async () => {
+  const account = await jellyfinAccount('client-1');
+  await account.address!.set('media.example.com');
+  expect(fonts.noteText).toHaveBeenCalledWith(expect.stringContaining('"ServerName":"Home"'));
 });

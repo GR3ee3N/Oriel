@@ -1,8 +1,8 @@
 // The optional extra fonts: colour emoji and scripts the built-in fonts lack.
 // The add-on downloads them (addon/fonts.py) and serves them under
 // /files/fonts, whose fonts.css sets the --extra-fonts list in theme.css.
-// Oriel offers the download once, when Plex first sends text in one of the
-// scripts they add.
+// The app offers the download once, when the server first sends text in one
+// of the scripts they add.
 
 import { ORIGIN } from '@oriel/web';
 import { createEffect, createSignal } from 'solid-js';
@@ -24,7 +24,7 @@ function missing(): RegExp | undefined {
 const [seen, setSeen] = createSignal(false);
 const [asked, setAsked] = createSignal(true);
 
-/** Check text from Plex for characters only the extra fonts draw. */
+/** Check text from the server for characters only the extra fonts draw. */
 export function noteText(text: string): void {
   if (!seen() && missing()?.test(text)) setSeen(true);
 }
@@ -33,7 +33,7 @@ export function loadFontsAsked(saved: Saved): void {
   setAsked(!!saved.fontsAsked);
 }
 
-/** Offer the download: Plex sent such text, the fonts are missing and Oriel hasn't asked before. */
+/** Offer the download: the server sent such text, the fonts are missing and the app hasn't asked before. */
 export const fontsOffered = () => seen() && !asked() && state.fonts?.status === 'missing';
 
 export function answerFonts(download: boolean): void {

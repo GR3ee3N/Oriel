@@ -7,6 +7,7 @@
 // tokens: the page's console is captured in shell.log.
 
 import { PRODUCT, VERSION } from '../app';
+import { noteText } from '../fonts';
 import { ServerError } from '../media/errors';
 
 let deviceId = '';
@@ -68,6 +69,7 @@ async function send<T>(base: string, path: string, options: RequestOptions, byKe
   const response = await fetch(url, { method, headers, signal, body: options.body === undefined ? undefined : JSON.stringify(options.body) });
   if (!response.ok) throw new JellyfinError(response.status, `${method} ${path}: HTTP ${response.status}`);
   const text = await response.text();
+  noteText(text);
   return (text ? JSON.parse(text) : undefined) as T;
 }
 
