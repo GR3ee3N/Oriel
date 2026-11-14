@@ -1,4 +1,4 @@
-// Original playback or a transcode bitrate limit in kbps, using Plex's quality ladder.
+// Original playback or a transcode bitrate limit in kbps. Both servers use these steps.
 
 export interface Quality {
   kbps: number;

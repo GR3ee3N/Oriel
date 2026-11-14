@@ -260,7 +260,7 @@ export const en = {
   'start.welcome': 'Welcome back, {user}',
   'start.failed': 'Something went wrong',
   'start.chooseServer': 'Choose a server',
-  'start.noServer': 'No Plex server is shared with {user}.',
+  'start.noServer': `No ${SERVER === 'plex' ? 'Plex ' : ''}server is shared with {user}.`,
   'start.serverGone': 'That server is no longer shared with you.',
   'start.notAnswering': '{server} is not answering.',
   'start.fellBack': '{server} is not answering. Showing {other}.',

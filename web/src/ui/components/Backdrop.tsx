@@ -151,8 +151,8 @@ function darken(ctx: CanvasRenderingContext2D, lum: number): void {
   ctx.fillRect(0, 0, W, H);
 }
 
-/** Decode artwork off-screen. With CORS the painter can measure it; Plex
- * allows any origin, but a browser can still refuse a private address. */
+/** Decode artwork off-screen. With CORS the painter can measure it; a
+ * server may still refuse the request, or a browser a private address. */
 function decoded(src: string, cors: boolean): Promise<HTMLImageElement> {
   const img = new Image();
   if (cors) img.crossOrigin = 'anonymous';

@@ -73,7 +73,7 @@
 .keyboard .key.on { color: var(--accent); }
 .keyboard .key.on.focused { color: var(--accent-text); }
 /* Keep all four PIN dots filled and pulsing during validation; shake them
-   when plex.tv rejects the PIN. */
+   when the PIN is rejected. */
 .pinpad { display: flex; flex-direction: column; align-items: center; }
 .pinpad .avatar {
   width: 112px;

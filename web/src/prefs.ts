@@ -10,7 +10,7 @@ interface Prefs {
    * (player/quality.ts). */
   qualityLocal: number;
   qualityRemote: number;
-  /** Reuse the last Plex Home profile at startup without asking for its PIN
+  /** Reuse the last profile at startup without asking for its PIN
    * (session.ts). */
   autoSignIn: boolean;
   /** Skip intros after the countdown unless dismissed (player/playback.ts). */

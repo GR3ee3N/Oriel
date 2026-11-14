@@ -9,7 +9,7 @@ import './library.css';
 
 /** Full-width grid of a collection's members, a playlist or a person's
  * titles in one library, with Home at the top right. With `queue`, Play all
- * and Shuffle play all of it through a Plex play queue. */
+ * and Shuffle play all of it through a play queue. */
 export function Titles(props: {
   title: string;
   key: string;
