@@ -9,7 +9,8 @@
 import { createSignal, For, onCleanup, Show } from 'solid-js';
 import { activeScope, focusOn, focusable, onBack, setScope, useScope } from '../../nav';
 import { t } from '../../i18n';
-import { clean } from '../../plex/format';
+import { clean } from '../../media/format';
+import { provider } from '../../media/servers';
 import { goHome, root, type Route, tab, top } from '../../router';
 import { changeUser, chooseServer, serverOptions, session } from '../../session';
 import { askExit } from '../exit';
@@ -47,12 +48,12 @@ export function Rail() {
   const destinations = (): Destination[] => [
     { id: 'search', label: t('nav.search'), icon: 'search', route: { screen: 'search' } },
     { id: 'home', label: t('nav.home'), icon: 'home', route: { screen: 'home' } },
-    { id: 'watchlist', label: t('nav.watchlist'), icon: 'watchlist', route: { screen: 'watchlist' } },
-    ...session.sections.map((s) => ({
-      id: `library-${s.key}`,
+    ...(provider().watchlist ? [{ id: 'watchlist', label: t('nav.watchlist'), icon: 'watchlist' as const, route: { screen: 'watchlist' as const } }] : []),
+    ...session.libraries.map((s) => ({
+      id: `library-${s.id}`,
       label: clean(s.title),
-      icon: libraryIcon(s.type),
-      route: { screen: 'library' as const, section: s.key, title: clean(s.title), type: s.type },
+      icon: libraryIcon(s.kind),
+      route: { screen: 'library' as const, section: s.id, title: clean(s.title), type: s.kind },
     })),
     ...(session.playlists ? [{ id: 'playlists', label: t('nav.playlists'), icon: 'playlist' as const, route: { screen: 'playlists' as const } }] : []),
   ];
@@ -134,7 +135,7 @@ export function Rail() {
         >
           <Avatar user={session.user} />
           <span class="rail-label">
-            <b>{session.user?.title}</b>
+            <b>{session.user?.name}</b>
             <small>{session.serverName}</small>
           </span>
         </div>

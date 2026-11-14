@@ -1,23 +1,29 @@
 # Developing Oriel
 
-Oriel is a Kodi add-on (`script.oriel.oriel`) built on the
-[Oriel framework](https://github.com/GR3ee3N/oriel-framework). Kodi plays
-media from Plex through the framework's proxy. WPE WebKit, supplied by
+This repository builds two Kodi add-ons on the
+[Oriel framework](https://github.com/GR3ee3N/oriel-framework): Oriel
+(`script.oriel.oriel`) for Plex and Dormer (`script.oriel.dormer`) for
+Jellyfin. They share the add-on code, the page and the player; each has its
+own manifest, artwork and add-on data, so a box can have both signed in.
+Kodi plays media from the server through the framework's proxy. WPE WebKit, supplied by
 [Oriel WebKit](https://github.com/GR3ee3N/oriel-webkit), renders the
 TypeScript/Solid interface over Kodi's video. Vite builds the page.
 
 ## Layout
 
 ```
-addon/          Kodi add-on
-  addon.xml     metadata and version placeholders
+addon/          Kodi add-on code both apps share
   default.py    VideoApp subclass and entry point
   fonts.py      download of the optional extra fonts
+apps/<app>/     each app's add-on files: oriel or dormer
+  addon.xml     metadata and version placeholders
   resources/    icon, fanart and startup mark
-web/            web interface
+web/            web interface; VITE_SERVER=plex or jellyfin picks the app
   src/i18n/     interface text, placeholders and plural forms
   src/nav/      remote navigation: focus, focus scopes and Back handlers
+  src/media/    the model, Provider & Account interfaces, and the server in use
   src/plex/     Plex API: sign-in, servers, libraries and images
+  src/jellyfin/ Jellyfin API, for Dormer
   src/player/   playback, tracks, transcoding and episode prompts
   src/ui/       screens and components
 build/          packaging, license notices, font package and version settings
@@ -46,9 +52,10 @@ deployment script requires.
 
 ## Device development
 
-`tools/deploy.sh` builds Oriel and installs it on `$BOX`. It waits for Kodi
-to register and enable the add-on, including when retrying an installation.
-Exit and reopen Oriel to load the installed code.
+`tools/deploy.sh` builds Oriel and installs it on `$BOX`;
+`tools/deploy.sh dormer` does the same for Dormer. It waits for Kodi to
+register and enable the add-on, including when retrying an installation.
+Exit and reopen the app to load the installed code.
 
 For hot reload on the TV, run `npm run dev` in `web/`, then
 `tools/dev.sh on`. Oriel will load the page from your computer's Vite
@@ -57,12 +64,16 @@ Set `DEV_HOST` if the box needs a different address for your computer.
 `tools/dev.sh off` restores the bundled page. Both commands take effect
 when Oriel next opens.
 
-Logs are in `/storage/.kodi/userdata/addon_data/script.oriel.oriel/`:
+For Dormer, run `npm run dev:dormer`, which serves it on port 5174, and
+`tools/dev.sh on dormer` or `off dormer`. Dev mode needs the app installed.
+
+Each app's settings and logs are in its own folder,
+`/storage/.kodi/userdata/addon_data/<add-on id>/`:
 
 - `addon.log`: add-on and framework messages.
 - `shell.log`: WebKit output and the page's console.
 
-Both logs are overwritten each time Oriel opens.
+Both logs are overwritten each time the app opens.
 
 Development pages log `focus: <label>` in `shell.log` after focus moves.
 Installed builds omit these lines; use screenshots to check focus there.
@@ -82,13 +93,14 @@ check the TV directly.
 
 Run `tools/desktop.py` and, in a second terminal, run `npm run dev` in
 `web/`. Open `http://localhost:5173/` and set the browser's device viewport
-to 1920×1080. Arrows, Enter and Escape act as remote keys.
+to 1920×1080. For Dormer, run `tools/desktop.py --app dormer` with
+`npm run dev:dormer` and open `http://localhost:5174/`. Arrows, Enter and Escape act as remote keys.
 
 Sign-in, browsing, artwork and settings use your Plex servers. Playback
 is simulated: the player state advances so you can test the OSD, pause,
 seek and end of playback, but no media plays. The server logs command
 names. Settings, including Plex tokens, are stored in
-`.cache/desktop-store.json`. The optional fonts download from a package built
+`.cache/desktop-store.json`, or `.cache/desktop-store-dormer.json` for Dormer. The optional fonts download from a package built
 from `web/node_modules` into `.cache/desktop-files`.
 
 ## Interface code
@@ -99,30 +111,40 @@ the page's edge or Back opens it; Right returns to the page. Panels &
 dialogs also have separate scopes. `src/nav/` owns focus movement & Back
 handlers; `@oriel/web` supplies remote key names & the add-on connection.
 
-`plex/playqueue.ts` creates Plex play queues & loads windows of their
-entries. `player/queue.ts` joins those windows by `playQueueItemID`, so a
-title can appear more than once. `player/playback.ts` controls the playing
-entry, Up Next & timeline reports. The strip below the OSD controls shows
-chapters for the selected media version & the play queue.
+Screens & the player reach a server only through `media/`: the model in
+`model.ts`, the `Provider` in `provider.ts` and the `Account` in
+`account.ts`. `plex/` and `jellyfin/` implement them, and
+`media/servers.ts` loads the one the build names.
+`tests/boundary.test.ts` fails when any other file imports from either
+folder. `Provider.features` says which optional parts a server supports, such as
+per-library collections; screens leave out the rest.
+
+Each adapter builds play queues its own way: Plex keeps them on the server
+(`plex/playqueue.ts`), Dormer builds them from a show's episodes or a
+collection's items (`jellyfin/playback.ts`). `player/queue.ts` joins
+windows of a queue by entry id, so a title can appear more than once.
+`player/playback.ts` controls the playing entry, Up Next & the reports to
+the server. The strip below the OSD controls shows chapters for the
+selected media version & the play queue.
 
 Interface text lives in `src/i18n/en.ts`. Use `t()` with named placeholders;
 plural entries use `one` & `other`, selected by `n`. English is the only
 interface language. Another language needs a matching table, its selection
-in `i18n/index.ts`, a matching plural rule & the Plex request language.
-Fonts for Plex metadata in other scripts are a separate download.
+in `i18n/index.ts`, a matching plural rule & the language sent to Plex.
+Fonts for metadata in other scripts are a separate download.
 
-Spoiler protection is saved per Plex Home profile. `ui/spoilers.ts`
-checks whether an episode is unwatched or explicitly revealed.
-`episodeTitle` and `episodeText` put "[Spoilers removed]" in place of its
-title, summary and chapter names, and Plex blurs its images through
-`plex/images.ts`. Use these paths when adding episode information to a
-screen.
+Spoiler protection is saved per profile, a Plex Home profile or a Jellyfin
+user. `media/spoilers.ts` checks whether an episode is unwatched or
+explicitly revealed. `episodeTitle` and `episodeText` put
+"[Spoilers removed]" in place of its title, summary and chapter names, and
+the server blurs its images (`plex/images.ts`, `jellyfin/api.ts`). Use
+these paths when adding episode information to a screen.
 
 ## Checks and builds
 
 ```sh
 tools/check.sh
-tools/build.sh
+tools/build.sh [oriel|dormer]...
 ```
 
 `tools/check.sh` runs ShellCheck, Python tests, TypeScript checking and
@@ -132,10 +154,10 @@ Playback, remote input and overlays also require device testing.
 
 `tools/build.sh` checks that `web/package.json` installs the `@oriel/web`
 release specified by `FRAMEWORK_VERSION`, installs locked dependencies and
-bundles the page. It stages the add-on in
-`.cache/runtime/script.oriel.oriel`, fills in version placeholders, and
-includes the page in `resources/web`, `LICENSE.txt` and
-`THIRD-PARTY-NOTICES.txt`. `build/notices.py` collects the notices for npm
+bundles the page for each app named, Oriel by default. It stages each
+add-on in `.cache/runtime/<add-on id>` from `addon/` and `apps/<app>/`,
+fills in version placeholders, and includes the page in `resources/web`,
+`LICENSE.txt` and `THIRD-PARTY-NOTICES.txt`. `build/notices.py` collects the notices for npm
 packages shipped with the page.
 
 The optional font package adds colour emoji & text in Chinese, Japanese,
@@ -152,9 +174,9 @@ without Git metadata.
 
 ## Versions
 
-`build/versions.env` defines `VERSION`, Oriel's version, and
+`build/versions.env` defines `VERSION`, the version of both apps, and
 `FRAMEWORK_VERSION`, the minimum required framework version. Raise
-`FRAMEWORK_VERSION` when Oriel requires a newer framework, and install the
+`FRAMEWORK_VERSION` when the apps require a newer framework, and install the
 matching `@oriel/web` release:
 
 ```sh
@@ -164,7 +186,8 @@ matching `@oriel/web` release:
 ## Benchmarks
 
 `tools/bench.sh` measures Oriel and its stack on `$BOX` and copies the
-report into `.cache/bench/<time>`:
+report into `.cache/bench/<time>`; `tools/bench.sh --app dormer` measures
+Dormer:
 
 ```sh
 tools/bench.sh --label "new rail"
@@ -186,10 +209,11 @@ page's; compare a Vite run with another Vite run.
 the connection to the box drops, the run carries on there; `tools/bench.sh
 fetch` copies its report once it's done, and `tools/bench.sh stop` ends it.
 
-It runs the framework's stack suite, then the scenario in `tools/bench.json`:
-Home's rows, a details page, the rail and the first library's rows. Oriel
-must open as the Plex Home profile Test, or the run stops. A full run opens
-Oriel 12 times and takes about 20 minutes. Options such as `--repeat 3` or
+It runs the framework's stack suite, then the app's scenario in
+`tools/bench.json` or `tools/bench-dormer.json`: Home's rows, a details
+page, the rail and the first library's rows. The app must open as the user
+Test (Oriel's Plex Home profile, Dormer's Jellyfin user), or the run stops.
+A full run opens the app 12 times and takes about 20 minutes. Options such as `--repeat 3` or
 `--suite stack` pass through to `bench.py run`; the framework README
 describes the suites and the report.
 
@@ -198,8 +222,9 @@ Test profile's live library, so its Home rows change as the library does.
 
 ## Releases
 
-Bump `VERSION`, write release notes in the `<news>` element of
-`addon/addon.xml`, and commit. From a clean working tree, with `gh`
+Both apps release together. Bump `VERSION`, write release notes in the
+`<news>` element of `apps/oriel/addon.xml` (and Dormer's, for Kodi's
+add-on page), and commit. From a clean working tree, with `gh`
 authenticated to an account that can publish releases, run:
 
 ```sh
@@ -207,18 +232,21 @@ tools/release.sh
 ```
 
 The script checks and builds a snapshot of the committed source. It
-packages and validates the add-on ZIP, Kodi index, artwork and checksums,
-then tags `v<version>` and uploads a draft GitHub release, including the font
-ZIP. The `<news>` text becomes the release notes.
+packages and validates both add-on ZIPs, one Kodi index listing both, their
+artwork and checksums, then tags `v<version>` and uploads a draft GitHub
+release, including the font ZIP both apps download. Oriel's `<news>` text
+becomes the release notes. Kodi's repository add-on reads the latest
+release's index, so it offers both apps.
 
 Release files are in `.cache/release/files`.
 `.cache/release/COMMIT` records the source commit.
 
 ## Artwork
 
-`tools/make-art.py` generates the icon, fanart, startup `mark.png` and
-`web/src/ui/mark.svg` from one shape definition. Run it after changing the
-mark and commit the generated files.
+`tools/make-art.py` generates each app's icon, fanart and startup
+`mark.png` in `apps/<app>/resources/`, and `web/src/ui/mark-<app>.svg`,
+from each mark's shape definition: Oriel's arched window, Dormer's gabled
+one. Run it after changing a mark and commit the generated files.
 
 Oriel display shows `mark.png` until the page draws its first frame. The
 page's splash screen draws the SVG at the same position and size to keep

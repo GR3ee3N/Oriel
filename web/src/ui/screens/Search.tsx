@@ -2,10 +2,10 @@ import { createEffect, createResource, createSignal, For, Match, on, onCleanup, 
 import { activeScope, focusable, useScope } from '../../nav';
 import { open } from '../../actions';
 import { type Key, t } from '../../i18n';
-import { search } from '../../plex/api';
-import { clean, episodeCode, hubTitle } from '../../plex/format';
-import { currentServer, session } from '../../session';
-import { episodeTitle } from '../spoilers';
+import { clean, episodeCode, hubTitle } from '../../media/format';
+import { episodeTitle } from '../../media/spoilers';
+import { provider } from '../../media/servers';
+import { session } from '../../session';
 import { Button } from '../components/Controls';
 import { Icon } from '../components/Icon';
 import { Rail } from '../components/Rail';
@@ -38,7 +38,7 @@ export function Search() {
   onCleanup(() => clearTimeout(timer));
   const [results, { refetch }] = createResource(
     () => settled() || null,
-    async (q) => (await search(currentServer(), q)).sort((a, b) => ORDER.indexOf(a.type) - ORDER.indexOf(b.type)),
+    async (q) => (await provider().search(q)).sort((a, b) => ORDER.indexOf(a.type) - ORDER.indexOf(b.type)),
   );
 
   // Delete removes the last character, including one outside the BMP.
@@ -112,10 +112,10 @@ export function Search() {
             <div>
               <Row
                 title={GROUPS[hub.type] ? t(GROUPS[hub.type]) : hubTitle(hub)}
-                items={hub.Metadata ?? []}
+                items={hub.items}
                 shape={hub.type === 'episode' ? 'wide' : 'poster'}
                 group={`results-${hub.type}`}
-                lines={hub.type === 'episode' ? (e) => [clean(e.grandparentTitle), [episodeCode(e), clean(episodeTitle(e))].filter(Boolean).join(' · ')] : undefined}
+                lines={hub.type === 'episode' ? (e) => [clean(e.show?.title), [episodeCode(e), clean(episodeTitle(e))].filter(Boolean).join(' · ')] : undefined}
                 onSelect={open}
               />
             </div>

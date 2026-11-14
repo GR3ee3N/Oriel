@@ -1,0 +1,130 @@
+{
+ "Items": [
+  {
+   "Name": "Willkommen in den Gassen",
+   "Id": "b666f70fcfa17420bbce582641c33163",
+   "HasSubtitles": true,
+   "Container": "mkv",
+   "PremiereDate": "2021-11-05T23:00:00.0000000Z",
+   "Overview": "Die verwaisten Schwestern Vi und Powder sorgen nach einem Raubzug im vornehmen Piltover auf den unterirdischen Straßen von Zhaun für Ärger.",
+   "CommunityRating": 8.37,
+   "RunTimeTicks": 26074100000,
+   "ProductionYear": 2021,
+   "IndexNumber": 1,
+   "ParentIndexNumber": 1,
+   "IsFolder": false,
+   "Type": "Episode",
+   "ParentLogoItemId": "64f0f706a918606e55994bc2db76162f",
+   "ParentBackdropItemId": "64f0f706a918606e55994bc2db76162f",
+   "ParentBackdropImageTags": [
+    "cfac7d082053d93787a2c8347020b95c"
+   ],
+   "UserData": {
+    "PlaybackPositionTicks": 0,
+    "PlayCount": 0,
+    "IsFavorite": false,
+    "Played": false,
+    "Key": "371028001001",
+    "ItemId": "b666f70fcfa17420bbce582641c33163"
+   },
+   "SeriesName": "Arcane",
+   "SeriesId": "64f0f706a918606e55994bc2db76162f",
+   "SeasonId": "6e059f7656814f6a5c9ff62b9b4f0f8c",
+   "SeriesPrimaryImageTag": "3b8132e4733a88cb7dadf557cfd7a65a",
+   "SeasonName": "Staffel 1",
+   "VideoType": "VideoFile",
+   "ImageTags": {
+    "Primary": "7d82719c17f35552de4baf5de07d2c47"
+   },
+   "BackdropImageTags": [],
+   "ParentLogoImageTag": "5c39b5c7526853813b8349f3cf6e0e16",
+   "ImageBlurHashes": {
+    "Primary": {
+     "7d82719c17f35552de4baf5de07d2c47": "WsILiH=xoKjZS3j[}rxZa|WVbGso$%f*WVo2sooKs.WVWCa|fjWV",
+     "3b8132e4733a88cb7dadf557cfd7a65a": "dF96?_xI4.JRM|bcxvV@0yNG=}%2%hoMMxW=+]xbJ.M{",
+     "213b0b835300b4e47198f7cbbaf966ca": "d971f=%OIAVZRVs:%1s:H;RO%Mx[?GoeIWM|tRoyWCV@"
+    },
+    "Logo": {
+     "5c39b5c7526853813b8349f3cf6e0e16": "PCG8Jy9H_08|_1ix%Ka10Mx]D+tkIWxtIpoyEOjFWVNHt6o3t6bI"
+    },
+    "Thumb": {
+     "087abf488356823678f6edab462a1e6f": "W43u=tt74UM{.7xu%gofM_WBxGs:H[WC%ft6MfRjNHWXxZs.SNRj"
+    },
+    "Backdrop": {
+     "cfac7d082053d93787a2c8347020b95c": "WH7e9=g+S*x^OrtTxbR$jEt7buogRje,s:R*oIsDs?WBa_niRijG"
+    }
+   },
+   "ParentThumbItemId": "64f0f706a918606e55994bc2db76162f",
+   "ParentThumbImageTag": "087abf488356823678f6edab462a1e6f",
+   "ParentPrimaryImageItemId": "6e059f7656814f6a5c9ff62b9b4f0f8c",
+   "ParentPrimaryImageTag": "213b0b835300b4e47198f7cbbaf966ca",
+   "LocationType": "FileSystem",
+   "MediaType": "Video",
+   "OriginalLanguage": "en"
+  },
+  {
+   "Name": "Manche Geheimnisse bleiben besser unangetastet",
+   "Id": "e0f42f1a837c67739c58db95f193c651",
+   "HasSubtitles": true,
+   "Container": "mkv",
+   "PremiereDate": "2021-11-05T23:00:00.0000000Z",
+   "Overview": "Der idealistische Erfinder Jayce will den Warnungen seines Mentors zum Trotz mit Wissenschaft Magie erzeugen. Der Verbrecherboss Silco probiert eine Substanz aus.",
+   "CommunityRating": 8.394,
+   "RunTimeTicks": 24334600000,
+   "ProductionYear": 2021,
+   "IndexNumber": 2,
+   "ParentIndexNumber": 1,
+   "IsFolder": false,
+   "Type": "Episode",
+   "ParentLogoItemId": "64f0f706a918606e55994bc2db76162f",
+   "ParentBackdropItemId": "64f0f706a918606e55994bc2db76162f",
+   "ParentBackdropImageTags": [
+    "cfac7d082053d93787a2c8347020b95c"
+   ],
+   "UserData": {
+    "PlaybackPositionTicks": 0,
+    "PlayCount": 0,
+    "IsFavorite": false,
+    "Played": false,
+    "Key": "371028001002",
+    "ItemId": "e0f42f1a837c67739c58db95f193c651"
+   },
+   "SeriesName": "Arcane",
+   "SeriesId": "64f0f706a918606e55994bc2db76162f",
+   "SeasonId": "6e059f7656814f6a5c9ff62b9b4f0f8c",
+   "SeriesPrimaryImageTag": "3b8132e4733a88cb7dadf557cfd7a65a",
+   "SeasonName": "Staffel 1",
+   "VideoType": "VideoFile",
+   "ImageTags": {
+    "Primary": "c51c5ab8dce9d13831e5b5609a17e90a"
+   },
+   "BackdropImageTags": [],
+   "ParentLogoImageTag": "5c39b5c7526853813b8349f3cf6e0e16",
+   "ImageBlurHashes": {
+    "Primary": {
+     "c51c5ab8dce9d13831e5b5609a17e90a": "WA8#1o~p$$tQIo4oIWD%IBtR-;%MIAVss:WDRkt7%M%MtRR*IAIA",
+     "3b8132e4733a88cb7dadf557cfd7a65a": "dF96?_xI4.JRM|bcxvV@0yNG=}%2%hoMMxW=+]xbJ.M{",
+     "213b0b835300b4e47198f7cbbaf966ca": "d971f=%OIAVZRVs:%1s:H;RO%Mx[?GoeIWM|tRoyWCV@"
+    },
+    "Logo": {
+     "5c39b5c7526853813b8349f3cf6e0e16": "PCG8Jy9H_08|_1ix%Ka10Mx]D+tkIWxtIpoyEOjFWVNHt6o3t6bI"
+    },
+    "Thumb": {
+     "087abf488356823678f6edab462a1e6f": "W43u=tt74UM{.7xu%gofM_WBxGs:H[WC%ft6MfRjNHWXxZs.SNRj"
+    },
+    "Backdrop": {
+     "cfac7d082053d93787a2c8347020b95c": "WH7e9=g+S*x^OrtTxbR$jEt7buogRje,s:R*oIsDs?WBa_niRijG"
+    }
+   },
+   "ParentThumbItemId": "64f0f706a918606e55994bc2db76162f",
+   "ParentThumbImageTag": "087abf488356823678f6edab462a1e6f",
+   "ParentPrimaryImageItemId": "6e059f7656814f6a5c9ff62b9b4f0f8c",
+   "ParentPrimaryImageTag": "213b0b835300b4e47198f7cbbaf966ca",
+   "LocationType": "FileSystem",
+   "MediaType": "Video",
+   "OriginalLanguage": "en"
+  }
+ ],
+ "TotalRecordCount": 9,
+ "StartIndex": 0
+}

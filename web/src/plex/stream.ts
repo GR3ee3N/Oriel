@@ -4,15 +4,12 @@
 // to Kodi's stream-relative clock. Seeks and track changes reuse the session
 // with a new stream; direct playback also requests a decision for its session.
 
-import { identity, PlexError, type Server } from '../plex/client';
-import type { Media } from '../plex/types';
-import { type Quality } from './quality';
+import { AUDIO_CODECS, HARDWARE_CODECS, SUBTITLE_CODECS } from '../media/codecs';
+import type { Quality } from '../player/quality';
+import { identity, PlexError, type Server } from './client';
 
-/** Hardware video codec candidates, using FFmpeg/Plex names. Intersect with
- * the box's reported `decoders` when available. */
-export const HARDWARE_CODECS = ['h264', 'hevc', 'av1', 'vp9', 'mpeg1video', 'mpeg2video', 'mpeg4', 'vc1'];
-const AUDIO = 'aac,ac3,eac3,dca,truehd,flac,opus,mp3,mp2,pcm';
-const SUBTITLES = 'srt,ass,ssa,pgs,vobsub,dvd_subtitle,mov_text,webvtt';
+const AUDIO = AUDIO_CODECS.join(',');
+const SUBTITLES = SUBTITLE_CODECS.join(',');
 const profileExtra = (video: string) =>
   `add-transcode-target(type=videoProfile&context=streaming&protocol=http&container=mkv` +
   `&videoCodec=${video}&audioCodec=${AUDIO}&subtitleCodec=${SUBTITLES})`;
@@ -91,14 +88,14 @@ export async function directPlay(
   server: Server,
   ratingKey: string,
   session: string,
-  media?: Media,
+  media: { container?: string; videoCodec?: string; audioCodec?: string },
   mediaIndex = 0,
 ): Promise<string | undefined> {
-  const audio = media?.audioCodec && !AUDIO.split(',').includes(media.audioCodec) ? `${AUDIO},${media.audioCodec}` : AUDIO;
+  const audio = media.audioCodec && !AUDIO.split(',').includes(media.audioCodec) ? `${AUDIO},${media.audioCodec}` : AUDIO;
   const profile =
     'add-settings(DirectPlayStreamSelection=true)+' +
-    `add-direct-play-profile(type=videoProfile&container=${media?.container ?? 'mkv'}` +
-    `&videoCodec=${media?.videoCodec ?? HARDWARE_CODECS.join(',')}&audioCodec=${audio}&subtitleCodec=${SUBTITLES})`;
+    `add-direct-play-profile(type=videoProfile&container=${media.container ?? 'mkv'}` +
+    `&videoCodec=${media.videoCodec ?? HARDWARE_CODECS.join(',')}&audioCodec=${audio}&subtitleCodec=${SUBTITLES})`;
   const d = (await server.get<never>('/video/:/transcode/universal/decision', {
     path: `/library/metadata/${ratingKey}`,
     mediaIndex: String(mediaIndex),

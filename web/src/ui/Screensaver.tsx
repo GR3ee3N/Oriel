@@ -4,11 +4,10 @@
 // between fades so the page does not require continuous rendering.
 
 import { createResource, createSignal, onCleanup, onMount, Show } from 'solid-js';
-import { homeHubs } from '../plex/api';
-import { clean, hhmm } from '../plex/format';
-import { imageUrl } from '../plex/images';
-import type { Metadata } from '../plex/types';
-import { currentServer } from '../session';
+import { clean, hhmm } from '../media/format';
+import type { Item } from '../media/model';
+import { provider } from '../media/servers';
+import { backdropOf } from './components/hero';
 import { logoReady } from './components/Info';
 import './screensaver.css';
 
@@ -20,22 +19,27 @@ interface Slide {
   line: string;
 }
 
-/** Shuffle Home hub items that have artwork. */
-async function pictures(): Promise<Metadata[]> {
-  const hubs = await homeHubs(currentServer());
+interface Picture {
+  item: Item;
+  title: string;
+  year?: number;
+  backdrop: string;
+}
+
+/** Shuffle Home hub items that have artwork, using the show's for episodes
+ * and seasons. */
+async function pictures(): Promise<Picture[]> {
+  const hubs = await provider().home();
   const seen = new Set<string>();
-  const out: Metadata[] = [];
+  const out: Picture[] = [];
   for (const h of hubs) {
-    for (const m of h.Metadata ?? []) {
-      const show =
-        m.type === 'episode'
-          ? { ...m, art: m.grandparentArt, title: m.grandparentTitle ?? m.title }
-          : m.type === 'season'
-            ? { ...m, title: m.parentTitle ?? m.title, year: m.parentYear }
-            : m;
-      if (!show.art || seen.has(show.art)) continue;
-      seen.add(show.art);
-      out.push(show as Metadata);
+    for (const m of h.items) {
+      const backdrop = backdropOf(m);
+      if (!backdrop || seen.has(backdrop)) continue;
+      seen.add(backdrop);
+      const title = m.kind === 'episode' || m.kind === 'season' ? (m.show?.title ?? m.title) : m.title;
+      const year = m.kind === 'season' ? m.showYear : m.year;
+      out.push({ item: m, title, year, backdrop });
     }
   }
   for (let i = out.length - 1; i > 0; i--) {
@@ -60,19 +64,19 @@ export function Screensaver() {
   const next = async () => {
     const list = items() ?? [];
     if (list.length) {
-      const m = list[n++ % list.length];
+      const p = list[n++ % list.length];
       const img = new Image();
-      img.src = imageUrl(currentServer(), m.art!, 1920, 1080);
+      img.src = provider().image(p.backdrop, 1920, 1080);
       try {
         await img.decode();
-        const logo = await logoReady(m);
+        const logo = await logoReady(p.item);
         if (disposed) return;
         const i = shown === 0 ? 1 : 0;
         layers[i].replaceChildren(img);
         layers[i].style.opacity = '1';
         if (shown >= 0) layers[shown].style.opacity = '0';
         shown = i;
-        setSlide({ title: clean(m.title), logo, line: [m.year, clean(m.tagline)].filter(Boolean).join(' · ') });
+        setSlide({ title: clean(p.title), logo, line: [p.year, clean(p.item.tagline)].filter(Boolean).join(' · ') });
         setCorner((c) => (c + 1) % 2);
       } catch {
         // Continue to another item if artwork cannot load.

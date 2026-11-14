@@ -1,0 +1,102 @@
+{
+ "Items": [
+  {
+   "Name": "The Fast and the Furious",
+   "Id": "b5cd42b06e3353dc5202268af6691e9b",
+   "HasSubtitles": true,
+   "Container": "mkv",
+   "PremiereDate": "2001-06-21T22:00:00.0000000Z",
+   "CriticRating": 56,
+   "OfficialRating": "FSK-16",
+   "CommunityRating": 7.025,
+   "RunTimeTicks": 64114560000,
+   "ProductionYear": 2001,
+   "IsFolder": false,
+   "Type": "Movie",
+   "UserData": {
+    "PlaybackPositionTicks": 0,
+    "PlayCount": 0,
+    "IsFavorite": false,
+    "Played": false,
+    "Key": "b5cd42b0-6e33-53dc-5202-268af6691e9b",
+    "ItemId": "b5cd42b06e3353dc5202268af6691e9b"
+   },
+   "VideoType": "VideoFile",
+   "ImageTags": {
+    "Logo": "54292680b38dea576b3bee2345dfea5c",
+    "Primary": "e67eda5da397e116746a423adcc3cce7",
+    "Thumb": "54850fca1389daec5b6465c38f05ab94"
+   },
+   "BackdropImageTags": [
+    "f0ff917dc09d35140610061cbeb54ec8"
+   ],
+   "ImageBlurHashes": {
+    "Backdrop": {
+     "f0ff917dc09d35140610061cbeb54ec8": "WkF$FZ%M_4%M?bt8soIUW.IoofW;M|WAjXM|M{R*Sej[njaeWVWB"
+    },
+    "Logo": {
+     "54292680b38dea576b3bee2345dfea5c": "ORKx3hD%%MxuofxbM{~qIUayt7xuofofIUt7WBxut7WBof"
+    },
+    "Primary": {
+     "e67eda5da397e116746a423adcc3cce7": "dHF#Em^69G==$+x@$|$NznwI%g?F${IptR-:~W?FVrM{"
+    },
+    "Thumb": {
+     "54850fca1389daec5b6465c38f05ab94": "W@JH?lj[~qxu-;?bxuWBj[WBj[t7R*WBoKoLWBWBRjayt7oft7Rj"
+    }
+   },
+   "LocationType": "FileSystem",
+   "MediaType": "Video",
+   "OriginalLanguage": "en"
+  },
+  {
+   "Name": "Fast & Furious 10",
+   "Id": "6724ee586a26016d2c4c6a1fc7d7f265",
+   "HasSubtitles": true,
+   "Container": "mkv",
+   "PremiereDate": "2023-05-16T22:00:00.0000000Z",
+   "CriticRating": 56,
+   "OfficialRating": "FSK-12",
+   "CommunityRating": 6.96,
+   "RunTimeTicks": 84504640000,
+   "ProductionYear": 2023,
+   "IsFolder": false,
+   "Type": "Movie",
+   "UserData": {
+    "PlaybackPositionTicks": 0,
+    "PlayCount": 0,
+    "IsFavorite": false,
+    "Played": false,
+    "Key": "6724ee58-6a26-016d-2c4c-6a1fc7d7f265",
+    "ItemId": "6724ee586a26016d2c4c6a1fc7d7f265"
+   },
+   "VideoType": "VideoFile",
+   "ImageTags": {
+    "Primary": "92514762433f3e9227a52b52da80a484",
+    "Thumb": "5c7510b37abc43a6a96a72f94e651eff",
+    "Logo": "2c0ea7c2587ac1297218c476edb72bdf"
+   },
+   "BackdropImageTags": [
+    "ebeea2bb27ca060912759b9872403557"
+   ],
+   "ImageBlurHashes": {
+    "Backdrop": {
+     "ebeea2bb27ca060912759b9872403557": "WEAmG1-;9sWBE2Rj^+-pkXa~D$IU_3-;xuf8D%M|~Xx]xYxa9ZIo"
+    },
+    "Primary": {
+     "92514762433f3e9227a52b52da80a484": "dIBD1s?Hxut7~C%L%Mt8%2tQ%gkC.9%M-:t7.8%L-;xu"
+    },
+    "Thumb": {
+     "5c7510b37abc43a6a96a72f94e651eff": "W1423b~WJU0e9FDj^+?Ht7Io9Z9Z0ebv-U-pS3E1E1NGM{%2?H%M"
+    },
+    "Logo": {
+     "2c0ea7c2587ac1297218c476edb72bdf": "NDCZhW?v9FD%D%IU~qkCIUxuxuRjIT-;M{RjofRj"
+    }
+   },
+   "LocationType": "FileSystem",
+   "MediaType": "Video",
+   "OriginalLanguage": "en"
+  }
+ ],
+ "TotalRecordCount": 5,
+ "StartIndex": 0
+}

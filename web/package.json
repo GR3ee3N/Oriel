@@ -8,6 +8,7 @@
   },
   "scripts": {
     "dev": "vite",
+    "dev:dormer": "VITE_SERVER=jellyfin vite",
     "build": "vite build",
     "check": "tsc --noEmit && tsc --noEmit -p tsconfig.node.json",
     "test": "vitest run"

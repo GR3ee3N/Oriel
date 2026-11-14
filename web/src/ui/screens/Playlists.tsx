@@ -1,7 +1,6 @@
 import { open } from '../../actions';
 import { t } from '../../i18n';
-import { playlists } from '../../plex/api';
-import { currentServer } from '../../session';
+import { provider } from '../../media/servers';
 import { Message } from '../components/Controls';
 import { Grid } from '../components/Grid';
 import { Rail } from '../components/Rail';
@@ -20,7 +19,7 @@ export function Playlists() {
       </header>
       <Grid
         key="playlists"
-        load={(start, size) => playlists(currentServer(), { start, size })}
+        load={(start, size) => provider().playlists({ start, size })}
         onSelect={open}
         class="playlists-grid"
         empty={<Message icon="playlist" title={t('playlists.empty')} body={t('playlists.emptyHint')} />}

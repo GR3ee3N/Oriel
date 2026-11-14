@@ -1,9 +1,11 @@
 #!/bin/sh
-# Benchmark Oriel and the stack under it on $BOX, then copy the report into
-# .cache/bench/<time>. Options go to bench.py run, such as --repeat 3,
-# --suite stack, --case scroll or --label "what changed".
+# Benchmark an app and the stack under it on $BOX, then copy the report into
+# .cache/bench/<time>. The app is Oriel unless --app dormer comes first; each
+# has its scenario in tools/bench.json or tools/bench-dormer.json. Options go
+# to bench.py run, such as --repeat 3, --suite stack, --case scroll or
+# --label "what changed".
 #
-#   tools/bench.sh [options]
+#   tools/bench.sh [--app oriel|dormer] [options]
 #   tools/bench.sh --list              print the cases --case accepts
 #   tools/bench.sh compare BASE NEW    compare two report folders; exit 3 if worse
 #   tools/bench.sh fetch               copy the box's newest finished report
@@ -17,6 +19,15 @@ set -eu
 REPO="$(cd "$(dirname "$0")/.." && pwd)"
 BENCH=/storage/oriel/tools/box/bench/bench.py
 DEST="$REPO/.cache/bench"
+SCENARIO="$REPO/tools/bench.json"
+if [ "${1:-}" = --app ]; then
+  case "${2:-}" in
+    oriel) ;;
+    dormer) SCENARIO="$REPO/tools/bench-dormer.json" ;;
+    *) echo "usage: tools/bench.sh [--app oriel|dormer] [options]" >&2; exit 2 ;;
+  esac
+  shift 2
+fi
 
 report() { [ -d "$1" ] && echo "$1/report.json" || echo "$1"; }
 
@@ -46,7 +57,7 @@ for arg in "$@"; do
   quoted="$quoted '$(printf %s "$arg" | sed "s/'/'\\\\''/g")'"
 done
 for arg in "$@"; do
-  [ "$arg" != --list ] || exec ssh "$BOX" "python3 $BENCH run --list --scenario -" < "$REPO/tools/bench.json"
+  [ "$arg" != --list ] || exec ssh "$BOX" "python3 $BENCH run --list --scenario -" < "$SCENARIO"
 done
-out=$(ssh "$BOX" "python3 $BENCH run --scenario -$quoted" < "$REPO/tools/bench.json")
+out=$(ssh "$BOX" "python3 $BENCH run --scenario -$quoted" < "$SCENARIO")
 fetch "$out"

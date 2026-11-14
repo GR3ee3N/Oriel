@@ -1,24 +1,24 @@
 import { createSignal, For, type JSX, Show } from 'solid-js';
 import { t } from '../../i18n';
-import { ageRating, clean, duration, episodeCode, remaining, seasonCount } from '../../plex/format';
-import { logoOf, logoUrl, preload } from '../../plex/images';
-import type { Metadata } from '../../plex/types';
-import { currentServer } from '../../session';
-import { episodeTitle } from '../spoilers';
+import { ageRating, clean, duration, episodeCode, remaining, seasonCount } from '../../media/format';
+import type { Item } from '../../media/model';
+import { provider } from '../../media/servers';
+import { preload } from '../preload';
+import { episodeTitle } from '../../media/spoilers';
 import './info.css';
 
 export const LOGO = { w: 720, h: 240 };
 
-/** Sized title-logo URL when supplied by Plex; episodes use the show logo. */
-export function logoFor(m: Metadata | undefined): string | undefined {
-  const path = logoOf(m);
-  return path ? logoUrl(currentServer(), path, LOGO.w, LOGO.h) : undefined;
+/** Sized title-logo URL when the server supplied one; episodes use the show logo. */
+export function logoFor(item: Item | undefined): string | undefined {
+  const path = item?.art.logo;
+  return path ? provider().image(path, LOGO.w, LOGO.h, { logo: true }) : undefined;
 }
 
 /** Wait for a logo decode attempt before changing item information.
  * Decode failure still returns the URL; absence or timeout returns undefined. */
-export function logoReady(m: Metadata | undefined, wait = 500): Promise<string | undefined> {
-  const url = logoFor(m);
+export function logoReady(item: Item | undefined, wait = 500): Promise<string | undefined> {
+  const url = logoFor(item);
   if (!url) return Promise.resolve(undefined);
   return Promise.race([
     preload(url).then(() => url),
@@ -52,18 +52,18 @@ export function Meta(props: { parts: (JSX.Element | string | number | undefined 
 /** Format item metadata and remaining time: episode code, title and duration,
  * season title, episode count and the show's year, or year, duration/season
  * count and ratings for other items. */
-export function metaFor(m: Metadata, showRemaining = true): JSX.Element {
-  const left = showRemaining ? remaining(m) : undefined;
-  if (m.type === 'episode') {
-    return <Meta parts={[episodeCode(m), clean(episodeTitle(m)), duration(m.duration)]} accent={left} />;
+export function metaFor(item: Item, showRemaining = true): JSX.Element {
+  const left = showRemaining ? remaining(item) : undefined;
+  if (item.kind === 'episode') {
+    return <Meta parts={[episodeCode(item), clean(episodeTitle(item)), duration(item.duration)]} accent={left} />;
   }
-  if (m.type === 'season') {
-    return <Meta parts={[clean(m.title), m.leafCount && t('count.episodes', { n: m.leafCount }), m.parentYear]} accent={left} />;
+  if (item.kind === 'season') {
+    return <Meta parts={[clean(item.title), item.episodes?.total && t('count.episodes', { n: item.episodes.total }), item.showYear]} accent={left} />;
   }
-  const length = m.type === 'show' ? seasonCount(m) : duration(m.duration);
+  const length = item.kind === 'show' ? seasonCount(item) : duration(item.duration);
   return (
     <Meta
-      parts={[m.year, length, ageRating(m.contentRating), m.audienceRating ? `★ ${m.audienceRating.toFixed(1)}` : '']}
+      parts={[item.year, length, ageRating(item.ageRating), item.audienceRating ? `★ ${item.audienceRating.toFixed(1)}` : '']}
       accent={left}
     />
   );
@@ -83,7 +83,7 @@ function Title(props: { text: string }) {
 }
 
 export interface InfoProps {
-  item: Metadata;
+  item: Item;
   /** Fall back to title text when the logo is absent or fails to load. */
   logo?: string;
   /** Optional title override, such as the show title for an episode. */

@@ -2,7 +2,7 @@
 // copy in the current server's libraries is found by guid.
 
 import { createSignal } from 'solid-js';
-import { profileToken } from '../session';
+import { profileToken } from './account';
 import { request, type Server } from './client';
 import type { MediaContainer, Metadata } from './types';
 

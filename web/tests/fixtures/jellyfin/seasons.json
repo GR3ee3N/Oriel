@@ -1,0 +1,112 @@
+{
+ "Items": [
+  {
+   "Name": "Staffel 1",
+   "Id": "6e059f7656814f6a5c9ff62b9b4f0f8c",
+   "PremiereDate": "2021-11-05T23:00:00.0000000Z",
+   "ProductionYear": 2021,
+   "IndexNumber": 1,
+   "IsFolder": true,
+   "Type": "Season",
+   "ParentLogoItemId": "64f0f706a918606e55994bc2db76162f",
+   "ParentBackdropItemId": "64f0f706a918606e55994bc2db76162f",
+   "ParentBackdropImageTags": [
+    "cfac7d082053d93787a2c8347020b95c"
+   ],
+   "UserData": {
+    "PlayedPercentage": 0,
+    "UnplayedItemCount": 9,
+    "PlaybackPositionTicks": 0,
+    "PlayCount": 0,
+    "IsFavorite": false,
+    "Played": false,
+    "Key": "371028001",
+    "ItemId": "6e059f7656814f6a5c9ff62b9b4f0f8c"
+   },
+   "RecursiveItemCount": 9,
+   "ChildCount": 9,
+   "SeriesName": "Arcane",
+   "SeriesId": "64f0f706a918606e55994bc2db76162f",
+   "SeriesPrimaryImageTag": "3b8132e4733a88cb7dadf557cfd7a65a",
+   "ImageTags": {
+    "Primary": "213b0b835300b4e47198f7cbbaf966ca"
+   },
+   "BackdropImageTags": [],
+   "ParentLogoImageTag": "5c39b5c7526853813b8349f3cf6e0e16",
+   "ImageBlurHashes": {
+    "Primary": {
+     "213b0b835300b4e47198f7cbbaf966ca": "d971f=%OIAVZRVs:%1s:H;RO%Mx[?GoeIWM|tRoyWCV@",
+     "3b8132e4733a88cb7dadf557cfd7a65a": "dF96?_xI4.JRM|bcxvV@0yNG=}%2%hoMMxW=+]xbJ.M{"
+    },
+    "Logo": {
+     "5c39b5c7526853813b8349f3cf6e0e16": "PCG8Jy9H_08|_1ix%Ka10Mx]D+tkIWxtIpoyEOjFWVNHt6o3t6bI"
+    },
+    "Thumb": {
+     "087abf488356823678f6edab462a1e6f": "W43u=tt74UM{.7xu%gofM_WBxGs:H[WC%ft6MfRjNHWXxZs.SNRj"
+    },
+    "Backdrop": {
+     "cfac7d082053d93787a2c8347020b95c": "WH7e9=g+S*x^OrtTxbR$jEt7buogRje,s:R*oIsDs?WBa_niRijG"
+    }
+   },
+   "ParentThumbItemId": "64f0f706a918606e55994bc2db76162f",
+   "ParentThumbImageTag": "087abf488356823678f6edab462a1e6f",
+   "LocationType": "FileSystem",
+   "MediaType": "Unknown"
+  },
+  {
+   "Name": "Staffel 2",
+   "Id": "01f90e140db0ab0c3908a6c0c249f9f4",
+   "PremiereDate": "2024-11-08T23:00:00.0000000Z",
+   "ProductionYear": 2024,
+   "IndexNumber": 2,
+   "IsFolder": true,
+   "Type": "Season",
+   "ParentLogoItemId": "64f0f706a918606e55994bc2db76162f",
+   "ParentBackdropItemId": "64f0f706a918606e55994bc2db76162f",
+   "ParentBackdropImageTags": [
+    "cfac7d082053d93787a2c8347020b95c"
+   ],
+   "UserData": {
+    "PlayedPercentage": 0,
+    "UnplayedItemCount": 9,
+    "PlaybackPositionTicks": 0,
+    "PlayCount": 0,
+    "IsFavorite": false,
+    "Played": false,
+    "Key": "371028002",
+    "ItemId": "01f90e140db0ab0c3908a6c0c249f9f4"
+   },
+   "RecursiveItemCount": 9,
+   "ChildCount": 9,
+   "SeriesName": "Arcane",
+   "SeriesId": "64f0f706a918606e55994bc2db76162f",
+   "SeriesPrimaryImageTag": "3b8132e4733a88cb7dadf557cfd7a65a",
+   "ImageTags": {
+    "Primary": "b31c12ea70a3871c255dbcdbd892a70d"
+   },
+   "BackdropImageTags": [],
+   "ParentLogoImageTag": "5c39b5c7526853813b8349f3cf6e0e16",
+   "ImageBlurHashes": {
+    "Primary": {
+     "b31c12ea70a3871c255dbcdbd892a70d": "dC8p[wRo0dxuE2t7%MRj0xof?HW;_3V[D%tRiwt8S~Vs",
+     "3b8132e4733a88cb7dadf557cfd7a65a": "dF96?_xI4.JRM|bcxvV@0yNG=}%2%hoMMxW=+]xbJ.M{"
+    },
+    "Logo": {
+     "5c39b5c7526853813b8349f3cf6e0e16": "PCG8Jy9H_08|_1ix%Ka10Mx]D+tkIWxtIpoyEOjFWVNHt6o3t6bI"
+    },
+    "Thumb": {
+     "087abf488356823678f6edab462a1e6f": "W43u=tt74UM{.7xu%gofM_WBxGs:H[WC%ft6MfRjNHWXxZs.SNRj"
+    },
+    "Backdrop": {
+     "cfac7d082053d93787a2c8347020b95c": "WH7e9=g+S*x^OrtTxbR$jEt7buogRje,s:R*oIsDs?WBa_niRijG"
+    }
+   },
+   "ParentThumbItemId": "64f0f706a918606e55994bc2db76162f",
+   "ParentThumbImageTag": "087abf488356823678f6edab462a1e6f",
+   "LocationType": "FileSystem",
+   "MediaType": "Unknown"
+  }
+ ],
+ "TotalRecordCount": 2,
+ "StartIndex": 0
+}

@@ -1,11 +1,14 @@
 #!/bin/bash
+# Draft a GitHub release of both apps, Oriel and Dormer, at VERSION from
+# build/versions.env. Kodi's repository add-on reads the latest release's
+# addons.xml, which lists both.
 set -euo pipefail
 REPO=$(cd "$(dirname "$0")/.." && pwd)
 cd "$REPO"
 [[ $# = 0 ]] || { echo "usage: tools/release.sh" >&2; exit 2; }
 export GH_REPO=GR3ee3N/Oriel
 source build/versions.env
-NOTES=$(python3 -c 'import xml.etree.ElementTree as E; print(E.parse("addon/addon.xml").find("extension/news").text)')
+NOTES=$(python3 -c 'import xml.etree.ElementTree as E; print(E.parse("apps/oriel/addon.xml").find("extension/news").text)')
 TAG=v$VERSION
 COMMIT=$(git rev-parse HEAD)
 [[ -z $(git status --porcelain) ]] || { echo "commit first; the tree is not clean" >&2; exit 2; }
@@ -26,8 +29,9 @@ fi
 WORK=$(mktemp -d "$REPO/.cache/release.XXXXXX")
 git archive "$COMMIT" | tar -xf - -C "$WORK"
 "$WORK/tools/check.sh"
-"$WORK/tools/build.sh"
-python3 "$WORK/build/package.py" "$WORK/.cache/runtime/script.oriel.oriel" "$WORK/.cache/release/files" "$VERSION" "$FRAMEWORK_VERSION"
+"$WORK/tools/build.sh" oriel dormer
+python3 "$WORK/build/package.py" "$WORK/.cache/release/files" "$VERSION" "$FRAMEWORK_VERSION" \
+    "$WORK/.cache/runtime/script.oriel.oriel" "$WORK/.cache/runtime/script.oriel.dormer"
 printf '%s\n' "$COMMIT" > "$WORK/.cache/release/COMMIT"
 [[ $(git rev-parse HEAD) = "$COMMIT" && -z $(git status --porcelain) ]] \
     || { echo "the source changed during the release; commit and run again" >&2; exit 2; }

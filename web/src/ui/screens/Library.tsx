@@ -7,11 +7,13 @@ import { type Direction, focusable, focusGroup, focusOn } from '../../nav';
 import { open } from '../../actions';
 import { loaded } from '../../data';
 import { t } from '../../i18n';
-import { filterValues, firstCharacters, sectionCollections, sectionHubs, sectionItems } from '../../plex/api';
-import { ageRating, hubTitle } from '../../plex/format';
+import { hubTitle } from '../../media/format';
+import type { FilterField, Sort, TitleQuery } from '../../media/model';
+import type { Features } from '../../media/provider';
+import { provider } from '../../media/servers';
 import { libraryState, saveLibraryState } from '../../prefs';
 import type { LibraryState } from '../../store';
-import { currentServer, session } from '../../session';
+import { session } from '../../session';
 import { Backdrop } from '../components/Backdrop';
 import { Button, Chip, Message, Tab } from '../components/Controls';
 import { Grid } from '../components/Grid';
@@ -23,34 +25,38 @@ import { Shelf } from '../components/Shelf';
 import { Status } from '../components/Status';
 import './library.css';
 
-const SORTS = [
-  { label: t('sort.title'), value: 'titleSort' },
-  { label: t('sort.added'), value: 'addedAt:desc' },
-  { label: t('sort.released'), value: 'originallyAvailableAt:desc' },
-  { label: t('sort.rating'), value: 'audienceRating:desc' },
-  { label: t('sort.watched'), value: 'lastViewedAt:desc' },
-  { label: t('sort.duration'), value: 'duration:desc' },
+const SORTS: { label: string; value: Sort }[] = [
+  { label: t('sort.title'), value: 'title' },
+  { label: t('sort.added'), value: 'added' },
+  { label: t('sort.released'), value: 'released' },
+  { label: t('sort.rating'), value: 'rating' },
+  { label: t('sort.watched'), value: 'watched' },
+  { label: t('sort.duration'), value: 'duration' },
 ];
 
+type Filters = TitleQuery['filters'];
+
 interface Field {
-  id: string;
+  id: FilterField;
   label: string;
   /** Fixed values; otherwise loaded from the server. */
   values?: { key: string; title: string }[];
   movieOnly?: boolean;
+  /** Shown only when the server has this feature. */
+  feature?: keyof Features;
 }
 
 const FIELDS: Field[] = [
   { id: 'genre', label: t('filter.genre') },
-  { id: 'decade', label: t('filter.year') },
+  { id: 'year', label: t('filter.year') },
   { id: 'resolution', label: t('filter.resolution'), movieOnly: true },
-  { id: 'hdr', label: t('filter.hdr'), values: [{ key: '1', title: t('filter.hdrOnly') }], movieOnly: true },
+  { id: 'hdr', label: t('filter.hdr'), values: [{ key: 'on', title: t('filter.hdrOnly') }], movieOnly: true, feature: 'hdrFilter' },
   { id: 'contentRating', label: t('filter.contentRating') },
 ];
 
 export function Library(props: { section: string; title: string; type?: string }) {
-  const type = () => props.type ?? session.sections.find((s) => s.key === props.section)?.type ?? 'movie';
-  const stateKey = `${session.user?.uuid}/${session.serverId}/${props.section}`;
+  const type = () => props.type ?? session.libraries.find((s) => s.id === props.section)?.kind ?? 'movie';
+  const stateKey = `${session.user?.id}/${session.serverId}/${props.section}`;
   const [state, setState] = createSignal(libraryState(stateKey));
   const update = (patch: Partial<LibraryState>) => {
     const next = { ...state(), ...patch };
@@ -58,8 +64,8 @@ export function Library(props: { section: string; title: string; type?: string }
     saveLibraryState(stateKey, next);
   };
   const [collectionCount] = createResource(
-    () => props.section,
-    (section) => sectionCollections(currentServer(), section, { start: 0, size: 0 }).then((mc) => mc.totalSize ?? mc.size ?? 0),
+    () => provider().features.collectionsPerLibrary && props.section,
+    (section) => provider().collections(section, { start: 0, size: 0 }).then((p) => p.total),
   );
   const hero = createHero();
   const view = () => state().view;
@@ -98,7 +104,7 @@ export function Library(props: { section: string; title: string; type?: string }
         <Match when={view() === 'collections'}>
           <Grid
             key={`collections/${props.section}`}
-            load={(start, size) => sectionCollections(currentServer(), props.section, { start, size })}
+            load={(start, size) => provider().collections(props.section, { start, size })}
             onSelect={open}
             empty={<Message icon="movie" title={t('library.noCollections', { library: props.title })} body={t('library.noCollectionsHint')} />}
             class="lib-grid"
@@ -110,13 +116,13 @@ export function Library(props: { section: string; title: string; type?: string }
 }
 
 function Recommended(props: { section: string; hero: Hero }) {
-  const [hubs] = createResource(() => props.section, (section) => sectionHubs(currentServer(), section));
+  const [hubs] = createResource(() => props.section, (section) => provider().libraryRows(section));
   const current = loaded(hubs);
   // Focus stays on the tabs when this view is chosen there, so the hero
   // starts at the first row's first title.
   createEffect(
     on(
-      () => current()?.[0]?.Metadata,
+      () => current()?.[0]?.items,
       (items) => items?.[0] && props.hero.show(items[0], neighbours(items, items[0])),
     ),
   );
@@ -134,11 +140,11 @@ function Recommended(props: { section: string; hero: Hero }) {
             <div>
               <Row
                 title={hubTitle(hub)}
-                items={hub.Metadata!}
+                items={hub.items}
                 shape={hub.type === 'episode' ? 'wide' : 'poster'}
-                group={`hub-${hub.hubIdentifier}`}
+                group={`hub-${hub.id}`}
                 autofocus={i() === 0}
-                onFocus={(item) => props.hero.show(item, neighbours(hub.Metadata!, item))}
+                onFocus={(item) => props.hero.show(item, neighbours(hub.items, item))}
                 onSelect={open}
               />
             </div>
@@ -155,12 +161,12 @@ function Titles(props: { section: string; title: string; type: string; state: Li
   const [panel, setPanel] = createSignal<'sort' | 'filter' | null>(null);
   const filters = () => props.state.filters;
   const filtered = () => Object.keys(filters()).length > 0 || props.state.unwatched;
-  const query = () => ({ sort: props.state.sort, unwatched: props.state.unwatched, filters: filters() });
+  const query = (): TitleQuery => ({ sort: props.state.sort, unwatched: props.state.unwatched, filters: filters() });
   const gridKey = () => `${props.section}/${JSON.stringify(query())}`;
 
   const [all] = createResource(
     () => props.section,
-    (section) => sectionItems(currentServer(), section, {}, { start: 0, size: 0 }).then((mc) => mc.totalSize ?? mc.size),
+    (section) => provider().titles(section, { sort: 'title', unwatched: false, filters: {} }, { start: 0, size: 0 }).then((p) => p.total),
   );
   const noun = (n: number) => t(props.type === 'show' ? 'count.shows' : 'count.movies', { n });
   const count = () => {
@@ -172,10 +178,10 @@ function Titles(props: { section: string; title: string; type: string; state: Li
 
   // Title sort maps each A–Z character to its first item index.
   const [letters] = createResource(
-    () => (props.state.sort === 'titleSort' ? ([props.section, props.state.unwatched, JSON.stringify(filters())] as const) : null),
+    () => (props.state.sort === 'title' ? ([props.section, props.state.unwatched, JSON.stringify(filters())] as const) : null),
     async ([section, unwatched]) => {
       let at = 0;
-      return (await firstCharacters(currentServer(), section, unwatched, filters())).map((l) => {
+      return (await provider().letters(section, { sort: 'title', unwatched, filters: filters() })).map((l) => {
         const start = at;
         at += l.size;
         return { key: l.key, start };
@@ -206,7 +212,7 @@ function Titles(props: { section: string; title: string; type: string; state: Li
       </div>
       <Grid
         key={gridKey()}
-        load={(start, size) => sectionItems(currentServer(), props.section, query(), { start, size })}
+        load={(start, size) => provider().titles(props.section, query(), { start, size })}
         onSelect={open}
         onTotal={setTotal}
         onPending={setPending}
@@ -226,7 +232,7 @@ function Titles(props: { section: string; title: string; type: string; state: Li
           </Show>
         }
       />
-      <Show when={props.state.sort === 'titleSort' && letters()?.length}>
+      <Show when={props.state.sort === 'title' && letters()?.length}>
         <Letters letters={letters()!} onJump={(index) => setJump({ index, n: ++jumps })} />
       </Show>
       <Show when={panel() === 'sort'}>
@@ -256,9 +262,9 @@ function Titles(props: { section: string; title: string; type: string; state: Li
 }
 
 /** Filter chip naming the one set filter's value, or how many are set. */
-function FilterChip(props: { filters: Record<string, string>; section: string; fallback?: string; onSelect: () => void }) {
+function FilterChip(props: { filters: Filters; section: string; fallback?: string; onSelect: () => void }) {
   const only = () => {
-    const entries = Object.entries(props.filters);
+    const entries = Object.entries(props.filters) as [FilterField, string][];
     return entries.length === 1 ? entries[0] : undefined;
   };
   const [title] = createResource(only, ([field, key]) => valueTitle(props.section, field, key));
@@ -274,31 +280,30 @@ function FilterChip(props: { filters: Record<string, string>; section: string; f
   );
 }
 
-async function valueTitle(section: string, field: string, key: string): Promise<string> {
+async function valueTitle(section: string, field: FilterField, key: string): Promise<string> {
   const fixed = FIELDS.find((f) => f.id === field)?.values?.find((v) => v.key === key);
-  if (fixed) return fixed.title;
-  const values = await filterValues(currentServer(), section, field).catch(() => []);
-  const title = values.find((v) => v.key === key)?.title ?? key;
-  return field === 'contentRating' ? ageRating(title) : title;
+  if (fixed || field === 'hdr') return fixed?.title ?? key;
+  const values = await provider().filterValues(section, field).catch(() => []);
+  return values.find((v) => v.key === key)?.title ?? key;
 }
 
 /** Filter fields with their current values; choosing a field lists its values. */
 function FilterPanel(props: {
   section: string;
   type: string;
-  filters: Record<string, string>;
+  filters: Filters;
   matches?: number;
-  onChange: (filters: Record<string, string>) => void;
+  onChange: (filters: Filters) => void;
   onClose: () => void;
 }) {
   const [field, setField] = createSignal<Field>();
-  const fields = () => FIELDS.filter((f) => !f.movieOnly || props.type === 'movie');
+  const fields = () => FIELDS.filter((f) => (!f.movieOnly || props.type === 'movie') && (!f.feature || provider().features[f.feature]));
   const [titles] = createResource(
     () => JSON.stringify(props.filters),
-    async () => Object.fromEntries(await Promise.all(Object.entries(props.filters).map(async ([f, k]) => [f, await valueTitle(props.section, f, k)]))),
+    async () => Object.fromEntries(await Promise.all((Object.entries(props.filters) as [FilterField, string][]).map(async ([f, k]) => [f, await valueTitle(props.section, f, k)]))),
   );
   const [values] = createResource(field, (f) =>
-    f.values ? Promise.resolve(f.values) : filterValues(currentServer(), props.section, f.id).catch(() => []),
+    f.values || f.id === 'hdr' ? Promise.resolve(f.values ?? []) : provider().filterValues(props.section, f.id).catch(() => []),
   );
   const root = createMemo((): PanelOption<string>[] => [
     ...(Object.keys(props.filters).length ? [{ label: t('action.clearFilters'), value: '', icon: 'restart' as const }] : []),
@@ -314,7 +319,7 @@ function FilterPanel(props: {
     if (!f) return root();
     return [
       { label: f.id === 'genre' ? t('filter.anyGenre') : t('filter.any'), value: '' },
-      ...(values() ?? []).map((v) => ({ label: f.id === 'contentRating' ? ageRating(v.title) : v.title, value: v.key })),
+      ...(values() ?? []).map((v) => ({ label: v.title, value: v.key })),
     ];
   };
   return (

@@ -1,0 +1,358 @@
+{
+ "Items": [
+  {
+   "Name": "Archangel (The Power of God)",
+   "Id": "87f4c8f960bb126478a610bda1284b6e",
+   "HasSubtitles": true,
+   "Container": "mkv",
+   "PremiereDate": "2009-01-28T23:00:00.0000000Z",
+   "CommunityRating": 6.9,
+   "RunTimeTicks": 14200530000,
+   "ProductionYear": 2009,
+   "IndexNumber": 17,
+   "ParentIndexNumber": 1,
+   "IsFolder": false,
+   "Type": "Episode",
+   "ParentLogoItemId": "11871c4d2ed6676846d22e7c05a92a9d",
+   "ParentBackdropItemId": "11871c4d2ed6676846d22e7c05a92a9d",
+   "ParentBackdropImageTags": [
+    "d75671b58d0b26239b4c432192e41f84"
+   ],
+   "UserData": {
+    "PlaybackPositionTicks": 0,
+    "PlayCount": 0,
+    "IsFavorite": false,
+    "Played": false,
+    "Key": "83322001017",
+    "ItemId": "87f4c8f960bb126478a610bda1284b6e"
+   },
+   "SeriesName": "A Certain Magical Index",
+   "SeriesId": "11871c4d2ed6676846d22e7c05a92a9d",
+   "SeasonId": "217f711badc5ad2274d127d9855e3820",
+   "SeriesPrimaryImageTag": "85f9a8d575715b3c0d8e3f22087db802",
+   "SeasonName": "Staffel 1",
+   "VideoType": "VideoFile",
+   "ImageTags": {
+    "Primary": "a2f4d545f19c6d662ec89d46544841c4"
+   },
+   "BackdropImageTags": [],
+   "ParentLogoImageTag": "2d8b8aca07714a8a9b9137c3901981a1",
+   "ImageBlurHashes": {
+    "Primary": {
+     "a2f4d545f19c6d662ec89d46544841c4": "WJ4e{go$RiROoMo$tpj^WXWBofo$W[aeo#o#bEf-Skaxt8t8awbJ",
+     "85f9a8d575715b3c0d8e3f22087db802": "dKJ8n{_4EV%j%3XAR%sj9*9bRj$}I{xu%MM|E2xvx]bb",
+     "f50da3e745eb0fdd0928484cd2e775c4": "daHo;9Rp9K0N0Nt5M}-:S$bFxZaekWRkxtRiD*t6s:of"
+    },
+    "Logo": {
+     "2d8b8aca07714a8a9b9137c3901981a1": "OGAK{?Q-VqozWEs;s7#iozkDofofWAogiFtRS6oLe.kXo#"
+    },
+    "Thumb": {
+     "f02176ae8824dba4a2dd6302867d9809": "NLFX;|0LI,$+D+b=-YD~Ion,-qW:Djt1bvNH%1RP"
+    },
+    "Backdrop": {
+     "d75671b58d0b26239b4c432192e41f84": "WWIX]fTeNyIBIpxv?d%hNfMxafog4@I]Rkr=xas.Nz9uxa$%Rkjw"
+    }
+   },
+   "ParentThumbItemId": "11871c4d2ed6676846d22e7c05a92a9d",
+   "ParentThumbImageTag": "f02176ae8824dba4a2dd6302867d9809",
+   "ParentPrimaryImageItemId": "217f711badc5ad2274d127d9855e3820",
+   "ParentPrimaryImageTag": "f50da3e745eb0fdd0928484cd2e775c4",
+   "LocationType": "FileSystem",
+   "MediaType": "Video",
+   "OriginalLanguage": "ja"
+  },
+  {
+   "Name": "Arcane",
+   "Id": "64f0f706a918606e55994bc2db76162f",
+   "PremiereDate": "2021-11-05T23:00:00.0000000Z",
+   "OfficialRating": "TV-14",
+   "CommunityRating": 8.747,
+   "RunTimeTicks": 24600000000,
+   "ProductionYear": 2021,
+   "IsFolder": true,
+   "Type": "Series",
+   "UserData": {
+    "PlayedPercentage": 0,
+    "UnplayedItemCount": 18,
+    "PlaybackPositionTicks": 0,
+    "PlayCount": 0,
+    "IsFavorite": false,
+    "Played": false,
+    "Key": "64f0f706-a918-606e-5599-4bc2db76162f",
+    "ItemId": "64f0f706a918606e55994bc2db76162f"
+   },
+   "Status": "Ended",
+   "AirTime": "03:00",
+   "AirDays": [
+    "Saturday"
+   ],
+   "ImageTags": {
+    "Thumb": "087abf488356823678f6edab462a1e6f",
+    "Primary": "3b8132e4733a88cb7dadf557cfd7a65a",
+    "Logo": "5c39b5c7526853813b8349f3cf6e0e16",
+    "Banner": "477c11ddd8441ad9be6c8bc526d263cb"
+   },
+   "BackdropImageTags": [
+    "cfac7d082053d93787a2c8347020b95c"
+   ],
+   "ImageBlurHashes": {
+    "Backdrop": {
+     "cfac7d082053d93787a2c8347020b95c": "WH7e9=g+S*x^OrtTxbR$jEt7buogRje,s:R*oIsDs?WBa_niRijG"
+    },
+    "Thumb": {
+     "087abf488356823678f6edab462a1e6f": "W43u=tt74UM{.7xu%gofM_WBxGs:H[WC%ft6MfRjNHWXxZs.SNRj"
+    },
+    "Primary": {
+     "3b8132e4733a88cb7dadf557cfd7a65a": "dF96?_xI4.JRM|bcxvV@0yNG=}%2%hoMMxW=+]xbJ.M{"
+    },
+    "Logo": {
+     "5c39b5c7526853813b8349f3cf6e0e16": "PCG8Jy9H_08|_1ix%Ka10Mx]D+tkIWxtIpoyEOjFWVNHt6o3t6bI"
+    },
+    "Banner": {
+     "477c11ddd8441ad9be6c8bc526d263cb": "HWAUF2V:Dgt9M{V=xZksRg%PoyRhaOR%V?xbg4Ri"
+    }
+   },
+   "LocationType": "FileSystem",
+   "MediaType": "Unknown",
+   "EndDate": "2024-01-22T23:11:00.0000000Z",
+   "OriginalLanguage": "en"
+  },
+  {
+   "Name": "Archer",
+   "Id": "56627cc276e97304b61d6e8d5472636b",
+   "PremiereDate": "2009-09-16T22:00:00.0000000Z",
+   "OfficialRating": "TV-MA",
+   "CommunityRating": 7.925,
+   "RunTimeTicks": 15000000000,
+   "ProductionYear": 2009,
+   "IsFolder": true,
+   "Type": "Series",
+   "UserData": {
+    "PlayedPercentage": 0,
+    "UnplayedItemCount": 107,
+    "PlaybackPositionTicks": 0,
+    "PlayCount": 0,
+    "IsFavorite": false,
+    "Played": false,
+    "Key": "56627cc2-76e9-7304-b61d-6e8d5472636b",
+    "ItemId": "56627cc276e97304b61d6e8d5472636b"
+   },
+   "Status": "Ended",
+   "AirTime": "22:00",
+   "AirDays": [
+    "Wednesday"
+   ],
+   "ImageTags": {
+    "Thumb": "d51fa08b2f5789ebb5181e825f8b78a3",
+    "Primary": "bc5c9e556c0fef97b7774ac1710cf35f",
+    "Banner": "e42027e21d957146fd05b052cffa31f4",
+    "Logo": "05235d62f7ce0452ad2426526c66697e"
+   },
+   "BackdropImageTags": [
+    "ffd05229f5729c128b76cb51a4185d3b"
+   ],
+   "ImageBlurHashes": {
+    "Backdrop": {
+     "ffd05229f5729c128b76cb51a4185d3b": "WNEBjoNg4-i[xAkEBsSiVqw?WUR;0is9-TR%kDo$+^s,bvI;sVt7"
+    },
+    "Thumb": {
+     "d51fa08b2f5789ebb5181e825f8b78a3": "WMF#:i^*NK={jIS5xai^X9kXoLNG0MW=bbE2ofxunNkWt6slV@wd"
+    },
+    "Primary": {
+     "bc5c9e556c0fef97b7774ac1710cf35f": "dHC~DKxxD$v|E=o%wEMwX.WsRPRgN3kYS~Rj%JkDW@xY"
+    },
+    "Banner": {
+     "e42027e21d957146fd05b052cffa31f4": "HsH^kpXSEMwJX5WFRPofNZ}?X8Ner?R*ozahWBW-"
+    },
+    "Logo": {
+     "05235d62f7ce0452ad2426526c66697e": "HSL2^9oL$~t5IrsoS3oce:_+WCjGR+W;V[SMoxso"
+    }
+   },
+   "LocationType": "FileSystem",
+   "MediaType": "Unknown",
+   "EndDate": "2023-01-16T23:12:00.0000000Z",
+   "OriginalLanguage": "en"
+  },
+  {
+   "Name": "Invading Army Arc, endgültiges Fazit!",
+   "Id": "7914b05c2c4abe58b1f0c7cf8ec4c863",
+   "HasSubtitles": true,
+   "Container": "mkv",
+   "PremiereDate": "2011-09-26T22:00:00.0000000Z",
+   "RunTimeTicks": 15348470000,
+   "ProductionYear": 2011,
+   "IndexNumber": 25,
+   "ParentIndexNumber": 15,
+   "IsFolder": false,
+   "Type": "Episode",
+   "ParentLogoItemId": "58aeb40ab02282c2942259f814fbe8a8",
+   "ParentBackdropItemId": "58aeb40ab02282c2942259f814fbe8a8",
+   "ParentBackdropImageTags": [
+    "96d449cb6b310da0d74f6e31e4429e81"
+   ],
+   "UserData": {
+    "PlaybackPositionTicks": 0,
+    "PlayCount": 0,
+    "IsFavorite": false,
+    "Played": false,
+    "Key": "74796015025",
+    "ItemId": "7914b05c2c4abe58b1f0c7cf8ec4c863"
+   },
+   "SeriesName": "Bleach",
+   "SeriesId": "58aeb40ab02282c2942259f814fbe8a8",
+   "SeasonId": "551781abf29dc8e9e61d4c8ee02f8f5a",
+   "SeriesPrimaryImageTag": "fe3cde40da65bee712ff4853ab299bfb",
+   "SeasonName": "Staffel 15",
+   "VideoType": "VideoFile",
+   "ImageTags": {
+    "Primary": "c95472db7318fe0e28dba7b12b6cc45e"
+   },
+   "BackdropImageTags": [],
+   "ParentLogoImageTag": "8b373d9e47f00492dc692374559d58c4",
+   "ImageBlurHashes": {
+    "Primary": {
+     "c95472db7318fe0e28dba7b12b6cc45e": "W12=+Y%LD%4.WB?b%Os;WCRjayt74nM{-;?bj?D%IURixu%MoLMy",
+     "fe3cde40da65bee712ff4853ab299bfb": "dkKw|Qxu~q?bWBRjt7t7?bofR%xut7WCxus:tRWCaeoJ",
+     "1fdc29c8c394fdbbd95dffb846b50d64": "dYHd?H=^xV?F~ot6n$xYS4azIoNdxas,M_ofslNINHw]"
+    },
+    "Logo": {
+     "8b373d9e47f00492dc692374559d58c4": "HBTSUAxuj[xuj[xuayxuay~qfQayj[ayj[j[ayj["
+    },
+    "Thumb": {
+     "bb636250be7bc0791ef48a957208c93b": "WQK0pQo#}s%JQl^f^P$~n4%3M{bJNgQ-s:$kEMtS-UwvxZV@WA-p"
+    },
+    "Backdrop": {
+     "96d449cb6b310da0d74f6e31e4429e81": "N99Q,W?wOrM{a0x^xUxtRhRit8og9DRinNt7o#Ri"
+    }
+   },
+   "ParentThumbItemId": "58aeb40ab02282c2942259f814fbe8a8",
+   "ParentThumbImageTag": "bb636250be7bc0791ef48a957208c93b",
+   "ParentPrimaryImageItemId": "551781abf29dc8e9e61d4c8ee02f8f5a",
+   "ParentPrimaryImageTag": "1fdc29c8c394fdbbd95dffb846b50d64",
+   "LocationType": "FileSystem",
+   "MediaType": "Video"
+  },
+  {
+   "Name": "Mémoire 3: Archiviste - Die Fangzähne, die im Blut lesen -",
+   "Id": "55cc9fa3540235d70c8b945a7d095ad2",
+   "HasSubtitles": true,
+   "Container": "mkv",
+   "PremiereDate": "2021-07-16T22:00:00.0000000Z",
+   "CommunityRating": 7.6,
+   "RunTimeTicks": 14210510000,
+   "ProductionYear": 2021,
+   "IndexNumber": 3,
+   "ParentIndexNumber": 1,
+   "IsFolder": false,
+   "Type": "Episode",
+   "ParentLogoItemId": "d21039a6d3402775bebdebecab6018ae",
+   "ParentBackdropItemId": "d21039a6d3402775bebdebecab6018ae",
+   "ParentBackdropImageTags": [
+    "b4bad350bd9bcac657fe8ca612939aac"
+   ],
+   "UserData": {
+    "PlaybackPositionTicks": 0,
+    "PlayCount": 0,
+    "IsFavorite": false,
+    "Played": false,
+    "Key": "400133001003",
+    "ItemId": "55cc9fa3540235d70c8b945a7d095ad2"
+   },
+   "SeriesName": "The Case Study of Vanitas",
+   "SeriesId": "d21039a6d3402775bebdebecab6018ae",
+   "SeasonId": "8913e960abd92288510378f46437b20a",
+   "SeriesPrimaryImageTag": "4d5eb9b147c151ce3028f88d79c89f19",
+   "SeasonName": "Staffel 1",
+   "VideoType": "VideoFile",
+   "ImageTags": {
+    "Primary": "261465c617fa6090c7c6e1cc49f2a875"
+   },
+   "BackdropImageTags": [],
+   "ParentLogoImageTag": "221aa09f5c379a6ce797554a0b7ffac5",
+   "ImageBlurHashes": {
+    "Primary": {
+     "261465c617fa6090c7c6e1cc49f2a875": "WF7^JPof0$R*=so2^PoM9wWU-Qo2oej[R+axodj[Nej[xDWVNaoL",
+     "4d5eb9b147c151ce3028f88d79c89f19": "dQE.-E?b-nxv5_fhM|SOIXD$MxV[%0WXt7WFE3%1t8xu",
+     "d1cf74f494a7d0836e5a8a04c9114226": "dOEfB2?b-ox^1URjRkX9IYD$ITRk-oX9xaRkER%Lo#t7"
+    },
+    "Logo": {
+     "221aa09f5c379a6ce797554a0b7ffac5": "OFE2@3of01M{j@xtt7_2ay-;ofWBayM{NGoft7t7RjM|xu"
+    },
+    "Thumb": {
+     "3ab88d0d9cdd3dcb658e6c8b6e65e213": "WJCsvt~o_KbYDkIV?t-:tPt6jZIVNJtQM|adt6M{?axtt6RRM|WC"
+    },
+    "Backdrop": {
+     "b4bad350bd9bcac657fe8ca612939aac": "WRDTCu~q%MX9ITM{T4D%IUM|t8tRXWIUWBWEayxuyGocxuxvWAV@"
+    }
+   },
+   "ParentThumbItemId": "d21039a6d3402775bebdebecab6018ae",
+   "ParentThumbImageTag": "3ab88d0d9cdd3dcb658e6c8b6e65e213",
+   "ParentPrimaryImageItemId": "8913e960abd92288510378f46437b20a",
+   "ParentPrimaryImageTag": "d1cf74f494a7d0836e5a8a04c9114226",
+   "LocationType": "FileSystem",
+   "MediaType": "Video"
+  },
+  {
+   "Name": "Et in Arcadia Ego (1)",
+   "Id": "981b3720394282adebf86da79df3db7f",
+   "HasSubtitles": true,
+   "Container": "mkv",
+   "PremiereDate": "2020-03-18T23:00:00.0000000Z",
+   "CommunityRating": 7.052,
+   "RunTimeTicks": 26952340000,
+   "ProductionYear": 2020,
+   "IndexNumber": 9,
+   "ParentIndexNumber": 1,
+   "IsFolder": false,
+   "Type": "Episode",
+   "ParentLogoItemId": "ba9eb54d91b78ab1d5c5901a79b5abe7",
+   "ParentBackdropItemId": "ba9eb54d91b78ab1d5c5901a79b5abe7",
+   "ParentBackdropImageTags": [
+    "d0add2934b5b3b1a5a294bddd08ec551"
+   ],
+   "UserData": {
+    "PlaybackPositionTicks": 0,
+    "PlayCount": 0,
+    "IsFavorite": false,
+    "Played": false,
+    "Key": "364093001009",
+    "ItemId": "981b3720394282adebf86da79df3db7f"
+   },
+   "SeriesName": "Star Trek: Picard",
+   "SeriesId": "ba9eb54d91b78ab1d5c5901a79b5abe7",
+   "SeasonId": "86aa0978f82e052341161bfcc4e23dfe",
+   "SeriesPrimaryImageTag": "cc60e99db363425d518bf0a953d3d31e",
+   "SeasonName": "Staffel 1",
+   "VideoType": "VideoFile",
+   "ImageTags": {
+    "Primary": "a55028785842c92cb1cbec790f91c7cf"
+   },
+   "BackdropImageTags": [],
+   "ParentLogoImageTag": "d798dedeff5d85046088a3b60d2e89a5",
+   "ImageBlurHashes": {
+    "Primary": {
+     "a55028785842c92cb1cbec790f91c7cf": "WmKBgwIUD%-;oz%g~qj[V@kCazxt-;ofM|oJWBaykDt7ofa}j[ay",
+     "cc60e99db363425d518bf0a953d3d31e": "dbH,,,=^=^=v^O$$xYw_0iWBM}IrNaV[NHNIgMR+oeod",
+     "a105b99b7984d6b63dfab8b829c59885": "drH0^vxaRQn,}[s:jFt7-WofRjo2%2t6RkjZs:ofofjY"
+    },
+    "Logo": {
+     "d798dedeff5d85046088a3b60d2e89a5": "PUKfgbVDDgR4Q,IBIAIV-pRjR%V@n}M|aKRjVWM{M_azWWW=ogbu"
+    },
+    "Thumb": {
+     "ea4153c5af28f372e659e112fae5fc8f": "WWE.eSIY9u+@XmEN~WIpJAwINaNHX4oIkCa{M|aykCslRjofj[R*"
+    },
+    "Backdrop": {
+     "d0add2934b5b3b1a5a294bddd08ec551": "W66Hy7IU00_3-;4n_3M{9F-;-;D%-;WBIUxuxuM{xuayM{oft7Rj"
+    }
+   },
+   "ParentThumbItemId": "ba9eb54d91b78ab1d5c5901a79b5abe7",
+   "ParentThumbImageTag": "ea4153c5af28f372e659e112fae5fc8f",
+   "ParentPrimaryImageItemId": "86aa0978f82e052341161bfcc4e23dfe",
+   "ParentPrimaryImageTag": "a105b99b7984d6b63dfab8b829c59885",
+   "LocationType": "FileSystem",
+   "MediaType": "Video"
+  }
+ ],
+ "TotalRecordCount": 25,
+ "StartIndex": 0
+}

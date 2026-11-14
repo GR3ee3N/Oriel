@@ -46,12 +46,6 @@ export async function sections(server: Server): Promise<Directory[]> {
   return (mc.Directory ?? []).filter((d) => d.type === 'movie' || d.type === 'show');
 }
 
-/** Number of video playlists for the current profile. */
-export async function playlistCount(server: Server): Promise<number> {
-  const mc = await server.get('/playlists', { playlistType: 'video', 'X-Plex-Container-Start': 0, 'X-Plex-Container-Size': 0 });
-  return mc.totalSize ?? mc.size ?? 0;
-}
-
 /** Home hubs such as Continue Watching and Recently Added. */
 export async function homeHubs(server: Server): Promise<Hub[]> {
   const mc = await cached(`${server.id}/hubs`, () => server.get('/hubs', { count: 24, includeEmpty: 0, includeImages: 1 }));
@@ -62,18 +56,14 @@ export interface SectionQuery {
   /** Plex sort expression, e.g. 'titleSort' or 'addedAt:desc'. */
   sort?: string;
   unwatched?: boolean;
-  /** One Plex filter expressed as 'field=value', e.g. 'actor=123'. */
-  filter?: string;
   /** Library filters by field, e.g. { genre: '189', decade: '1990', hdr: '1' }. */
   filters?: Record<string, string>;
 }
 
 export function sectionItems(server: Server, section: string, query: SectionQuery = {}, page?: Page): Promise<MediaContainer> {
-  const [field, value] = query.filter?.split('=') ?? [];
   const params = {
     sort: query.sort,
     unwatched: query.unwatched ? 1 : undefined,
-    ...(field ? { [field]: value } : {}),
     ...query.filters,
     ...paging(page),
   };

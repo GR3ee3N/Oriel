@@ -1,15 +1,14 @@
 import { createSignal, For, Show } from 'solid-js';
+import type { Person } from '../../media/model';
+import { provider } from '../../media/servers';
 import { focusable } from '../../nav';
-import { imageUrl } from '../../plex/images';
-import type { Role } from '../../plex/types';
-import { currentServer } from '../../session';
 import './people.css';
 
 const SIZE = 150;
 const GAP = 36;
 
 /** Show cast portraits, names and roles; Select lists their titles in this library. */
-export function People(props: { title: string; people: Role[]; group: string; onSelect: (person: Role) => void }) {
+export function People(props: { title: string; people: Person[]; group: string; onSelect: (person: Person) => void }) {
   const [col, setCol] = createSignal(0);
   return (
     <section class="row people">
@@ -31,11 +30,11 @@ export function People(props: { title: string; people: Role[]; group: string; on
               }
             >
               <div class="portrait">
-                <Show when={p.thumb} fallback={<span>{p.tag[0]}</span>}>
-                  {(t) => <img src={imageUrl(currentServer(), t(), SIZE, SIZE)} alt="" decoding="async" />}
+                <Show when={p.photo} fallback={<span>{p.name[0]}</span>}>
+                  {(photo) => <img src={provider().image(photo(), SIZE, SIZE)} alt="" decoding="async" />}
                 </Show>
               </div>
-              <b>{p.tag}</b>
+              <b>{p.name}</b>
               <span>{p.role}</span>
             </div>
           )}

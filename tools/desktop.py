@@ -1,11 +1,13 @@
 #!/usr/bin/env python3
 """Serve a simulated add-on API at 127.0.0.1:32499 for browser development.
 
-Run alongside `npm run dev` in web/ and open http://localhost:5173/.
-Browsing uses real Plex servers. No media plays; simulated player state
+Run alongside `npm run dev` in web/ and open http://localhost:5173/; for
+Dormer, run it with `--app dormer` alongside `npm run dev:dormer` and open
+http://localhost:5174/. Browsing uses real media servers. No media plays; simulated player state
 supports OSD visibility, pause, seek and end-of-playback testing. The state
 follows addon/lib/oriel/video.py in oriel-framework. Settings, including
-Plex tokens, are stored in .cache/desktop-store.json. The optional fonts
+server tokens, are stored in .cache/desktop-store.json, or
+.cache/desktop-store-dormer.json for Dormer. The optional fonts
 download from a ZIP built from web/node_modules into .cache/desktop-files.
 """
 import json
@@ -25,7 +27,10 @@ sys.path.insert(0, os.path.join(REPO, "addon"))
 from fonts import Fonts  # noqa: E402
 
 PORT = 32499
-STORE = os.path.join(REPO, ".cache", "desktop-store.json")
+APP = sys.argv[sys.argv.index("--app") + 1] if "--app" in sys.argv else "oriel"
+if APP not in ("oriel", "dormer"):
+    sys.exit("usage: tools/desktop.py [--app oriel|dormer]")
+STORE = os.path.join(REPO, ".cache", "desktop-store.json" if APP == "oriel" else "desktop-store-dormer.json")
 FILES = os.path.realpath(os.path.join(REPO, ".cache", "desktop-files"))
 FAILURES = {"invalid": 400, "unavailable": 409, "failed": 500}
 # Simulated loading delay in seconds.
@@ -298,8 +303,9 @@ if __name__ == "__main__":
     server = ThreadingHTTPServer(("127.0.0.1", PORT), Handler)
     server.daemon_threads = True
     threading.Thread(target=tick, daemon=True).start()
-    print(f"add-on stand-in on http://127.0.0.1:{PORT}; now `npm run dev` in web/ "
-          "and open http://localhost:5173/", flush=True)
+    dev, page = ("dev", 5173) if APP == "oriel" else ("dev:dormer", 5174)
+    print(f"add-on stand-in on http://127.0.0.1:{PORT}; now `npm run {dev}` in web/ "
+          f"and open http://localhost:{page}/", flush=True)
     try:
         server.serve_forever()
     except KeyboardInterrupt:

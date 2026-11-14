@@ -11,11 +11,13 @@ export type Route =
   | { screen: 'watchlist' }
   | { screen: 'playlists' }
   | { screen: 'settings' }
-  | { screen: 'movie'; ratingKey: string }
-  | { screen: 'show'; ratingKey: string; season?: string; episode?: string }
-  | { screen: 'collection'; ratingKey: string; title: string; section?: string }
-  | { screen: 'playlist'; ratingKey: string; title: string }
-  | { screen: 'person'; section: string; filter: string; title: string }
+  | { screen: 'movie'; id: string }
+  | { screen: 'show'; id: string; season?: string; episode?: string }
+  | { screen: 'collection'; id: string; title: string }
+  | { screen: 'playlist'; id: string; title: string }
+  // A library's titles featuring one person or in one collection; the whole
+  // server's when `section` is empty.
+  | { screen: 'titles'; section: string; title: string; query: { person: string } | { collection: string } }
   | { screen: 'remote'; guid: string; title: string };
 
 export interface Entry {

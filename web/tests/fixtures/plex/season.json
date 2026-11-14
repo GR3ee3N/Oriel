@@ -1,0 +1,32 @@
+{
+ "ratingKey": "24797",
+ "key": "/library/metadata/24797/children",
+ "parentRatingKey": "24796",
+ "guid": "plex://season/606ef4d9e3727a002d6ef116",
+ "type": "season",
+ "title": "Season 1",
+ "parentTitle": "Arcane",
+ "summary": "",
+ "index": 1,
+ "parentIndex": 1,
+ "viewCount": 14,
+ "year": 2021,
+ "thumb": "/library/metadata/24797/thumb/1728116522",
+ "art": "/library/metadata/24796/art/1793848889",
+ "parentThumb": "/library/metadata/24796/thumb/1793848889",
+ "leafCount": 9,
+ "viewedLeafCount": 6,
+ "Image": [
+  {
+   "alt": "Season 1",
+   "type": "clearLogo",
+   "url": "/library/metadata/24796/clearLogo/1793848889"
+  }
+ ],
+ "UltraBlurColors": {
+  "topLeft": "152e4e",
+  "topRight": "732c44",
+  "bottomRight": "2a2659",
+  "bottomLeft": "2c657c"
+ }
+}

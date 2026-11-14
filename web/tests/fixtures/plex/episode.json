@@ -1,0 +1,216 @@
+{
+ "ratingKey": "24798",
+ "key": "/library/metadata/24798",
+ "parentRatingKey": "24797",
+ "grandparentRatingKey": "24796",
+ "guid": "plex://episode/5e1612ece68804001e87c4a7",
+ "type": "episode",
+ "title": "Willkommen in den Gassen",
+ "librarySectionID": 4,
+ "grandparentTitle": "Arcane",
+ "parentTitle": "Season 1",
+ "contentRating": "de/16",
+ "summary": "Die verwaisten Schwestern Vi und Powder sorgen nach einem Raubzug im vornehmen Piltover auf den unterirdischen Straßen von Zhaun für Ärger.",
+ "index": 1,
+ "parentIndex": 1,
+ "audienceRating": 8.6,
+ "viewCount": 8,
+ "year": 2021,
+ "thumb": "/library/metadata/24798/thumb/1779936151",
+ "art": "/library/metadata/24796/art/1793848889",
+ "parentThumb": "/library/metadata/24797/thumb/1728116522",
+ "grandparentThumb": "/library/metadata/24796/thumb/1793848889",
+ "grandparentArt": "/library/metadata/24796/art/1793848889",
+ "duration": 2607410,
+ "originallyAvailableAt": "2021-11-06",
+ "Media": [
+  {
+   "id": 41761,
+   "duration": 2607410,
+   "bitrate": 5595,
+   "audioChannels": 6,
+   "audioCodec": "eac3",
+   "videoCodec": "hevc",
+   "videoResolution": "1080",
+   "container": "mkv",
+   "Part": [
+    {
+     "id": 51879,
+     "key": "/library/parts/51879/1678013073/file.mkv",
+     "duration": 2607410,
+     "size": 1823708052,
+     "indexes": "sd",
+     "Stream": [
+      {
+       "id": 279028,
+       "streamType": 1,
+       "codec": "hevc",
+       "index": 0,
+       "languageTag": "en",
+       "languageCode": "eng",
+       "DOVIBLCompatID": 1,
+       "DOVIPresent": true,
+       "DOVIProfile": 8,
+       "colorTrc": "smpte2084",
+       "profile": "main 10",
+       "title": "Arcane - S01E01 - Willkommen in den Gassen",
+       "displayTitle": "1080p DoVi/HDR10"
+      },
+      {
+       "id": 279029,
+       "streamType": 2,
+       "codec": "eac3",
+       "index": 1,
+       "channels": 6,
+       "languageTag": "de",
+       "languageCode": "deu",
+       "title": "E-AC3 5.1 @ 640 kbps",
+       "displayTitle": "Deutsch (EAC3 5.1)"
+      },
+      {
+       "id": 279030,
+       "streamType": 2,
+       "selected": true,
+       "codec": "eac3",
+       "index": 2,
+       "channels": 6,
+       "languageTag": "en",
+       "languageCode": "eng",
+       "title": "E-AC3 5.1 @ 640 kbps",
+       "displayTitle": "English (EAC3 5.1)"
+      },
+      {
+       "id": 279031,
+       "streamType": 3,
+       "forced": true,
+       "codec": "pgs",
+       "index": 3,
+       "languageTag": "de",
+       "languageCode": "deu",
+       "title": "Forced PGS",
+       "displayTitle": "Deutsch Forced"
+      },
+      {
+       "id": 279032,
+       "streamType": 3,
+       "forced": true,
+       "codec": "srt",
+       "index": 4,
+       "languageTag": "de",
+       "languageCode": "deu",
+       "title": "Forced SRT",
+       "displayTitle": "Deutsch Forced"
+      },
+      {
+       "id": 279033,
+       "streamType": 3,
+       "selected": true,
+       "codec": "pgs",
+       "index": 5,
+       "languageTag": "de",
+       "languageCode": "deu",
+       "title": "Full PGS",
+       "displayTitle": "Deutsch"
+      },
+      {
+       "id": 279034,
+       "streamType": 3,
+       "codec": "srt",
+       "index": 6,
+       "languageTag": "de",
+       "languageCode": "deu",
+       "title": "Full SRT",
+       "displayTitle": "Deutsch"
+      },
+      {
+       "id": 279035,
+       "streamType": 3,
+       "codec": "pgs",
+       "index": 7,
+       "languageTag": "en",
+       "languageCode": "eng",
+       "title": "Full PGS",
+       "displayTitle": "English"
+      },
+      {
+       "id": 279036,
+       "streamType": 3,
+       "codec": "srt",
+       "index": 8,
+       "languageTag": "en",
+       "languageCode": "eng",
+       "title": "Full SRT",
+       "displayTitle": "English"
+      }
+     ]
+    }
+   ]
+  }
+ ],
+ "Image": [
+  {
+   "alt": "Willkommen in den Gassen",
+   "type": "clearLogo",
+   "url": "/library/metadata/24796/clearLogo/1793848889"
+  }
+ ],
+ "UltraBlurColors": {
+  "topLeft": "152e4d",
+  "topRight": "62371d",
+  "bottomRight": "54499b",
+  "bottomLeft": "735926"
+ },
+ "Director": [
+  {
+   "id": 59690,
+   "filter": "director=59690",
+   "tag": "Arnaud Delord"
+  },
+  {
+   "id": 59691,
+   "filter": "director=59691",
+   "tag": "Pascal Charrue"
+  }
+ ],
+ "Role": [
+  {
+   "id": 59659,
+   "filter": "actor=59659",
+   "tag": "Hailee Steinfeld",
+   "role": "Vi (voice)",
+   "thumb": "https://metadata-static.plex.tv/e/people/e5c1c85874ab52b9941e478215df857e.jpg"
+  },
+  {
+   "id": 18297,
+   "filter": "actor=18297",
+   "tag": "Ella Purnell",
+   "role": "Jinx (voice)",
+   "thumb": "https://metadata-static.plex.tv/4/people/452e6821b34497c6cb6e325136759f72.jpg"
+  }
+ ],
+ "Chapter": [
+  {
+   "index": 1,
+   "tag": "Credits",
+   "startTimeOffset": 2382000,
+   "endTimeOffset": 2607410,
+   "thumb": "/library/media/41761/chapterImages/1"
+  }
+ ],
+ "Marker": [
+  {
+   "type": "credits",
+   "startTimeOffset": 2384669,
+   "endTimeOffset": 2607410,
+   "final": true
+  },
+  {
+   "type": "intro",
+   "startTimeOffset": 200927,
+   "endTimeOffset": 265888
+  }
+ ],
+ "Extras": {
+  "Metadata": []
+ }
+}

@@ -1,6 +1,8 @@
-"""Run the Plex client with the framework's VideoApp.
+"""Run the app with the framework's VideoApp: Oriel for Plex, or Dormer
+for Jellyfin, by the page in resources/web.
 
-The page in resources/web sets the Plex media source and token header.
+The page sets the media server as Kodi's media source, with the header that
+authorises its requests.
 """
 import os
 
@@ -17,9 +19,11 @@ class Oriel(VideoApp):
 
     def __init__(self):
         super().__init__()
-        package = os.path.join(xbmcaddon.Addon().getAddonInfo("path"), "resources", "fonts.json")
+        addon = xbmcaddon.Addon()
+        name = addon.getAddonInfo("name")
+        package = os.path.join(addon.getAddonInfo("path"), "resources", "fonts.json")
         self.fonts = Fonts(package, self.files_dir, lambda: self.events.put(("fonts",)),
-                           lambda message: xbmc.log(f"Oriel: {message}", xbmc.LOGINFO))
+                           lambda message: xbmc.log(f"{name}: {message}", xbmc.LOGINFO))
 
     def state(self):
         return {**super().state(), "fonts": self.fonts.state()}

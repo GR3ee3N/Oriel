@@ -1,16 +1,20 @@
 import { afterEach, expect, test, vi } from 'vitest';
+import type { Item } from '../src/media/model';
 import type { Server } from '../src/plex/client';
-import type { Metadata } from '../src/plex/types';
 
 const get = vi.fn(async (path: string): Promise<unknown> => {
-  if (path === '/library/metadata/next') return { Metadata: [{ ratingKey: 'next', OnDeck: { Metadata: { parentRatingKey: 'season-2' } } }] };
+  if (path === '/library/metadata/next') return { Metadata: [{ ratingKey: 'next', OnDeck: { Metadata: { ratingKey: 'e', type: 'episode', parentRatingKey: 'season-2' } } }] };
   if (path === '/library/metadata/next/children' || path === '/library/metadata/first/children')
     return { Metadata: [{ ratingKey: 'specials', index: 0 }, { ratingKey: 'season-1', index: 1 }] };
   if (path.startsWith('/library/metadata/')) return { Metadata: [{ ratingKey: path.split('/')[3] }] };
   return {};
 });
 const server = { id: 'prefetch-test', get } as unknown as Server;
-vi.mock('../src/session', () => ({ currentServer: () => server }));
+vi.mock('../src/media/servers', async () => {
+  const { plexProvider } = await import('../src/plex/provider');
+  const p = plexProvider(server as never);
+  return { provider: () => p, invalidate: vi.fn() };
+});
 vi.mock('../src/router', () => ({ push: vi.fn() }));
 vi.mock('../src/player/playback', () => ({ startPlayback: vi.fn(), startQueue: vi.fn() }));
 
@@ -23,7 +27,8 @@ afterEach(() => {
   vi.useRealTimers();
 });
 
-const show = (ratingKey: string) => ({ ratingKey, type: 'show' }) as Metadata;
+const item = (m: Partial<Item>): Item => ({ id: '1', kind: 'movie', title: 'A', art: {}, ...m });
+const show = (id: string): Item => item({ id, kind: 'show' });
 const paths = () => get.mock.calls.map(([path]) => path);
 
 test("a show settled on loads its details, its seasons and the next episode's season", async () => {
@@ -45,7 +50,7 @@ test("a show with no next episode loads its first season that isn't Specials", a
 
 test('an episode loads its show and its own season', async () => {
   vi.useFakeTimers();
-  prefetch({ ratingKey: 'e', type: 'episode', grandparentRatingKey: 'first', parentRatingKey: 'season-3' } as Metadata);
+  prefetch(item({ id: 'e', kind: 'episode', show: { id: 'first', title: '' }, season: { id: 'season-3' } }));
   await vi.advanceTimersByTimeAsync(300);
   expect(paths()).toEqual(['/library/metadata/first', '/library/metadata/first/children', '/library/metadata/season-3/children']);
 });
@@ -54,7 +59,7 @@ test('only the item focus settles on is loaded', async () => {
   vi.useFakeTimers();
   prefetch(show('passed'));
   await vi.advanceTimersByTimeAsync(100);
-  prefetch({ ratingKey: 'movie', type: 'movie' } as Metadata);
+  prefetch(item({ id: 'movie', kind: 'movie' }));
   await vi.advanceTimersByTimeAsync(300);
   expect(paths()).toEqual(['/library/metadata/movie']);
 });

@@ -1,107 +1,100 @@
 // Shared item actions for Select and Play on every screen.
 
 import { createSignal } from 'solid-js';
+import type { Item, Person } from './media/model';
 import { push } from './router';
-import { children, metadata } from './plex/api';
-import { clean } from './plex/format';
-import type { Metadata, Role } from './plex/types';
-import type { QueueSource } from './plex/playqueue';
+import { clean } from './media/format';
+import type { QueueSource } from './media/provider';
+import { provider } from './media/servers';
 import { startPlayback, startQueue } from './player/playback';
-import { currentServer } from './session';
 
-export function open(item: Metadata): void {
-  switch (item.type) {
+export function open(item: Item): void {
+  switch (item.kind) {
     case 'movie':
-      return push({ screen: 'movie', ratingKey: item.ratingKey });
+      return push({ screen: 'movie', id: item.id });
     case 'show':
-      return push({ screen: 'show', ratingKey: item.ratingKey });
+      return push({ screen: 'show', id: item.id });
     case 'season':
-      return push({ screen: 'show', ratingKey: item.parentRatingKey!, season: item.ratingKey });
+      return push({ screen: 'show', id: item.show!.id, season: item.id });
     case 'episode':
-      return push({
-        screen: 'show',
-        ratingKey: item.grandparentRatingKey!,
-        season: item.parentRatingKey,
-        episode: item.ratingKey,
-      });
+      return push({ screen: 'show', id: item.show!.id, season: item.season?.id, episode: item.id });
     case 'collection':
-      return push({ screen: 'collection', ratingKey: item.ratingKey, title: clean(item.title) });
+      return push({ screen: 'collection', id: item.id, title: clean(item.title) });
     case 'playlist':
-      return push({ screen: 'playlist', ratingKey: item.ratingKey, title: clean(item.title) });
+      return push({ screen: 'playlist', id: item.id, title: clean(item.title) });
     default:
-      console.error(`open: no page for a ${item.type}`);
+      console.error(`open: no page for a ${item.kind}`);
   }
 }
 
 /** The season a show page opens on: the next episode's, else the first
  * season that isn't Specials. */
-export function firstSeason(seasons: Metadata[] | undefined, next?: Metadata): string | undefined {
-  return next?.parentRatingKey ?? (seasons?.find((s) => s.index !== 0) ?? seasons?.[0])?.ratingKey;
+export function firstSeason(seasons: Item[] | undefined, nextSeason?: string): string | undefined {
+  return nextSeason ?? (seasons?.find((s) => s.number !== 0) ?? seasons?.[0])?.id;
 }
 
 let prefetchTimer: ReturnType<typeof setTimeout> | undefined;
 
 /** Once focus settles on `item`, fetch what its page loads first, so
  * opening it shows the page from the cache. Entries last one minute. */
-export function prefetch(item: Metadata): void {
+export function prefetch(item: Item): void {
   clearTimeout(prefetchTimer);
   prefetchTimer = setTimeout(() => {
-    const server = currentServer();
+    const server = provider();
     const quiet = <T>(p: Promise<T>) => p.catch(() => undefined);
-    if (item.type === 'movie') return void quiet(metadata(server, item.ratingKey));
-    const show = item.type === 'show' ? item.ratingKey : item.type === 'season' ? item.parentRatingKey : item.type === 'episode' ? item.grandparentRatingKey : undefined;
+    if (item.kind === 'movie') return void quiet(server.item(item.id));
+    const show = item.kind === 'show' ? item.id : item.kind === 'season' || item.kind === 'episode' ? item.show?.id : undefined;
     if (!show) return;
-    const details = quiet(metadata(server, show));
-    const seasons = quiet(children(server, show));
-    const season = item.type === 'season' ? item.ratingKey : item.type === 'episode' ? item.parentRatingKey : undefined;
-    if (season) return void quiet(children(server, season));
+    const details = quiet(server.item(show));
+    const seasons = quiet(server.children(show));
+    const season = item.kind === 'season' ? item.id : item.kind === 'episode' ? item.season?.id : undefined;
+    if (season) return void quiet(server.children(season));
     void details.then(async (s) => {
-      const next = s?.OnDeck?.Metadata;
-      const key = firstSeason(next ? undefined : await seasons, next);
-      if (key) await quiet(children(server, key));
+      const next = s?.next;
+      const key = firstSeason(next ? undefined : await seasons, next?.season?.id);
+      if (key) await quiet(server.children(key));
     });
   }, 300);
 }
 
-/** List titles featuring `person` in the item's library. */
-export function openPerson(item: Metadata, person: Role): void {
-  const filter = person.filter ?? (person.id !== undefined ? `actor=${person.id}` : undefined);
-  if (item.librarySectionID === undefined || !filter) return;
-  push({ screen: 'person', section: String(item.librarySectionID), filter, title: person.tag });
+/** List titles featuring `person` in the item's library, or on the whole
+ * server when the item doesn't name its library. */
+export function openPerson(item: Item, person: Person): void {
+  if (!person.id) return;
+  push({ screen: 'titles', section: item.library ?? '', title: person.name, query: { person: person.id } });
 }
 
-// Version chosen per title on its detail page, for this run of Oriel. Rating
-// keys are local to a server, so each choice is scoped to the current one.
+// Version chosen per title on its detail page, for this run of Oriel. Item
+// ids are local to a server, so each choice is scoped to the current one.
 const [versions, setVersions] = createSignal<Record<string, number>>({});
-const versionKey = (ratingKey: string) => `${currentServer().id}|${ratingKey}`;
+const versionKey = (id: string) => `${provider().server.id}|${id}`;
 
-/** Index in item.Media of the version Play starts. */
-export const chosenVersion = (ratingKey: string): number => versions()[versionKey(ratingKey)] ?? 0;
+/** Index in item.versions of the version Play starts. */
+export const chosenVersion = (id: string): number => versions()[versionKey(id)] ?? 0;
 
-export function chooseVersion(ratingKey: string, index: number): void {
-  setVersions((v) => ({ ...v, [versionKey(ratingKey)]: index }));
+export function chooseVersion(id: string, index: number): void {
+  setVersions((v) => ({ ...v, [versionKey(id)]: index }));
 }
 
 /** Resume movies and episodes unless `fromStart` is set; an episode plays
  * on through the rest of its show. For shows, play the next episode; for
  * seasons, play the first unwatched episode or the first. */
-export async function play(item: Metadata, fromStart = false): Promise<void> {
-  const server = currentServer();
-  if (item.type === 'show') {
-    const show = await metadata(server, item.ratingKey);
-    const next = show?.OnDeck?.Metadata ?? (await firstEpisode(show?.ratingKey));
-    if (next) return play(next);
+export async function play(item: Item, fromStart = false): Promise<void> {
+  if (item.kind === 'show') {
+    const show = await provider().item(item.id);
+    const next = show?.next ?? (show && (await firstEpisode(show.id)));
+    if (next) return play(next, fromStart);
     return;
   }
-  if (item.type === 'season') {
-    const episodes = await children(server, item.ratingKey);
-    const next = episodes.find((e) => !e.viewCount) ?? episodes[0];
-    if (next) return play(next);
+  if (item.kind === 'season') {
+    const episodes = await provider().children(item.id);
+    const next = episodes.find((e) => !e.plays) ?? episodes[0];
+    if (next) return play(next, fromStart);
     return;
   }
   // Clips are extras such as trailers.
-  if (item.type !== 'movie' && item.type !== 'episode' && item.type !== 'clip') return;
-  await startPlayback(item, fromStart, chosenVersion(item.ratingKey));
+  if (item.kind !== 'movie' && item.kind !== 'episode' && item.kind !== 'clip') return;
+  await startPlayback(item, fromStart, chosenVersion(item.id));
 }
 
 /** Play a whole collection or playlist in its order, or shuffled by the
@@ -110,9 +103,7 @@ export function playAll(source: { collection: string } | { playlist: string }, s
   return startQueue({ ...source, shuffle } as QueueSource, true);
 }
 
-async function firstEpisode(show?: string): Promise<Metadata | undefined> {
-  if (!show) return undefined;
-  const seasons = await children(currentServer(), show);
-  const first = seasons.find((s) => s.index !== 0) ?? seasons[0];
-  return first ? (await children(currentServer(), first.ratingKey))[0] : undefined;
+async function firstEpisode(show: string): Promise<Item | undefined> {
+  const first = firstSeason(await provider().children(show));
+  return first ? (await provider().children(first))[0] : undefined;
 }

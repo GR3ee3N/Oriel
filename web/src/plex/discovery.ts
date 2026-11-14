@@ -4,6 +4,7 @@
 // advertised connections, remote connections and Plex relay. Verify the
 // machineIdentifier because a private address can reach a different server.
 
+import { Unreachable } from '../media/errors';
 import { PlexError, request, plexTv, Server } from './client';
 import type { Resource } from './types';
 
@@ -45,8 +46,6 @@ function candidates(resource: Resource): Candidate[] {
   const seen = new Set<string>();
   return out.filter((c) => !seen.has(c.uri) && seen.add(c.uri)).sort((a, b) => a.rank - b.rank);
 }
-
-export class Unreachable extends Error {}
 
 /** Resolve the preferred reachable connection, or reject with Unreachable. */
 export function connect(resource: Resource, userToken: string, signal?: AbortSignal): Promise<Server> {

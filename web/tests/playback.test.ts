@@ -15,14 +15,20 @@ const notice = vi.hoisted(() => vi.fn());
 vi.mock('../src/bridge', () => bridge);
 vi.mock('../src/plex/api', () => api);
 vi.mock('../src/data', () => ({ refresh: vi.fn() }));
-vi.mock('../src/session', () => ({ currentServer: () => server }));
+vi.mock('../src/media/servers', async () => {
+  const { plexProvider } = await import('../src/plex/provider');
+  const p = plexProvider(server as never);
+  return { provider: () => p, invalidate: vi.fn() };
+});
 vi.mock('../src/prefs', () => ({ prefs }));
 vi.mock('../src/notice', () => ({ notice }));
-vi.mock('../src/player/bif', () => ({ Bif: {} }));
+vi.mock('../src/plex/bif', () => ({ Bif: {} }));
 // Without a play queue each item plays on its own.
 vi.mock('../src/plex/playqueue', () => ({ createQueue: vi.fn(async () => Promise.reject(new Error('no queue'))), loadQueue: vi.fn() }));
 
-const { chooseAudio, playback, startPlayback } = await import('../src/player/playback');
+const { adoptPlayback, chooseAudio, playback, startPlayback } = await import('../src/player/playback');
+/** What Play hands the player. */
+const ref = (id: string) => ({ id, kind: 'movie' as const });
 const { createQueue } = await import('../src/plex/playqueue');
 
 /** Movie fixture with bitrate `kbps`; values above the 4000 kbps limit require transcoding. */
@@ -72,12 +78,12 @@ beforeEach(() => {
 test('an older choice whose metadata comes late does not replace the newer playback', async () => {
   const slow = deferred<Metadata>();
   api.metadata.mockReturnValueOnce(slow.promise).mockResolvedValueOnce(movie('B', 1000));
-  const first = startPlayback(movie('A', 1000));
+  const first = startPlayback(ref('A'));
   await vi.waitFor(() => expect(api.metadata).toHaveBeenCalledTimes(1));
-  await startPlayback(movie('B', 1000));
+  await startPlayback(ref('B'));
   slow.resolve(movie('A', 1000));
   await first;
-  expect(playback()?.item.ratingKey).toBe('B');
+  expect(playback()?.item.id).toBe('B');
   expect(paths()).toEqual(['/B']);
 });
 
@@ -85,11 +91,11 @@ test('an older choice whose play queue comes late does not replace the newer pla
   const queue = deferred<Awaited<ReturnType<typeof createQueue>>>();
   vi.mocked(createQueue).mockReturnValueOnce(queue.promise);
   api.metadata.mockResolvedValue(movie('B', 1000));
-  const first = startPlayback(movie('A', 1000));
-  await startPlayback(movie('B', 1000));
-  queue.resolve({ queue: {} as never, selected: movie('A', 1000) });
+  const first = startPlayback(ref('A'));
+  await startPlayback(ref('B'));
+  queue.resolve({ queue: {} as never, first: { entry: '1', item: { id: 'A', kind: 'movie', title: 'A', art: {} } } });
   await first;
-  expect(playback()?.item.ratingKey).toBe('B');
+  expect(playback()?.item.id).toBe('B');
   expect(paths()).toEqual(['/B']);
 });
 
@@ -98,9 +104,9 @@ test('an older choice whose transcode decision returns while a newer one loads d
   const later = deferred<Metadata>();
   api.metadata.mockResolvedValueOnce(movie('A', 20000)).mockReturnValueOnce(later.promise);
   server.get.mockReturnValueOnce(decision.promise);
-  const first = startPlayback(movie('A', 20000));
+  const first = startPlayback(ref('A'));
   await vi.waitFor(() => expect(server.get).toHaveBeenCalled());
-  const second = startPlayback(movie('B', 1000));
+  const second = startPlayback(ref('B'));
   await vi.waitFor(() => expect(api.metadata).toHaveBeenCalledTimes(2));
   decision.resolve({ generalDecisionCode: 1000 });
   await first;
@@ -112,14 +118,14 @@ test('an older choice whose transcode decision returns while a newer one loads d
 
 test("a track saved after another item started doesn't restart that item", async () => {
   api.metadata.mockResolvedValueOnce(movie('A', 20000));
-  await startPlayback(movie('A', 20000));
+  await startPlayback(ref('A'));
   expect(playback()?.transcoded).toBe(true);
   const saved = deferred<void>();
   server.call.mockReturnValueOnce(saved.promise);
   chooseAudio(playback()!.audio[1]);
 
   api.metadata.mockResolvedValueOnce(movie('B', 1000));
-  await startPlayback(movie('B', 1000));
+  await startPlayback(ref('B'));
   bridge.call.mockClear();
   saved.resolve();
   await settle();
@@ -129,7 +135,7 @@ test("a track saved after another item started doesn't restart that item", async
 test.each([1000, 20000])('resuming a %i kbps item starts at the saved movie position', async (kbps) => {
   const item = { ...movie('A', kbps), viewOffset: 600_000, duration: 5_400_000 };
   api.metadata.mockResolvedValue(item);
-  await startPlayback(item);
+  await startPlayback(ref('A'));
   const command = played()[0];
   expect(command).toMatchObject({ position: 600, subtitle: -1 });
   if (kbps === 1000) {
@@ -150,7 +156,7 @@ test('a direct play is declared to Plex, and Kodi plays the file in its session'
   const item = movie('A', 1000);
   Object.assign(item.Media![0], { container: 'mkv', videoCodec: 'hevc', audioCodec: 'eac3' });
   api.metadata.mockResolvedValue(item);
-  await startPlayback(item);
+  await startPlayback(ref('A'));
   const [path, params] = server.get.mock.calls[0];
   expect(path).toBe('/video/:/transcode/universal/decision');
   expect(params).toMatchObject({ path: '/library/metadata/A', directPlay: '1', 'X-Plex-Session-Identifier': playback()!.id });
@@ -170,7 +176,7 @@ test.each([
   const item = movie('A', 1000);
   api.metadata.mockResolvedValue(item);
   decide();
-  await startPlayback(item);
+  await startPlayback(ref('A'));
   expect(paths()).toEqual(['/A']);
   expect(playback()?.transcoded).toBe(false);
 });
@@ -179,11 +185,11 @@ test('a Plex transcode refusal leaves nothing playing and the user can retry', a
   const item = movie('A', 20000);
   api.metadata.mockResolvedValue(item);
   server.get.mockResolvedValueOnce({ generalDecisionCode: 2000, generalDecisionText: 'Transcoder unavailable' });
-  await expect(startPlayback(item)).rejects.toThrow('Transcoder unavailable');
+  await expect(startPlayback(ref('A'))).rejects.toThrow('Transcoder unavailable');
   expect(notice).toHaveBeenCalledWith('Plex can’t convert this item: Transcoder unavailable');
   expect(played()).toEqual([]);
   expect(playback()).toBeUndefined();
-  await startPlayback(item);
+  await startPlayback(ref('A'));
   expect(played()).toHaveLength(1);
   expect(playback()?.transcoded).toBe(true);
 });
@@ -194,7 +200,7 @@ test('a codec the box cannot decode is transcoded even at Original quality', asy
   prefs.qualityLocal = 0;
   bridge.state.decoders = ['h264', 'hevc'];
   api.metadata.mockResolvedValue(item);
-  await startPlayback(item);
+  await startPlayback(ref('A'));
   const stream = new URL(played()[0].path, 'http://plex.example');
   expect(stream.searchParams.get('maxVideoBitrate')).toBe('20000');
   expect(stream.searchParams.get('X-Plex-Client-Profile-Extra')).toContain('videoCodec=h264,hevc&');
@@ -205,11 +211,21 @@ test('a late transcode decision cannot replace a newer item', async () => {
   const decision = deferred<{ generalDecisionCode: number }>();
   api.metadata.mockResolvedValueOnce(movie('A', 20000)).mockResolvedValueOnce(movie('B', 1000));
   server.get.mockReturnValueOnce(decision.promise);
-  const first = startPlayback(movie('A', 20000));
+  const first = startPlayback(ref('A'));
   await vi.waitFor(() => expect(server.get).toHaveBeenCalled());
-  await startPlayback(movie('B', 1000));
+  await startPlayback(ref('B'));
   decision.resolve({ generalDecisionCode: 1000 });
   await first;
-  expect(playback()?.item.ratingKey).toBe('B');
+  expect(playback()?.item.id).toBe('B');
   expect(paths()).toEqual(['/B']);
+});
+
+test('after a page reload, playback is picked up from its note, and a note from an older Oriel is dropped', async () => {
+  api.metadata.mockResolvedValue(movie('A', 1000));
+  await adoptPlayback({ id: 'A', quality: 4000, transcoded: false }, 'session-1');
+  expect(playback()).toMatchObject({ id: 'session-1', item: { id: 'A' } });
+  api.metadata.mockClear();
+  await adoptPlayback({ ratingKey: 'B', quality: 4000, transcoded: false } as never, 'session-2');
+  expect(api.metadata).not.toHaveBeenCalled();
+  expect(playback()?.id).toBe('session-1');
 });

@@ -1,7 +1,7 @@
 // Clear cached browse data after playback so screens reload watch state and progress.
 
 import { type Accessor, createSignal, type Resource } from 'solid-js';
-import { invalidate } from './plex/api';
+import { invalidate } from './media/servers';
 
 const [version, setVersion] = createSignal(0);
 

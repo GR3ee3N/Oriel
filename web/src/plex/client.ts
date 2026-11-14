@@ -1,6 +1,9 @@
 // Requests to plex.tv and Plex servers.
+
 import { noteText } from '../fonts';
 import { LANGUAGE } from '../i18n';
+import { ServerError } from '../media/errors';
+import { PRODUCT, VERSION } from '../app';
 
 // Put X-Plex-* identity in the query string so GET and POST requests with
 // only an Accept header avoid CORS preflights and their extra round trip.
@@ -8,8 +11,6 @@ import { LANGUAGE } from '../i18n';
 
 import type { MediaContainer } from './types';
 
-export const PRODUCT = 'Oriel';
-export const VERSION: string = import.meta.env.VITE_APP_VERSION;
 const PLEX_TV = 'https://plex.tv';
 
 let clientId = '';
@@ -33,14 +34,7 @@ export function identity(token?: string): Record<string, string> {
   return params;
 }
 
-export class PlexError extends Error {
-  constructor(
-    readonly status: number,
-    message: string,
-  ) {
-    super(message);
-  }
-}
+export class PlexError extends ServerError {}
 
 export interface RequestOptions {
   method?: 'GET' | 'POST' | 'PUT';

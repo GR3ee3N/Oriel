@@ -1,4 +1,5 @@
 import { beforeEach, expect, test, vi } from 'vitest';
+import type { QueueEntry } from '../src/media/provider';
 import type { Metadata } from '../src/plex/types';
 
 vi.mock('../src/bridge', async () => {
@@ -17,16 +18,20 @@ const server = { id: 'server', local: true, call: vi.fn(async () => undefined), 
 const prefs = vi.hoisted(() => ({ qualityLocal: 4000, qualityRemote: 4000, autoSkipIntro: false, autoSkipCredits: false }));
 vi.mock('../src/plex/api', () => ({ metadata: vi.fn(async (_s, key: string) => item(key)), setWatched: vi.fn() }));
 vi.mock('../src/data', () => ({ refresh: vi.fn() }));
-vi.mock('../src/session', () => ({ currentServer: () => server }));
+vi.mock('../src/media/servers', async () => {
+  const { plexProvider } = await import('../src/plex/provider');
+  const p = plexProvider(server as never);
+  return { provider: () => p, invalidate: vi.fn() };
+});
 vi.mock('../src/prefs', () => ({ prefs }));
 vi.mock('../src/notice', () => ({ notice: vi.fn() }));
-vi.mock('../src/player/bif', () => ({ Bif: {} }));
+vi.mock('../src/plex/bif', () => ({ Bif: {} }));
 // Episodes A, B and C in one queue. Each is above the bitrate limit, so playing
 // one starts a transcode, whose cleanup waits 2 s before the next entry starts.
-const entries = ['A', 'B', 'C'].map((ratingKey, i) => ({ ...item(ratingKey), type: 'episode', playQueueItemID: i + 1 }) as Metadata);
+const entries: QueueEntry[] = ['A', 'B', 'C'].map((id, i) => ({ entry: String(i + 1), item: { id, kind: 'episode', title: id, art: {} } }));
 vi.mock('../src/plex/playqueue', () => ({
-  createQueue: vi.fn(async () => ({ queue: { id: 9, total: 3, shuffled: false, start: 0, items: entries }, selected: entries[0] })),
-  loadQueue: vi.fn(async () => ({ id: 9, total: 3, shuffled: false, start: 0, items: entries })),
+  createQueue: vi.fn(async () => ({ queue: { id: '9', total: 3, shuffled: false, start: 0, entries }, first: entries[0] })),
+  loadQueue: vi.fn(async () => ({ id: '9', total: 3, shuffled: false, start: 0, entries })),
 }));
 
 const bridge = await import('../src/bridge');
@@ -57,7 +62,7 @@ beforeEach(() => {
 });
 
 test('a delayed next entry does not start over an entry selected while cleanup waits', async () => {
-  await startPlayback(entries[0]);
+  await startPlayback(entries[0].item);
   Object.assign(player, { session: playback()!.id, state: 'playing', duration: 1800 });
   // Playback reaches the end: Kodi stops and the next entry, B, is queued behind cleanup.
   // `ended` is set first: the effect runs on the state write.
@@ -65,16 +70,16 @@ test('a delayed next entry does not start over an entry selected while cleanup w
   // The user picks C before the transcode cleanup has finished.
   playEntry(entries[2]);
   await vi.runAllTimersAsync();
-  expect(playback()?.item.ratingKey).toBe('C');
+  expect(playback()?.item.id).toBe('C');
   expect(decided()).toEqual(['/library/metadata/A', '/library/metadata/C']);
   expect(played()).toHaveLength(2);
 });
 
 test('with nothing selected meanwhile, the next entry starts once cleanup finishes', async () => {
-  await startPlayback(entries[0]);
+  await startPlayback(entries[0].item);
   Object.assign(player, { session: playback()!.id, state: 'playing', duration: 1800 });
   Object.assign(player, { ended: 'ended', state: 'idle' });
   await vi.runAllTimersAsync();
-  expect(playback()?.item.ratingKey).toBe('B');
+  expect(playback()?.item.id).toBe('B');
   expect(decided()).toEqual(['/library/metadata/A', '/library/metadata/B']);
 });

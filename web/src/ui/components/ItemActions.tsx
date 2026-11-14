@@ -2,16 +2,16 @@
 // and audio and subtitle choice before playback.
 
 import { createResource, createSignal, Show } from 'solid-js';
-import { refresh } from '../../data';
+import { dataVersion, loaded, refresh } from '../../data';
 import { t } from '../../i18n';
-import { setWatched } from '../../plex/api';
+import { clean, isWatched } from '../../media/format';
+import type { Item } from '../../media/model';
+import { provider } from '../../media/servers';
 import { chooseVersion, chosenVersion } from '../../actions';
-import { clean, isWatched, versionLabel } from '../../plex/format';
-import type { Metadata, Part } from '../../plex/types';
-import { isWatchlisted, setWatchlisted, watchlistVersion } from '../../plex/watchlist';
+import { versionLabel } from '../../media/format';
 import { audioTracks, subtitleTracks, SUBTITLES_OFF, type Track } from '../../player/tracks';
 import { notice } from '../../notice';
-import { currentServer, session } from '../../session';
+import { session } from '../../session';
 import { Button, Chip } from './Controls';
 import { Dialog } from './Dialog';
 import { Panel } from './Panel';
@@ -19,13 +19,14 @@ import { Panel } from './Panel';
 /** Toggle watched state. The target is captured on Select, so moving focus
  * while the server answers can't change which item is written. A whole
  * show asks first. */
-export function WatchedButton(props: { item: Metadata; group?: string }) {
+export function WatchedButton(props: { item: Item; group?: string }) {
   const [busy, setBusy] = createSignal(false);
   const [asking, setAsking] = createSignal(false);
   const watched = () => isWatched(props.item);
-  const write = (item: Metadata, on: boolean) => {
+  const write = (item: Item, on: boolean) => {
     setBusy(true);
-    setWatched(currentServer(), item.ratingKey, on)
+    provider()
+      .setWatched(item.id, on)
       .then(refresh)
       .catch((e) => {
         console.error(`watched: ${e}`);
@@ -34,7 +35,7 @@ export function WatchedButton(props: { item: Metadata; group?: string }) {
       .finally(() => setBusy(false));
   };
   const select = () => {
-    if (props.item.type === 'show' || props.item.type === 'season') return setAsking(true);
+    if (props.item.kind === 'show' || props.item.kind === 'season') return setAsking(true);
     write(props.item, !watched());
   };
   return (
@@ -66,11 +67,13 @@ export function WatchedButton(props: { item: Metadata; group?: string }) {
   );
 }
 
-/** Add to or remove from the profile's Watchlist on plex.tv. */
-export function WatchlistButton(props: { item: Metadata; group?: string }) {
+/** Add to or remove from the profile's Watchlist. */
+export function WatchlistButton(props: { item: Item; group?: string }) {
+  const list = provider().watchlist;
+  if (!list) return null;
   const [on, { mutate }] = createResource(
-    () => [props.item.guid, watchlistVersion()] as const,
-    ([guid]) => isWatchlisted(guid).catch(() => false),
+    () => [props.item.guid, list.version()] as const,
+    ([guid]) => list.has(guid).catch(() => false),
   );
   const [busy, setBusy] = createSignal(false);
   const toggle = () => {
@@ -78,7 +81,8 @@ export function WatchlistButton(props: { item: Metadata; group?: string }) {
     if (!guid) return;
     const next = !on();
     setBusy(true);
-    setWatchlisted(guid, next)
+    list
+      .set(guid, next)
       .then(() => mutate(next))
       .catch((e) => {
         console.error(`watchlist: ${e}`);
@@ -87,7 +91,7 @@ export function WatchlistButton(props: { item: Metadata; group?: string }) {
       .finally(() => setBusy(false));
   };
   return (
-    <Show when={props.item.guid?.startsWith('plex://')}>
+    <Show when={list.accepts(props.item.guid)}>
       <Button
         icon={on() ? 'watchlistOn' : 'watchlist'}
         label={on() ? t('action.watchlistOn') : t('action.watchlistAdd')}
@@ -100,24 +104,33 @@ export function WatchlistButton(props: { item: Metadata; group?: string }) {
   );
 }
 
-/** Audio and subtitle chips for the file Play starts. A choice is saved on
- * the server for this file, as other Plex clients do, and used by the next
- * Play. Hidden when there's nothing to choose. */
-export function TrackChips(props: { item: Metadata; group?: string }) {
-  const versions = () => props.item.Media ?? [];
-  const version = () => Math.min(chosenVersion(props.item.ratingKey), Math.max(0, versions().length - 1));
-  const part = (): Part | undefined => versions()[version()]?.Part?.[0];
-  const audio = () => (part() ? audioTracks(part()!) : []);
-  const subtitles = () => (part() ? subtitleTracks(part()!) : []);
+/** Where a track choice is kept: on the server, for every client that plays
+ * the title, or on this box until the app closes. */
+export const trackHint = () =>
+  provider().features.savedTracks ? t('details.trackHint', { server: session.serverName ?? '' }) : t('details.trackHintHere');
+
+/** Audio and subtitle chips for the file Play starts. A choice is saved
+ * where `trackHint` says, and used by the next Play. Hidden when there's nothing to choose. The tracks come from
+ * the item's full details, as the player reads them. */
+export function TrackChips(props: { item: Item; group?: string }) {
+  const [details] = createResource(
+    () => [props.item.id, dataVersion()] as const,
+    ([id]) => provider().item(id),
+  );
+  const full = loaded(details);
+  const versions = () => full()?.versions ?? [];
+  const version = () => Math.min(chosenVersion(props.item.id), Math.max(0, versions().length - 1));
+  const file = () => versions()[version()];
+  const audio = () => (file() ? audioTracks(file()!) : []);
+  const subtitles = () => (file() ? subtitleTracks(file()!) : []);
   const [panel, setPanel] = createSignal<'audio' | 'subtitles' | 'version' | null>(null);
   const current = (tracks: Track[]) => tracks.find((x) => x.selected);
   const save = (kind: 'audio' | 'subtitles', id: number) => {
-    const p = part();
+    const item = full();
     setPanel(null);
-    if (!p) return;
-    const param = kind === 'audio' ? { audioStreamID: id } : { subtitleStreamID: id };
-    currentServer()
-      .call(`/library/parts/${p.id}`, { ...param, allParts: 1 }, 'PUT')
+    if (!item || !file()) return;
+    provider()
+      .playback.saveTrack(item, version(), kind === 'audio' ? 'audio' : 'subtitle', id)
       .then(refresh)
       .catch((e) => {
         console.error(`tracks: ${e}`);
@@ -146,7 +159,7 @@ export function TrackChips(props: { item: Metadata; group?: string }) {
           selected={version()}
           onChoose={(i) => {
             setPanel(null);
-            chooseVersion(props.item.ratingKey, i);
+            chooseVersion(props.item.id, i);
           }}
           onClose={() => setPanel(null)}
         />
@@ -163,7 +176,7 @@ export function TrackChips(props: { item: Metadata; group?: string }) {
           return (
             <Panel
               title={kind() === 'audio' ? t('details.audio') : t('details.subtitles')}
-              hint={t('details.trackHint', { server: session.serverName ?? '' })}
+              hint={trackHint()}
               options={tracks.map((x) => ({ label: x.label, value: x.id, detail: describe(x) }))}
               selected={current(tracks)?.id ?? 0}
               onChoose={(id) => save(kind(), id)}

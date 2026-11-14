@@ -1,45 +1,44 @@
 // Windows of a play queue: joining a newly loaded window onto the loaded one
-// and finding entries by their playQueueItemID.
+// and finding entries by their own ids.
 
-import type { PlayQueue } from '../plex/playqueue';
-import type { Metadata } from '../plex/types';
+import type { Queue, QueueEntry } from '../media/provider';
 
 /** Join `got` onto `have` through an entry both contain, taking `got`'s
  * copy of entries in both; a window that shares none replaces the loaded one. */
-export function merge(have: PlayQueue, got: PlayQueue): PlayQueue {
+export function merge(have: Queue, got: Queue): Queue {
   if (have.id !== got.id) return got;
-  const ids = new Map(have.items.map((m, i) => [m.playQueueItemID, i]));
-  const shared = got.items.findIndex((m) => ids.has(m.playQueueItemID));
+  const ids = new Map(have.entries.map((e, i) => [e.entry, i]));
+  const shared = got.entries.findIndex((e) => ids.has(e.entry));
   if (shared < 0) return got;
-  const start = have.start + ids.get(got.items[shared].playQueueItemID)! - shared;
+  const start = have.start + ids.get(got.entries[shared].entry)! - shared;
   const first = Math.min(have.start, start);
-  const items: Metadata[] = [];
+  const entries: QueueEntry[] = [];
   for (const [w, offset] of [
     [have, have.start],
     [got, start],
   ] as const) {
-    w.items.forEach((m, i) => (items[offset - first + i] = m));
+    w.entries.forEach((e, i) => (entries[offset - first + i] = e));
   }
-  return { ...got, start: first, items };
+  return { ...got, start: first, entries };
 }
 
 /** Index of the entry in the loaded window. */
-export const indexOf = (q: PlayQueue, entry: number | undefined): number =>
-  entry === undefined ? -1 : q.items.findIndex((m) => m.playQueueItemID === entry);
+export const indexOf = (q: Queue, entry: string | undefined): number =>
+  entry === undefined ? -1 : q.entries.findIndex((e) => e.entry === entry);
 
 /** The entry after `entry`, if it's loaded. */
-export function after(q: PlayQueue | undefined, entry: number | undefined): Metadata | undefined {
+export function after(q: Queue | undefined, entry: string | undefined): QueueEntry | undefined {
   if (!q) return undefined;
   const i = indexOf(q, entry);
-  return i >= 0 ? q.items[i + 1] : undefined;
+  return i >= 0 ? q.entries[i + 1] : undefined;
 }
 
 /** 1-based position of the entry in the whole queue. */
-export function position(q: PlayQueue, entry: number | undefined): number | undefined {
+export function position(q: Queue, entry: string | undefined): number | undefined {
   const i = indexOf(q, entry);
   return i >= 0 ? q.start + i + 1 : undefined;
 }
 
 /** Whether entries exist beyond the loaded window on that side. */
-export const more = (q: PlayQueue, side: 'before' | 'after'): boolean =>
-  side === 'before' ? q.start > 0 : q.start + q.items.length < q.total;
+export const more = (q: Queue, side: 'before' | 'after'): boolean =>
+  side === 'before' ? q.start > 0 : q.start + q.entries.length < q.total;

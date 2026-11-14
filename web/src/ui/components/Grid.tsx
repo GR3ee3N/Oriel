@@ -2,7 +2,7 @@ import { createEffect, createMemo, createSignal, For, type JSX, on, onCleanup, S
 import { focusOn } from '../../nav';
 import { dataVersion } from '../../data';
 import { t } from '../../i18n';
-import type { MediaContainer, Metadata } from '../../plex/types';
+import type { Item, Paged } from '../../media/model';
 import { Button, Message } from './Controls';
 import { SIZES, Tile } from './Tile';
 import './grid.css';
@@ -18,11 +18,11 @@ const BEFORE = 2;
 const AFTER = 3;
 
 export interface GridProps {
-  /** Load `size` items at offset `start`; the response must include totalSize. */
-  load: (start: number, size: number) => Promise<MediaContainer>;
+  /** Load `size` items at offset `start`. */
+  load: (start: number, size: number) => Promise<Paged<Item>>;
   /** A new key reloads from the first page; the old items stay until it arrives. */
   key: string;
-  onSelect: (item: Metadata) => void;
+  onSelect: (item: Item) => void;
   onTotal?: (total: number) => void;
   /** True while a new key's first page is loading. */
   onPending?: (pending: boolean) => void;
@@ -31,17 +31,17 @@ export interface GridProps {
   /** Shown when the server returns no items. */
   empty?: JSX.Element;
   /** Dim an item's poster, e.g. a Watchlist title missing from the server. */
-  dim?: (m: Metadata) => boolean;
+  dim?: (item: Item) => boolean;
   /** Caption override, as for Tile. */
-  lines?: (m: Metadata) => [string, string] | undefined;
+  lines?: (item: Item) => [string, string] | undefined;
   class?: string;
 }
 
 /** Virtualize posters around the focused row, aligned at the top.
  * Load pages as focus approaches them and position tiles absolutely. */
 export function Grid(props: GridProps) {
-  // Keep metadata in plain objects to avoid deep reactive-store wrapping overhead.
-  const [items, setItems] = createSignal<(Metadata | undefined)[]>([]);
+  // Keep items in plain objects to avoid deep reactive-store wrapping overhead.
+  const [items, setItems] = createSignal<(Item | undefined)[]>([]);
   const [total, setTotal] = createSignal<number>();
   const [row, setRow] = createSignal(0);
   const [failed, setFailed] = createSignal(false);
@@ -70,9 +70,9 @@ export function Grid(props: GridProps) {
     const gen = generation;
     props
       .load(page * PAGE, PAGE)
-      .then((mc) => {
+      .then((paged) => {
         if (gen !== generation) return;
-        const size = mc.totalSize ?? mc.size;
+        const size = paged.total;
         const fresh = replacing;
         if (fresh) {
           replacing = false;
@@ -86,7 +86,7 @@ export function Grid(props: GridProps) {
         }
         setItems((list) => {
           const next = fresh ? [] : list.slice();
-          (mc.Metadata ?? []).forEach((m, i) => (next[page * PAGE + i] = m));
+          paged.items.forEach((m, i) => (next[page * PAGE + i] = m));
           return next;
         });
         setFailed(false);

@@ -3,11 +3,11 @@ import { open } from '../../actions';
 import { markHomeReady } from '../../boot';
 import { dataVersion, loaded } from '../../data';
 import { t } from '../../i18n';
-import { homeHubs } from '../../plex/api';
-import { hubTitle } from '../../plex/format';
-import { preload } from '../../plex/images';
-import type { Hub } from '../../plex/types';
-import { currentServer, session } from '../../session';
+import { hubTitle } from '../../media/format';
+import type { Row as RowModel } from '../../media/model';
+import { provider } from '../../media/servers';
+import { session } from '../../session';
+import { preload } from '../preload';
 import { Backdrop, backdropUrl } from '../components/Backdrop';
 import { Button, Message } from '../components/Controls';
 import { backdropOf, createHero, HeroInfo, neighbours } from '../components/hero';
@@ -21,17 +21,13 @@ import './home.css';
 
 const PLAYABLE_HUBS = ['movie', 'show', 'episode', 'season', 'mixed', 'collection'];
 
-// Continue Watching and On Deck can contain the same item; deduplicate by ratingKey.
-function homeRows(hubs: Hub[]): Hub[] {
-  const rows = hubs.filter((h) => h.Metadata?.length && PLAYABLE_HUBS.includes(h.type));
-  const started = new Set(rows.find((h) => h.hubIdentifier === 'home.continue')?.Metadata?.map((m) => m.ratingKey));
+// Continue Watching and On Deck can contain the same item; deduplicate by id.
+function homeRows(hubs: RowModel[]): RowModel[] {
+  const rows = hubs.filter((h) => h.items.length && PLAYABLE_HUBS.includes(h.type));
+  const started = new Set(rows.find((h) => h.id === 'home.continue')?.items.map((m) => m.id));
   return rows
-    .map((h) =>
-      h.hubIdentifier === 'home.ondeck' && started.size
-        ? { ...h, Metadata: h.Metadata!.filter((m) => !started.has(m.ratingKey)) }
-        : h,
-    )
-    .filter((h) => h.Metadata!.length);
+    .map((h) => (h.id === 'home.ondeck' && started.size ? { ...h, items: h.items.filter((m) => !started.has(m.id)) } : h))
+    .filter((h) => h.items.length);
 }
 
 // Show "Still loading" with Try again after this long without Home data.
@@ -41,10 +37,10 @@ const SLOW = 8000;
 // to. Home rebuilt after visiting another root page returns to it; a fresh
 // start or a profile picked in the picker focuses the first card.
 let anchor: { owner: string; hub: string; key: string } | undefined;
-const owner = () => `${session.picks}/${session.user?.uuid}/${session.serverId}`;
+const owner = () => `${session.picks}/${session.user?.id}/${session.serverId}`;
 
 export function Home() {
-  const [hubs, { refetch }] = createResource(dataVersion, () => homeHubs(currentServer()));
+  const [hubs, { refetch }] = createResource(dataVersion, () => provider().home());
   const current = loaded(hubs);
   const rows = () => homeRows(current() ?? []);
   // Release the splash when Home has no rows or failed to load.
@@ -69,19 +65,17 @@ export function Home() {
   // the cached image when Home appears.
   const hero = createHero((item) => {
     const path = backdropOf(item);
-    (path ? preload(backdropUrl(currentServer(), path), true) : Promise.resolve()).then(markHomeReady);
+    (path ? preload(backdropUrl(path), true) : Promise.resolve()).then(markHomeReady);
   });
 
-  const shapeOf = (hub: Hub) =>
-    hub.hubIdentifier.includes('continue') || hub.hubIdentifier === 'home.ondeck' || hub.type === 'episode'
-      ? 'wide'
-      : 'poster';
+  const shapeOf = (hub: RowModel) =>
+    hub.id.includes('continue') || hub.id === 'home.ondeck' || hub.type === 'episode' ? 'wide' : 'poster';
   const [picking, setPicking] = createSignal(false);
   // The anchored item, if it's still on Home.
   const anchored = () => {
     const a = anchor;
     if (!a || a.owner !== owner()) return undefined;
-    return rows().some((h) => h.hubIdentifier === a.hub && h.Metadata!.some((m) => m.ratingKey === a.key)) ? a : undefined;
+    return rows().some((h) => h.id === a.hub && h.items.some((m) => m.id === a.key)) ? a : undefined;
   };
   // Decided once, when the rows first render; later focus moves update the anchor.
   let decided = false;
@@ -131,14 +125,14 @@ export function Home() {
                 <div>
                   <Row
                     title={hubTitle(hub)}
-                    items={hub.Metadata!}
+                    items={hub.items}
                     shape={shapeOf(hub)}
-                    group={`hub-${hub.hubIdentifier}`}
+                    group={`hub-${hub.id}`}
                     autofocus={!start() && i() === 0}
-                    focusKey={start()?.hub === hub.hubIdentifier ? start()!.key : undefined}
+                    focusKey={start()?.hub === hub.id ? start()!.key : undefined}
                     onFocus={(item) => {
-                      anchor = { owner: owner(), hub: hub.hubIdentifier, key: item.ratingKey };
-                      hero.show(item, neighbours(hub.Metadata!, item));
+                      anchor = { owner: owner(), hub: hub.id, key: item.id };
+                      hero.show(item, neighbours(hub.items, item));
                     }}
                     onSelect={open}
                   />

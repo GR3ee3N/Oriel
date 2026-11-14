@@ -4,6 +4,7 @@ from pathlib import Path
 import shutil
 import subprocess
 import sys
+import xml.etree.ElementTree as ET
 import zipfile
 
 from .repository import RepositoryTests
@@ -93,7 +94,12 @@ printf 'check\\n' >> "$TEST_ROOT/.cache/commands"
             self.assertEqual((self.github / self.tag / file.name).read_bytes(), file.read_bytes())
         with zipfile.ZipFile(self.github / self.tag / f"script.oriel.oriel-{self.v}.zip") as archive:
             self.assertEqual(archive.read("script.oriel.oriel/default.py"), (self.root / "addon/default.py").read_bytes())
-            self.assertEqual(archive.read("script.oriel.oriel/resources/web/assets/app.js"), b'export const page = "built";')
+            self.assertEqual(archive.read("script.oriel.oriel/resources/web/assets/app.js"), b'export const page = "plex";')
+        with zipfile.ZipFile(self.github / self.tag / f"script.oriel.dormer-{self.v}.zip") as archive:
+            self.assertEqual(archive.read("script.oriel.dormer/default.py"), (self.root / "addon/default.py").read_bytes())
+            self.assertEqual(archive.read("script.oriel.dormer/resources/web/assets/app.js"), b'export const page = "jellyfin";')
+        listed = ET.parse(self.github / self.tag / "addons.xml").getroot()
+        self.assertEqual([a.get("id") for a in listed], ["script.oriel.oriel", "script.oriel.dormer"])
         self.assertFalse((self.root / ".cache/release.lock").exists())
 
     def test_dirty_checkout_is_refused_before_build(self):

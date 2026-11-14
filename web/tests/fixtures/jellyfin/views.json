@@ -1,0 +1,162 @@
+{
+ "Items": [
+  {
+   "Name": "Anime",
+   "Id": "0c41907140d802bb58430fed7e2cd79e",
+   "DateCreated": "2026-11-13T13:24:46.5988272Z",
+   "DateLastMediaAdded": "0001-01-01T00:00:00.0000000Z",
+   "EnableMediaSourceDisplay": true,
+   "Taglines": [],
+   "Genres": [],
+   "IsFolder": true,
+   "ParentId": "e9d5075a555c1cbc394eec4cef295274",
+   "Type": "CollectionFolder",
+   "People": [],
+   "Studios": [],
+   "LocalTrailerCount": 0,
+   "UserData": {
+    "PlaybackPositionTicks": 0,
+    "PlayCount": 0,
+    "IsFavorite": false,
+    "Played": false,
+    "Key": "0c419071-40d8-02bb-5843-0fed7e2cd79e",
+    "ItemId": "0c41907140d802bb58430fed7e2cd79e"
+   },
+   "ChildCount": 648,
+   "SpecialFeatureCount": 0,
+   "PrimaryImageAspectRatio": 1.7777777777777777,
+   "CollectionType": "tvshows",
+   "ImageTags": {
+    "Primary": "60ca9fbb84a66a10f57741fb5be93e43"
+   },
+   "BackdropImageTags": [],
+   "ImageBlurHashes": {
+    "Primary": {
+     "60ca9fbb84a66a10f57741fb5be93e43": "W7CQY@Sj4-IpI9xs^jD#NGITR%bb0KW=?FnhWrS1kDRkogohRje?"
+    }
+   },
+   "Chapters": [],
+   "LocationType": "FileSystem",
+   "MediaType": "Unknown"
+  },
+  {
+   "Name": "Anime Filme",
+   "Id": "76ef3012d4e6306d9ca17bc39b0e313a",
+   "DateCreated": "2026-11-13T10:32:51.7302584Z",
+   "DateLastMediaAdded": "0001-01-01T00:00:00.0000000Z",
+   "EnableMediaSourceDisplay": true,
+   "Taglines": [],
+   "Genres": [],
+   "IsFolder": true,
+   "ParentId": "e9d5075a555c1cbc394eec4cef295274",
+   "Type": "CollectionFolder",
+   "People": [],
+   "Studios": [],
+   "LocalTrailerCount": 0,
+   "UserData": {
+    "PlaybackPositionTicks": 0,
+    "PlayCount": 0,
+    "IsFavorite": false,
+    "Played": false,
+    "Key": "76ef3012-d4e6-306d-9ca1-7bc39b0e313a",
+    "ItemId": "76ef3012d4e6306d9ca17bc39b0e313a"
+   },
+   "ChildCount": 67,
+   "SpecialFeatureCount": 0,
+   "PrimaryImageAspectRatio": 1.7777777777777777,
+   "CollectionType": "movies",
+   "ImageTags": {
+    "Primary": "5054d6a9083d746965de7b6ba2b7458e"
+   },
+   "BackdropImageTags": [],
+   "ImageBlurHashes": {
+    "Primary": {
+     "5054d6a9083d746965de7b6ba2b7458e": "WCD9#E-Ww~b;EK%4R*j{WTtQe.t500xut7WA%NWXtRf+ogRiWBxu"
+    }
+   },
+   "Chapters": [],
+   "LocationType": "FileSystem",
+   "MediaType": "Unknown"
+  },
+  {
+   "Name": "Filme",
+   "Id": "7a2175bccb1f1a94152cbd2b2bae8f6d",
+   "DateCreated": "2026-11-13T10:31:12.633184Z",
+   "DateLastMediaAdded": "0001-01-01T00:00:00.0000000Z",
+   "EnableMediaSourceDisplay": true,
+   "Taglines": [],
+   "Genres": [],
+   "IsFolder": true,
+   "ParentId": "e9d5075a555c1cbc394eec4cef295274",
+   "Type": "CollectionFolder",
+   "People": [],
+   "Studios": [],
+   "LocalTrailerCount": 0,
+   "UserData": {
+    "PlaybackPositionTicks": 0,
+    "PlayCount": 0,
+    "IsFavorite": false,
+    "Played": false,
+    "Key": "7a2175bc-cb1f-1a94-152c-bd2b2bae8f6d",
+    "ItemId": "7a2175bccb1f1a94152cbd2b2bae8f6d"
+   },
+   "ChildCount": 398,
+   "SpecialFeatureCount": 0,
+   "PrimaryImageAspectRatio": 1.7777777777777777,
+   "CollectionType": "movies",
+   "ImageTags": {
+    "Primary": "6f7707a7d7671da3e4ea7285f2c4840c"
+   },
+   "BackdropImageTags": [],
+   "ImageBlurHashes": {
+    "Primary": {
+     "6f7707a7d7671da3e4ea7285f2c4840c": "W97A-*of0Kae%MWCkWoLV@a{ofj[00ay?ba#MxofM{WBxus:R*WB"
+    }
+   },
+   "Chapters": [],
+   "LocationType": "FileSystem",
+   "MediaType": "Unknown"
+  },
+  {
+   "Name": "Serien",
+   "Id": "43cfe12fe7d9d8d21251e0964e0232e2",
+   "DateCreated": "2026-11-13T11:37:03.3438239Z",
+   "DateLastMediaAdded": "0001-01-01T00:00:00.0000000Z",
+   "EnableMediaSourceDisplay": true,
+   "Taglines": [],
+   "Genres": [],
+   "IsFolder": true,
+   "ParentId": "e9d5075a555c1cbc394eec4cef295274",
+   "Type": "CollectionFolder",
+   "People": [],
+   "Studios": [],
+   "LocalTrailerCount": 0,
+   "UserData": {
+    "PlaybackPositionTicks": 0,
+    "PlayCount": 0,
+    "IsFavorite": false,
+    "Played": false,
+    "Key": "43cfe12f-e7d9-d8d2-1251-e0964e0232e2",
+    "ItemId": "43cfe12fe7d9d8d21251e0964e0232e2"
+   },
+   "ChildCount": 568,
+   "SpecialFeatureCount": 0,
+   "PrimaryImageAspectRatio": 1.7777777777777777,
+   "CollectionType": "tvshows",
+   "ImageTags": {
+    "Primary": "766f13ca9a7e82db41b83f8f5cf065db"
+   },
+   "BackdropImageTags": [],
+   "ImageBlurHashes": {
+    "Primary": {
+     "766f13ca9a7e82db41b83f8f5cf065db": "WBBWi4o~k7W=jae:?wj[S$jZaeWB9FMx-pbbWAWBIpt7o0t7ozj["
+    }
+   },
+   "Chapters": [],
+   "LocationType": "FileSystem",
+   "MediaType": "Unknown"
+  }
+ ],
+ "TotalRecordCount": 4,
+ "StartIndex": 0
+}

@@ -2,6 +2,7 @@
 
 import { createSignal } from 'solid-js';
 import { createStore } from 'solid-js/store';
+import type { Sort } from './media/model';
 import { type LibraryState, type Saved, save } from './store';
 
 export interface Prefs {
@@ -61,13 +62,35 @@ export function loadPrefs(saved: Saved): void {
   setPrefs({ ...DEFAULTS, ...(Object.fromEntries(stored) as Partial<Prefs>) });
   applyAccent(prefs.accent);
   applyMotion(prefs.reduceMotion);
-  libraries = saved.libraries ?? {};
+  libraries = Object.fromEntries(Object.entries(saved.libraries ?? {}).map(([key, state]) => [key, currentLibrary(state)]));
   spoilers = saved.hideUnwatched ?? {};
 }
 
 let libraries: Record<string, LibraryState> = {};
 
-export const LIBRARY_DEFAULT: LibraryState = { view: 'library', sort: 'titleSort', unwatched: false, filters: {} };
+export const LIBRARY_DEFAULT: LibraryState = { view: 'library', sort: 'title', unwatched: false, filters: {} };
+
+// Oriel 0.4 saved library sorts and filter fields under Plex's names.
+const PLEX_SORTS: Record<string, Sort> = {
+  titleSort: 'title',
+  'addedAt:desc': 'added',
+  'originallyAvailableAt:desc': 'released',
+  'audienceRating:desc': 'rating',
+  'lastViewedAt:desc': 'watched',
+  'duration:desc': 'duration',
+};
+const SORTS = new Set<string>(Object.values(PLEX_SORTS));
+
+function currentLibrary(saved: LibraryState): LibraryState {
+  const sort = PLEX_SORTS[saved.sort] ?? (SORTS.has(saved.sort) ? saved.sort : 'title');
+  const filters: LibraryState['filters'] = {};
+  for (const [field, value] of Object.entries(saved.filters ?? {}) as [string, string][]) {
+    if (field === 'decade') filters.year = value;
+    else if (field === 'hdr') filters.hdr = 'on';
+    else filters[field as keyof LibraryState['filters']] = value;
+  }
+  return { ...saved, sort, filters };
+}
 
 /** Saved view, sort and filters for a library; `key` is profile/server/section. */
 export function libraryState(key: string): LibraryState {

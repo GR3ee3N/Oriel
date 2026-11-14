@@ -1,7 +1,7 @@
 import { createEffect, createSignal, Index, on, onCleanup, Show } from 'solid-js';
+import type { Item } from '../../media/model';
 import { claimFocus, type Direction, focused as focusedEl, focusOn } from '../../nav';
-import { preload } from '../../plex/images';
-import type { Metadata } from '../../plex/types';
+import { preload } from '../preload';
 import { SIZES, Tile, tileImageUrl, type TileShape } from './Tile';
 import './row.css';
 
@@ -11,24 +11,24 @@ export interface RowProps {
   title: string;
   /** Undefined while loading: placeholder tiles hold the row's place and
    * take focus, and the same tiles show the items when they arrive. */
-  items: Metadata[] | undefined;
+  items: Item[] | undefined;
   shape?: TileShape;
   /** Screen-unique key used to restore row focus. */
   group: string;
   autofocus?: boolean;
-  /** Initial tile ratingKey to focus and scroll into view. */
+  /** Initial tile id to focus and scroll into view. */
   focusKey?: string;
-  onFocus?: (item: Metadata) => void;
-  onSelect: (item: Metadata) => void;
+  onFocus?: (item: Item) => void;
+  onSelect: (item: Item) => void;
   /** Number of caption lines passed to Tile. */
-  lines?: (m: Metadata) => [string, string];
+  lines?: (item: Item) => [string, string];
   /** Return true to handle an arrow on a tile, as for Tile. */
   onArrow?: (d: Direction) => boolean;
 }
 
 /** Scroll the focused tile to the row's first slot; Up and Down enter the row there. */
 export function Row(props: RowProps) {
-  const [col, setCol] = createSignal(Math.max(0, props.items?.findIndex((m) => m.ratingKey === props.focusKey) ?? 0));
+  const [col, setCol] = createSignal(Math.max(0, props.items?.findIndex((m) => m.id === props.focusKey) ?? 0));
   const shape = () => props.shape ?? 'poster';
   const step = () => SIZES[shape()].w + GAP;
   const placeholders = () => Array.from<undefined>({ length: Math.ceil(window.innerWidth / step()) });
@@ -38,7 +38,7 @@ export function Row(props: RowProps) {
   onCleanup(() => clearTimeout(preloadTimer));
   // The placeholder focused last, while the row waits for its items.
   let placeholder: number | undefined;
-  const focused = (i: number, item: Metadata | undefined) => {
+  const focused = (i: number, item: Item | undefined) => {
     setCol(i);
     placeholder = item ? undefined : i;
     if (!item || !props.items) return;
@@ -86,7 +86,7 @@ export function Row(props: RowProps) {
           else if (tile) focusOn(tile);
           return;
         }
-        const i = items.findIndex((m) => m.ratingKey === props.focusKey);
+        const i = items.findIndex((m) => m.id === props.focusKey);
         const tile = props.focusKey ? section.querySelector<HTMLElement>(`[data-index="${i}"]`) : null;
         if (!tile) return;
         setCol(i);
@@ -109,7 +109,7 @@ export function Row(props: RowProps) {
               shape={shape()}
               group={props.group}
               entry={i === col()}
-              autofocus={props.focusKey ? item()?.ratingKey === props.focusKey : props.autofocus && i === 0}
+              autofocus={props.focusKey ? item()?.id === props.focusKey : props.autofocus && i === 0}
               index={i}
               lines={props.lines}
               onArrow={props.onArrow}

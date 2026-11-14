@@ -38,6 +38,24 @@ class BuildTests(RepositoryTests):
         self.assertEqual((addon / "LICENSE.txt").read_bytes(), (self.root / "LICENSE").read_bytes())
         self.assertIn("@oriel/web", (addon / "THIRD-PARTY-NOTICES.txt").read_text())
 
+    def test_each_app_gets_its_page_manifest_and_artwork(self):
+        self.npm()
+        self.command("tools/build.sh", "oriel", "dormer")
+        for app, name, server in (("oriel", "Oriel", "plex"), ("dormer", "Dormer", "jellyfin")):
+            addon = self.root / f".cache/runtime/script.oriel.{app}"
+            xml = (addon / "addon.xml").read_text()
+            self.assertIn(f'id="script.oriel.{app}" name="{name}" version="{self.v}"', xml)
+            self.assertEqual((addon / "resources/web/assets/app.js").read_text(), f'export const page = "{server}";')
+            for art in ("icon.png", "fanart.png", "mark.png"):
+                self.assertEqual((addon / "resources" / art).read_bytes(), (self.root / f"apps/{app}/resources/{art}").read_bytes())
+            self.assertEqual((addon / "default.py").read_bytes(), (self.root / "addon/default.py").read_bytes())
+        self.assertEqual((self.root / ".cache/commands").read_text().splitlines().count("ci"), 1)
+
+    def test_unknown_app_is_refused_before_install(self):
+        self.npm()
+        self.assertIn("usage", self.command("tools/build.sh", "plex", success=False))
+        self.assertFalse((self.root / ".cache/commands").exists())
+
     def test_failed_bundle_preserves_previous_runtime(self):
         self.npm()
         self.command("tools/build.sh")

@@ -18,10 +18,14 @@ const server = { id: 'server', local: true, call: vi.fn(async () => undefined), 
 const prefs = vi.hoisted(() => ({ qualityLocal: 4000, qualityRemote: 4000, autoSkipIntro: false, autoSkipCredits: false }));
 vi.mock('../src/plex/api', () => ({ metadata: vi.fn(async (_s, key) => episode(key)), children: vi.fn(async () => []), setWatched: vi.fn() }));
 vi.mock('../src/data', () => ({ refresh: vi.fn() }));
-vi.mock('../src/session', () => ({ currentServer: () => server }));
+vi.mock('../src/media/servers', async () => {
+  const { plexProvider } = await import('../src/plex/provider');
+  const p = plexProvider(server as never);
+  return { provider: () => p, invalidate: vi.fn() };
+});
 vi.mock('../src/prefs', () => ({ prefs }));
 vi.mock('../src/notice', () => ({ notice: vi.fn() }));
-vi.mock('../src/player/bif', () => ({ Bif: {} }));
+vi.mock('../src/plex/bif', () => ({ Bif: {} }));
 // Without a play queue each item plays on its own.
 vi.mock('../src/plex/playqueue', () => ({ createQueue: vi.fn(async () => Promise.reject(new Error('no queue'))), loadQueue: vi.fn() }));
 
@@ -62,7 +66,7 @@ function playFor(seconds: number): void {
 
 async function play(autoSkip: boolean): Promise<void> {
   prefs.autoSkipIntro = autoSkip;
-  await startPlayback(episode('A'));
+  await startPlayback({ id: 'A', kind: 'episode' });
   vi.useFakeTimers();
   Object.assign(player, { session: playback()!.id, state: 'playing', time: 0, duration: 1800 });
   position = 0;

@@ -1,16 +1,16 @@
 import { createEffect, createSignal, For, on, onCleanup, onMount, Show } from 'solid-js';
-import { PlexError } from '../plex/client';
-import type { HomeUser } from '../plex/types';
+import type { Profile } from '../media/account';
+import { ServerError } from '../media/errors';
 import { focusable, onBack } from '../nav';
 import { t } from '../i18n';
-import { keepUser, pickUser, session } from '../session';
+import { addUser, keepUser, pickUser, session } from '../session';
 import { Backdrop } from './components/Backdrop';
 import { askExit } from './exit';
 
 const PIN_LENGTH = 4;
 
 export function Users() {
-  const [asking, setAsking] = createSignal<HomeUser | null>(null);
+  const [asking, setAsking] = createSignal<Profile | null>(null);
   const [busy, setBusy] = createSignal(false);
   const [error, setError] = createSignal('');
 
@@ -18,14 +18,14 @@ export function Users() {
   // when no library session exists.
   onBack(() => keepUser() || askExit());
 
-  const choose = async (user: HomeUser, pin?: string) => {
+  const choose = async (user: Profile, pin?: string) => {
     if (busy()) return;
     setBusy(true);
     setError('');
     try {
       await pickUser(user, pin);
     } catch (e) {
-      setError(e instanceof PlexError && (e.status === 401 || e.status === 403) ? t('start.pinWrong') : t('start.pinFailed'));
+      setError(e instanceof ServerError && (e.status === 401 || e.status === 403) ? t('start.pinWrong') : t('start.pinFailed'));
     } finally {
       setBusy(false);
     }
@@ -48,23 +48,29 @@ export function Users() {
                       ref={(el) =>
                         focusable(el, {
                           // Focus the last profile, falling back to the first.
-                          autofocus: session.users.some((u) => u.uuid === session.lastUser)
-                            ? user.uuid === session.lastUser
+                          autofocus: session.users.some((u) => u.id === session.lastUser)
+                            ? user.id === session.lastUser
                             : i() === 0,
                           onSelect: () => (user.protected ? setAsking(user) : choose(user)),
                         })
                       }
                     >
-                      <Show when={user.thumb} fallback={<div class="avatar">{user.title[0]}</div>}>
-                        <img class="avatar" src={user.thumb} alt="" />
+                      <Show when={user.photo} fallback={<div class="avatar">{user.name[0]}</div>}>
+                        <img class="avatar" src={user.photo} alt="" />
                       </Show>
-                      <span>{user.title}</span>
+                      <span>{user.name}</span>
                       <Show when={user.protected}>
                         <small>{t('start.pin')}</small>
                       </Show>
                     </div>
                   )}
                 </For>
+                <Show when={session.canAddUser}>
+                  <div class="user" ref={(el) => focusable(el, { onSelect: () => void addUser() })}>
+                    <div class="avatar add">+</div>
+                    <span>{t('start.addUser')}</span>
+                  </div>
+                </Show>
               </div>
               <p class="error">{error()}</p>
             </>
@@ -89,7 +95,7 @@ export function Users() {
 }
 
 function PinPad(props: {
-  user: HomeUser;
+  user: Profile;
   busy: boolean;
   error: string;
   onDone: (pin: string) => void;
@@ -117,7 +123,7 @@ function PinPad(props: {
 
   const press = (key: string) => {
     if (key === 'cancel') return props.onCancel();
-    // Keep all four dots filled while plex.tv checks the PIN.
+    // Keep all four dots filled while the account service checks the PIN.
     if (props.busy || wrong()) return;
     if (key === 'del') return setPin((p) => p.slice(0, -1));
     const next = (pin() + key).slice(0, PIN_LENGTH);
@@ -135,10 +141,10 @@ function PinPad(props: {
   const keys = ['1', '2', '3', '4', '5', '6', '7', '8', '9', 'cancel', '0', 'del'];
   return (
     <div class="pinpad">
-      <Show when={props.user.thumb} fallback={<div class="avatar">{props.user.title[0]}</div>}>
+      <Show when={props.user.photo} fallback={<div class="avatar">{props.user.name[0]}</div>}>
         {(src) => <img class="avatar" src={src()} alt="" />}
       </Show>
-      <h1>{props.user.title}</h1>
+      <h1>{props.user.name}</h1>
       <p class="pin-prompt">{t('start.pinPrompt')}</p>
       <div class="pin-dots" classList={{ checking: props.busy, wrong: wrong() }}>
         <For each={Array.from({ length: PIN_LENGTH })}>

@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, expect, test, vi } from 'vitest';
+import type { QueueEntry } from '../src/media/provider';
 import type { Metadata } from '../src/plex/types';
 
 vi.mock('../src/bridge', async () => {
@@ -17,14 +18,18 @@ const server = { id: 'server', local: true, call: vi.fn(async () => undefined), 
 const prefs = vi.hoisted(() => ({ qualityLocal: 4000, qualityRemote: 4000, autoSkipIntro: false, autoSkipCredits: false }));
 vi.mock('../src/plex/api', () => ({ metadata: vi.fn(async (_s, key) => episode(key)), setWatched: vi.fn() }));
 vi.mock('../src/data', () => ({ refresh: vi.fn() }));
-vi.mock('../src/session', () => ({ currentServer: () => server }));
+vi.mock('../src/media/servers', async () => {
+  const { plexProvider } = await import('../src/plex/provider');
+  const p = plexProvider(server as never);
+  return { provider: () => p, invalidate: vi.fn() };
+});
 vi.mock('../src/prefs', () => ({ prefs }));
 vi.mock('../src/notice', () => ({ notice: vi.fn() }));
-vi.mock('../src/player/bif', () => ({ Bif: {} }));
+vi.mock('../src/plex/bif', () => ({ Bif: {} }));
 // A queue of A, B and A again, each entry with its own ID.
-const entries = [1, 2, 3].map((id, i) => ({ ratingKey: 'ABA'[i], key: '', type: 'episode', title: 'ABA'[i], playQueueItemID: id }) as Metadata);
+const entries: QueueEntry[] = [1, 2, 3].map((n, i) => ({ entry: String(n), item: { id: 'ABA'[i], kind: 'episode', title: 'ABA'[i], art: {} } }));
 vi.mock('../src/plex/playqueue', () => ({
-  createQueue: vi.fn(async () => ({ queue: { id: 9, total: 3, shuffled: false, start: 0, items: entries }, selected: entries[0] })),
+  createQueue: vi.fn(async () => ({ queue: { id: '9', total: 3, shuffled: false, start: 0, entries }, first: entries[0] })),
   loadQueue: vi.fn(),
 }));
 
@@ -62,7 +67,7 @@ function playFor(seconds: number): void {
 
 beforeEach(async () => {
   Object.assign(player, { session: null, state: 'idle', time: 0 });
-  await startPlayback(entries[0]);
+  await startPlayback(entries[0].item);
   vi.useFakeTimers();
   Object.assign(player, { session: playback()!.id, state: 'playing', time: 0, duration: 1800 });
   position = 0;
@@ -71,8 +76,8 @@ beforeEach(async () => {
 afterEach(() => vi.useRealTimers());
 
 test('Up next names the entry after the playing one in the queue', () => {
-  expect(playback()?.entry).toBe(1);
-  expect(nextEntry()?.playQueueItemID).toBe(2);
+  expect(playback()?.entry).toBe('1');
+  expect(nextEntry()?.entry).toBe('2');
 });
 
 test('the countdown counts playback, not the position, so a seek back in the credits keeps it', () => {

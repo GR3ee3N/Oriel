@@ -1,6 +1,7 @@
 // Persist app settings through @oriel/web's add-on store.
 
 import { load as loadStore, save as saveStore } from '@oriel/web';
+import type { TitleQuery } from './media/model';
 
 export interface Saved {
   clientId?: string;
@@ -12,6 +13,11 @@ export interface Saved {
   userRun?: string;
   /** Last selected server for each user UUID. */
   servers?: Record<string, string>;
+  /** Dormer: the Jellyfin server, the users signed in on this box, and the
+   * last one used. */
+  server?: { address: string; id: string; name: string };
+  users?: { id: string; name: string; token: string; photo?: string }[];
+  userId?: string;
   /** Persisted preferences from prefs.ts. */
   qualityLocal?: number;
   qualityRemote?: number;
@@ -29,11 +35,8 @@ export interface Saved {
   fontsAsked?: boolean;
 }
 
-export interface LibraryState {
+export interface LibraryState extends TitleQuery {
   view: 'recommended' | 'library' | 'collections';
-  sort: string;
-  unwatched: boolean;
-  filters: Record<string, string>;
 }
 
 export const load = () => loadStore<Saved>();

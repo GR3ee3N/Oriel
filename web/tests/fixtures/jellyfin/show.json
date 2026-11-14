@@ -1,0 +1,129 @@
+{
+ "Name": "Arcane",
+ "Id": "64f0f706a918606e55994bc2db76162f",
+ "DateCreated": "2026-11-13T11:37:25.8562201Z",
+ "DateLastMediaAdded": "2024-11-24T09:17:52.8551076Z",
+ "PremiereDate": "2021-11-05T23:00:00.0000000Z",
+ "EnableMediaSourceDisplay": true,
+ "OfficialRating": "TV-14",
+ "Overview": "Im Konflikt zwischen den Städten Piltover und Zaun stehen zwei Schwestern auf entgegengesetzten Seiten eines Krieges um magische Technologien und Überzeugungen.",
+ "Taglines": [],
+ "Genres": [
+  "Science Fiction",
+  "Fantasy",
+  "Drama",
+  "Animation",
+  "Adventure",
+  "Action"
+ ],
+ "CommunityRating": 8.747,
+ "CumulativeRunTimeTicks": 24600000000,
+ "RunTimeTicks": 24600000000,
+ "ProductionYear": 2021,
+ "IsFolder": true,
+ "ParentId": "9edd1d6c66283ec5b6c05cae9bc932dd",
+ "Type": "Series",
+ "People": [
+  {
+   "Name": "Hailee Steinfeld",
+   "Id": "313b65739c46a8c3a92ccb2289f9a735",
+   "Role": "Vi",
+   "Type": "Actor",
+   "PrimaryImageTag": "2ce46cffb23dc0fcd88bee222686cbf7",
+   "ImageBlurHashes": {
+    "Primary": {
+     "2ce46cffb23dc0fcd88bee222686cbf7": "dGIECE~A^v^%=rtSxtIU9uM_%2xak6k8%M%2w@kCRjWC"
+    }
+   }
+  },
+  {
+   "Name": "Ella Purnell",
+   "Id": "6d6251a1d594b5c765d2641b952addd4",
+   "Role": "Jinx",
+   "Type": "Actor",
+   "PrimaryImageTag": "79b14a81beba2b540d9620c13e86e70b",
+   "ImageBlurHashes": {
+    "Primary": {
+     "79b14a81beba2b540d9620c13e86e70b": "dPJ%:.xuTf-;_Noz?vxu%hay?HM|-pj[-:s:EhoebbWV"
+    }
+   }
+  },
+  {
+   "Name": "Kevin Alejandro",
+   "Id": "0cf6acf2cf1f8da7aeeccce1a5c2d5c2",
+   "Role": "Jayce",
+   "Type": "Actor",
+   "PrimaryImageTag": "d41257960806b6de2bada36486024d7c",
+   "ImageBlurHashes": {
+    "Primary": {
+     "d41257960806b6de2bada36486024d7c": "dODu}Tfl0KIU-nV@o#kD9^ofxCRi9ZaetRt7NHWBs.j["
+    }
+   }
+  }
+ ],
+ "Studios": [
+  {
+   "Name": "Netflix",
+   "Id": "411cb7d6c12c8bf0d3c1caed22120c6f"
+  },
+  {
+   "Name": "Fortiche Production",
+   "Id": "07b977da6912a2fb17f40ee85193c590"
+  },
+  {
+   "Name": "Riot Games",
+   "Id": "51aab7a43137635be2ee521e21b3636e"
+  }
+ ],
+ "LocalTrailerCount": 0,
+ "UserData": {
+  "PlayedPercentage": 0,
+  "UnplayedItemCount": 18,
+  "PlaybackPositionTicks": 0,
+  "PlayCount": 0,
+  "IsFavorite": false,
+  "Played": false,
+  "Key": "371028",
+  "ItemId": "64f0f706a918606e55994bc2db76162f"
+ },
+ "RecursiveItemCount": 18,
+ "ChildCount": 2,
+ "SpecialFeatureCount": 0,
+ "Status": "Ended",
+ "AirTime": "03:00",
+ "AirDays": [
+  "Saturday"
+ ],
+ "PrimaryImageAspectRatio": 0.6666666666666666,
+ "ImageTags": {
+  "Thumb": "087abf488356823678f6edab462a1e6f",
+  "Primary": "3b8132e4733a88cb7dadf557cfd7a65a",
+  "Logo": "5c39b5c7526853813b8349f3cf6e0e16",
+  "Banner": "477c11ddd8441ad9be6c8bc526d263cb"
+ },
+ "BackdropImageTags": [
+  "cfac7d082053d93787a2c8347020b95c"
+ ],
+ "ImageBlurHashes": {
+  "Backdrop": {
+   "cfac7d082053d93787a2c8347020b95c": "WH7e9=g+S*x^OrtTxbR$jEt7buogRje,s:R*oIsDs?WBa_niRijG"
+  },
+  "Thumb": {
+   "087abf488356823678f6edab462a1e6f": "W43u=tt74UM{.7xu%gofM_WBxGs:H[WC%ft6MfRjNHWXxZs.SNRj"
+  },
+  "Primary": {
+   "3b8132e4733a88cb7dadf557cfd7a65a": "dF96?_xI4.JRM|bcxvV@0yNG=}%2%hoMMxW=+]xbJ.M{"
+  },
+  "Logo": {
+   "5c39b5c7526853813b8349f3cf6e0e16": "PCG8Jy9H_08|_1ix%Ka10Mx]D+tkIWxtIpoyEOjFWVNHt6o3t6bI"
+  },
+  "Banner": {
+   "477c11ddd8441ad9be6c8bc526d263cb": "HWAUF2V:Dgt9M{V=xZksRg%PoyRhaOR%V?xbg4Ri"
+  }
+ },
+ "Chapters": [],
+ "LocationType": "FileSystem",
+ "MediaType": "Unknown",
+ "EndDate": "2024-01-22T23:11:00.0000000Z",
+ "OriginalLanguage": "en"
+}

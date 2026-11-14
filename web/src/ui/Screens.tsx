@@ -1,8 +1,7 @@
 import { For, Match, Switch } from 'solid-js';
 import { ScopeContext } from '../nav';
-import { collectionItems, playlistItems, sectionItems } from '../plex/api';
+import { provider } from '../media/servers';
 import { type Entry, stack, top } from '../router';
-import { currentServer } from '../session';
 import { Home } from './screens/Home';
 import { Library } from './screens/Library';
 import { Movie } from './screens/Movie';
@@ -52,29 +51,29 @@ function Screen(props: { entry: Entry }) {
       </Match>
       <Match when={r.screen === 'remote' && r}>{(x) => <Remote guid={x().guid} title={x().title} />}</Match>
       <Match when={r.screen === 'playlist' && r}>
-        {(p) => <Titles title={p().title} key={p().ratingKey} load={(start, size) => playlistItems(currentServer(), p().ratingKey, { start, size })} queue={{ playlist: p().ratingKey }} />}
+        {(p) => <Titles title={p().title} key={p().id} load={(start, size) => provider().playlist(p().id, { start, size })} queue={{ playlist: p().id }} />}
       </Match>
-      <Match when={r.screen === 'movie' && r}>{(m) => <Movie ratingKey={m().ratingKey} />}</Match>
+      <Match when={r.screen === 'movie' && r}>{(m) => <Movie id={m().id} />}</Match>
       <Match when={r.screen === 'show' && r}>
-        {(s) => <Show ratingKey={s().ratingKey} season={s().season} episode={s().episode} />}
+        {(s) => <Show id={s().id} season={s().season} episode={s().episode} />}
       </Match>
       <Match when={r.screen === 'collection' && r}>
         {(c) => (
           <Titles
             title={c().title}
-            key={c().ratingKey}
-            load={(start, size) => collectionItems(currentServer(), c().ratingKey, { start, size })}
-            queue={{ collection: c().ratingKey }}
+            key={c().id}
+            load={(start, size) => provider().collection(c().id, { start, size })}
+            queue={{ collection: c().id }}
           />
         )}
       </Match>
-      <Match when={r.screen === 'person' && r}>
+      <Match when={r.screen === 'titles' && r}>
         {(p) => (
           <Titles
             title={p().title}
-            key={p().filter}
+            key={`${p().section}/${JSON.stringify(p().query)}`}
             load={(start, size) =>
-              sectionItems(currentServer(), p().section, { filter: p().filter, sort: 'year:desc' }, { start, size })
+              provider().titles(p().section, { sort: 'released', unwatched: false, filters: {}, ...p().query }, { start, size })
             }
           />
         )}

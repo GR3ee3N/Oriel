@@ -1,26 +1,24 @@
 import { createEffect, on, onCleanup } from 'solid-js';
+import type { Corners } from '../../media/model';
+import { provider } from '../../media/servers';
 import { useScope } from '../../nav';
-import type { Server } from '../../plex/client';
-import { imageUrl } from '../../plex/images';
-import type { UltraBlurColors } from '../../plex/types';
 import { top } from '../../router';
-import { currentServer } from '../../session';
 import './backdrop.css';
 
 const W = 1920;
 const H = 1080;
 
 /** Use the painted backdrop dimensions when preloading artwork. */
-export function backdropUrl(server: Server, art: string): string {
-  return imageUrl(server, art, W, H);
+export function backdropUrl(art: string): string {
+  return provider().image(art, W, H);
 }
 
-// Interpolate Plex's UltraBlurColors across a 16×9 field and scale it to
+// Interpolate the artwork's corner colours across a 16×9 field and scale it to
 // the scene. Duplicate edge colours in a one-pixel border to keep scaling
 // from fading the outer pixels.
 const FW = 16;
 const FH = 9;
-const FALLBACK: UltraBlurColors = { topLeft: '1d2338', topRight: '2a3352', bottomRight: '0d1018', bottomLeft: '121624' };
+const FALLBACK: Corners = { topLeft: '1d2338', topRight: '2a3352', bottomRight: '0d1018', bottomLeft: '121624' };
 // Dim the colour field to keep white text readable.
 const DIM = 0.62;
 
@@ -58,7 +56,7 @@ function fade(stops: readonly (readonly [number, number])[], t: number): number 
 
 const rgb = (hex: string) => [0, 2, 4].map((i) => parseInt(hex.slice(i, i + 2), 16) || 0);
 
-function paintField(c: UltraBlurColors): void {
+function paintField(c: Corners): void {
   const [tl, tr, br, bl] = [c.topLeft, c.topRight, c.bottomRight, c.bottomLeft].map(rgb);
   const ctx = context(field);
   const img = ctx.createImageData(FW + 2, FH + 2);
@@ -82,7 +80,7 @@ function paintField(c: UltraBlurColors): void {
  * WebKit rasterizes scaled layers at screen size, so each extra layer adds
  * a full-screen paint. CSS masks in opacity transitions also retain
  * full-screen GPU surfaces on WPE/Mali. */
-function paintScene(canvas: HTMLCanvasElement, colors: UltraBlurColors, img: HTMLImageElement | undefined, lum: number): void {
+function paintScene(canvas: HTMLCanvasElement, colors: Corners, img: HTMLImageElement | undefined, lum: number): void {
   paintField(colors);
   const ctx = context(canvas);
   ctx.drawImage(field, 1, 1, FW, FH, 0, 0, W, H);
@@ -106,8 +104,8 @@ function paintScene(canvas: HTMLCanvasElement, colors: UltraBlurColors, img: HTM
 
 /** 90th-percentile linear luminance of the text zone as paintScene draws
  * it: the faded artwork over the dimmed colour field. */
-async function measure(server: Server, art: string, colors: UltraBlurColors): Promise<number> {
-  const small = await decoded(imageUrl(server, art, PW, PH), true).catch(() => undefined);
+async function measure(art: string, colors: Corners): Promise<number> {
+  const small = await decoded(provider().image(art, PW, PH), true).catch(() => undefined);
   if (!small) return UNMEASURED;
   probeContext.drawImage(small, 0, 0, PW, PH);
   let d: Uint8ClampedArray;
@@ -163,32 +161,32 @@ function decoded(src: string, cors: boolean): Promise<HTMLImageElement> {
 }
 
 interface Scene {
-  colors: UltraBlurColors;
+  colors: Corners;
   img?: HTMLImageElement;
   lum: number;
 }
 
-// Artwork paths are local to a server, so a key with artwork names its server.
-const sceneKey = (serverId: string | undefined, art: string | undefined, colors: UltraBlurColors | undefined) =>
-  `${serverId ?? ''}|${art ?? ''}|${JSON.stringify(colors ?? null)}`;
+// Keyed by the artwork's URL, which names its server: the same path on
+// another server is different artwork.
+const sceneKey = (url: string | undefined, colors: Corners | undefined) => `${url ?? ''}|${JSON.stringify(colors ?? null)}`;
 // The last scenes prepared; each holds a decoded full-screen image.
 const prepared = new Map<string, Promise<Scene>>();
 const KEEP = 2;
 
 /** Decode and measure a backdrop. A Backdrop given the same artwork and
  * colours on the same server next shows it in the same frame. */
-export function prepareBackdrop(art: string | undefined, colors: UltraBlurColors | undefined): Promise<Scene> {
+export function prepareBackdrop(art: string | undefined, colors: Corners | undefined): Promise<Scene> {
   const c = colors ?? FALLBACK;
   if (!art) return Promise.resolve({ colors: c, lum: 0 });
-  const server = currentServer();
-  const key = sceneKey(server.id, art, colors);
+  const url = backdropUrl(art);
+  const key = sceneKey(url, colors);
   const scene =
     prepared.get(key) ??
     Promise.all([
-      decoded(backdropUrl(server, art), true)
-        .catch(() => decoded(backdropUrl(server, art), false))
+      decoded(url, true)
+        .catch(() => decoded(url, false))
         .catch(() => undefined),
-      measure(server, art, c),
+      measure(art, c),
     ]).then(([img, lum]) => ({ colors: c, img, lum }));
   prepared.delete(key);
   prepared.set(key, scene);
@@ -199,20 +197,20 @@ export function prepareBackdrop(art: string | undefined, colors: UltraBlurColors
 /** Blend artwork into the item's colour field at the top and right, then
  * cross-fade scenes with compositor-only opacity transitions. Pages that
  * change artwork with focus wait for it with prepareBackdrop. */
-export function Backdrop(props: { art?: string; colors?: UltraBlurColors }) {
+export function Backdrop(props: { art?: string; colors?: Corners }) {
   const scenes: { root: HTMLDivElement; canvas: HTMLCanvasElement }[] = [];
   let shown = -1;
   let showing = '';
   // Retain the current scene inputs for repainting after visibility changes.
-  let painted: [UltraBlurColors, HTMLImageElement | undefined, number] | undefined;
+  let painted: [Corners, HTMLImageElement | undefined, number] | undefined;
 
-  const show = async (art: string | undefined, colors: UltraBlurColors | undefined) => {
+  const show = async (art: string | undefined, colors: Corners | undefined) => {
     // Without artwork, as on the splash and sign-in, there may be no server yet.
-    const serverId = art ? currentServer().id : undefined;
-    const key = sceneKey(serverId, art, colors);
+    const url = (a: string | undefined) => (a ? backdropUrl(a) : undefined);
+    const key = sceneKey(url(art), colors);
     if (key === showing) return;
     const { img, lum } = await prepareBackdrop(art, colors);
-    if (sceneKey(serverId, props.art, props.colors) !== key) return;
+    if (sceneKey(url(props.art), props.colors) !== key) return;
     const next = shown === 0 ? 1 : 0;
     const scene = scenes[next];
     painted = [colors ?? FALLBACK, img, lum];

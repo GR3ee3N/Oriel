@@ -1,13 +1,13 @@
-// The profile's plex.tv Watchlist. Titles the server has open their page;
+// The profile's Watchlist. Titles the server has open their page;
 // the others are dimmed and open an information page.
 
 import { createEffect, createResource, createSignal, on, Show, untrack } from 'solid-js';
 import { open } from '../../actions';
 import { t } from '../../i18n';
-import type { Metadata } from '../../plex/types';
-import { localCopies, watchlist, watchlistVersion } from '../../plex/watchlist';
+import type { Item } from '../../media/model';
+import { provider } from '../../media/servers';
 import { push, tab } from '../../router';
-import { currentServer, session } from '../../session';
+import { session } from '../../session';
 import { Button, Chip, Message } from '../components/Controls';
 import { Grid } from '../components/Grid';
 import { Panel } from '../components/Panel';
@@ -21,9 +21,10 @@ const SORTS = [
 ];
 
 export function Watchlist() {
-  const [items] = createResource(watchlistVersion, () => watchlist());
+  const watchlist = provider().watchlist!;
+  const [items] = createResource(watchlist.version, () => watchlist.items());
   // guid → the server's copy, or null when no library has the title.
-  const [copies, setCopies] = createSignal(new Map<string, Metadata | null>());
+  const [copies, setCopies] = createSignal(new Map<string, Item | null>());
   const [sort, setSort] = createSignal('added');
   const [localOnly, setLocalOnly] = createSignal(false);
   const [panel, setPanel] = createSignal(false);
@@ -36,7 +37,7 @@ export function Watchlist() {
         if (!list) return;
         const guids = untrack(() => list.map((m) => m.guid).filter((g): g is string => !!g && !copies().has(g)));
         if (!guids.length) return;
-        const found = await localCopies(currentServer(), guids).catch(() => undefined);
+        const found = await watchlist.copies(guids).catch(() => undefined);
         if (!found) return;
         setCopies((map) => {
           const next = new Map(map);
@@ -57,12 +58,12 @@ export function Watchlist() {
   };
   const localCount = () => list().filter((m) => copies().get(m.guid!)).length;
   const known = () => list().every((m) => !m.guid || copies().has(m.guid));
-  const select = (m: Metadata) => {
-    const copy = copies().get(m.guid!);
+  const select = (item: Item) => {
+    const copy = copies().get(item.guid!);
     if (copy) return open(copy);
-    push({ screen: 'remote', guid: m.guid!, title: m.title });
+    push({ screen: 'remote', guid: item.guid!, title: item.title });
   };
-  const firstLibrary = () => session.sections[0];
+  const firstLibrary = () => session.libraries[0];
 
   return (
     <div class="library">
@@ -93,7 +94,7 @@ export function Watchlist() {
                     icon="movie"
                     label={t('action.browse', { library: lib().title })}
                     autofocus
-                    onSelect={() => tab({ screen: 'library', section: lib().key, title: lib().title, type: lib().type })}
+                    onSelect={() => tab({ screen: 'library', section: lib().id, title: lib().title, type: lib().kind })}
                   />
                 )}
               </Show>
@@ -113,7 +114,7 @@ export function Watchlist() {
         </div>
         <Grid
           key={`${sort()}/${localOnly()}/${list().length}`}
-          load={(start, size) => Promise.resolve({ size: shown().length, totalSize: shown().length, Metadata: shown().slice(start, start + size) })}
+          load={(start, size) => Promise.resolve({ total: shown().length, items: shown().slice(start, start + size) })}
           onSelect={select}
           dim={(m) => copies().get(m.guid!) === null}
           lines={(m) => (copies().get(m.guid!) === null ? [m.title, t('details.notOnServer', { server: session.serverName ?? '' })] : undefined)}

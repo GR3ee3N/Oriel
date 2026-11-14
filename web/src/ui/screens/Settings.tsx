@@ -6,10 +6,10 @@ import { createSignal, For, type JSX, Show } from 'solid-js';
 import { focusable, focusOn } from '../../nav';
 import { send, state } from '../../bridge';
 import { t } from '../../i18n';
-import { PRODUCT, VERSION } from '../../plex/client';
 import { QUALITIES, quality } from '../../player/quality';
 import { ACCENTS, accent, hidesUnwatched, prefs, setHidesUnwatched, setPref } from '../../prefs';
-import { changeUser, chooseServer, currentServer, serverOptions, session, signOut } from '../../session';
+import { changeUser, chooseServer, serverOptions, session, signOut } from '../../session';
+import { PRODUCT, VERSION } from '../../app';
 import { fontsSize } from '../../fonts';
 import { Dialog } from '../components/Dialog';
 import { Panel, type PanelOption } from '../components/Panel';
@@ -98,7 +98,7 @@ export function Settings() {
           selected: () => prefs.accent,
           onChoose: (id) => setPref('accent', id),
         }),
-        onOff(t('settings.spoilers'), t('settings.spoilersHint'), () => hidesUnwatched(session.user?.uuid), (on) => session.user && setHidesUnwatched(session.user.uuid, on)),
+        onOff(t('settings.spoilers'), t('settings.spoilersHint'), () => hidesUnwatched(session.user?.id), (on) => session.user && setHidesUnwatched(session.user.id, on)),
         onOff(t('settings.motion'), t('settings.motionHint'), () => prefs.reduceMotion, (on) => setPref('reduceMotion', on)),
         ...(state.fonts
           ? [
@@ -119,7 +119,7 @@ export function Settings() {
     {
       label: t('settings.account'),
       settings: [
-        action({ label: t('settings.profile'), value: () => session.user?.title ?? '', onSelect: session.multiUser ? () => void changeUser() : undefined }),
+        action({ label: t('settings.profile'), value: () => session.user?.name ?? '', onSelect: session.multiUser ? () => void changeUser() : undefined }),
         ...(session.servers.length > 1
           ? [
               choice({
@@ -141,7 +141,7 @@ export function Settings() {
       label: t('settings.about'),
       settings: [
         action({ label: t('settings.version'), value: () => `${PRODUCT} ${VERSION}` }),
-        action({ label: t('settings.server'), hint: currentServer().uri, value: () => session.serverName ?? '' }),
+        action({ label: t('settings.server'), hint: session.serverAddress, value: () => session.serverName ?? '' }),
         // Shared framework setting: changing it reloads the page and affects all Oriel apps.
         choice({
           label: t('settings.rendering'),

@@ -1,11 +1,10 @@
 import { createSignal, Show } from 'solid-js';
 import { play, prefetch } from '../../actions';
+import type { Item } from '../../media/model';
+import { provider } from '../../media/servers';
+import { isWatched, progress, tileSubtitle, tileTitle, unwatched } from '../../media/format';
 import { type Direction, focusable } from '../../nav';
-import { isWatched, progress, tileSubtitle, tileTitle, unwatched } from '../../plex/format';
-import { imageUrl } from '../../plex/images';
-import type { Metadata } from '../../plex/types';
-import { currentServer } from '../../session';
-import { episodeTitle, hidden } from '../spoilers';
+import { episodeTitle, hidden } from '../../media/spoilers';
 import { Icon } from './Icon';
 import './tile.css';
 
@@ -18,29 +17,32 @@ export const SIZES: Record<TileShape, { w: number; h: number }> = {
 
 /** Use posters for portrait tiles, including the show's poster for episodes.
  * Wide tiles use episode stills or item artwork. */
-export function tileImage(m: Metadata, shape: TileShape): string | undefined {
-  if (shape === 'wide') return m.type === 'episode' ? (m.thumb ?? m.art) : (m.art ?? m.thumb);
-  if (m.type === 'episode') return m.grandparentThumb ?? m.parentThumb ?? m.thumb;
-  if (m.type === 'season') return m.thumb ?? m.parentThumb;
-  return m.thumb;
+export function tileImage(item: Item, shape: TileShape): string | undefined {
+  const art = item.art;
+  if (shape === 'wide') return item.kind === 'episode' ? (art.image ?? art.backdrop) : (art.backdrop ?? art.image);
+  if (item.kind === 'episode') return art.showImage ?? art.seasonImage ?? art.image;
+  if (item.kind === 'season') return art.image ?? art.showImage;
+  return art.image;
 }
 
-export function tileImageUrl(m: Metadata, shape: TileShape): string | undefined {
-  const path = tileImage(m, shape);
+export function tileImageUrl(item: Item, shape: TileShape): string | undefined {
+  const path = tileImage(item, shape);
   const { w, h } = SIZES[shape];
-  return path ? imageUrl(currentServer(), path, w, h, hidden(m) && (shape === 'wide' || !(m.grandparentThumb || m.parentThumb))) : undefined;
+  return path
+    ? provider().image(path, w, h, { blur: hidden(item) && (shape === 'wide' || !(item.art.showImage || item.art.seasonImage)) })
+    : undefined;
 }
 
 export interface TileProps {
   /** Undefined items render focusable placeholders while loading. */
-  item?: Metadata;
+  item?: Item;
   shape?: TileShape;
   group?: string;
   /** Enter the group here, as at a scrolling row's first visible tile. */
   entry?: boolean;
   autofocus?: boolean;
   /** Override the default title/year or show/episode caption pair. */
-  lines?: (m: Metadata) => [string, string] | undefined;
+  lines?: (item: Item) => [string, string] | undefined;
   /** Dim the artwork, e.g. for a Watchlist title the server doesn't have. */
   dim?: boolean;
   index?: number;
@@ -59,8 +61,8 @@ export function Tile(props: TileProps) {
     const url = props.item && tileImageUrl(props.item, shape());
     return url !== failed() ? url : undefined;
   };
-  const lines = (m: Metadata): [string, string] =>
-    props.lines?.(m) ?? [tileTitle(m), tileSubtitle(hidden(m) ? { ...m, title: episodeTitle(m) } : m, shape() === 'wide')];
+  const lines = (item: Item): [string, string] =>
+    props.lines?.(item) ?? [tileTitle(item), tileSubtitle(hidden(item) ? { ...item, title: episodeTitle(item) } : item, shape() === 'wide')];
   return (
     <div
       class={`tile ${shape()}`}

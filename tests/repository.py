@@ -87,12 +87,12 @@ if command=='ci':
 elif command=='run build':
     (web/'dist/assets').mkdir(parents=True,exist_ok=True)
     (web/'dist/index.html').write_text('<script type="module" src="./assets/app.js"></script>')
-    (web/'dist/assets/app.js').write_text('export const page = "built";')
+    (web/'dist/assets/app.js').write_text(f'export const page = "{os.environ.get("VITE_SERVER")}";')
     if os.environ.get('TEST_PUBLISH'):
         state=Path(os.environ['TEST_GITHUB'])/'state.json'
         data=json.loads(state.read_text()); data['releases'][os.environ['TEST_PUBLISH']]=False
         state.write_text(json.dumps(data))
-    if os.environ.get('TEST_CHANGE'):
+    if os.environ.get('TEST_CHANGE') and not (root/'CHANGES').exists():
         (root/'CHANGES').write_text('Changed during build')
         if os.environ['TEST_CHANGE']=='commit':
             subprocess.run(['git','add','.'],cwd=root,check=True)

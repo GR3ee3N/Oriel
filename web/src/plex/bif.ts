@@ -11,7 +11,8 @@
 // Fetch the file once on the first scrub. Create frame object URLs on demand,
 // retaining only a small cache and revoking evicted URLs.
 
-import type { Server } from '../plex/client';
+import type { Frame } from '../media/provider';
+import type { Server } from './client';
 
 const KEEP = 12;
 
@@ -25,7 +26,7 @@ export class Bif {
     private interval: number,
   ) {}
 
-  static async load(server: Server, partId: number): Promise<Bif | undefined> {
+  static async load(server: Server, partId: string): Promise<Bif | undefined> {
     const r = await fetch(server.url(`/library/parts/${partId}/indexes/sd`));
     if (!r.ok) return undefined;
     const data = await r.arrayBuffer();
@@ -42,8 +43,8 @@ export class Bif {
     return new Bif(data, times, offsets, interval);
   }
 
-  /** Return an image URL for the last frame at or before `seconds`. */
-  frameAt(seconds: number): string | undefined {
+  /** The last frame at or before `seconds`. */
+  frameAt(seconds: number): Frame | undefined {
     const t = (seconds * 1000) / this.interval;
     let lo = 0;
     let hi = this.times.length - 1;
@@ -54,7 +55,7 @@ export class Bif {
       else hi = mid - 1;
     }
     const hit = this.urls.get(lo);
-    if (hit) return hit;
+    if (hit) return { url: hit };
     const url = URL.createObjectURL(
       new Blob([this.data.slice(this.offsets[lo], this.offsets[lo + 1])], { type: 'image/jpeg' }),
     );
@@ -64,7 +65,7 @@ export class Bif {
       URL.revokeObjectURL(old);
       this.urls.delete(first);
     }
-    return url;
+    return { url };
   }
 
   dispose(): void {

@@ -4,11 +4,10 @@
 // animation.
 
 import { createSignal, onCleanup, Show } from 'solid-js';
-import { metadata } from '../../plex/api';
-import { badges, tileTitle } from '../../plex/format';
-import type { Metadata } from '../../plex/types';
-import { currentServer } from '../../session';
-import { episodeText } from '../spoilers';
+import { badges, tileTitle } from '../../media/format';
+import type { Item } from '../../media/model';
+import { provider } from '../../media/servers';
+import { episodeText } from '../../media/spoilers';
 import { prepareBackdrop } from './Backdrop';
 import { Info, logoReady, metaFor } from './Info';
 
@@ -16,27 +15,29 @@ import { Info, logoReady, metaFor } from './Info';
 const BACKDROP_WAIT = 1000;
 
 export interface HeroState {
-  item: Metadata;
+  item: Item;
   logo?: string;
-  /** Full metadata with streams, for HDR and audio badges. */
-  full?: Metadata;
+  /** Full item with streams, for HDR and audio badges. */
+  full?: Item;
   /** Badges arrived after the rest and fade in. */
   late?: boolean;
 }
 
-export const backdropOf = (m: Metadata | undefined) => (m?.type === 'episode' ? (m.grandparentArt ?? m.art) : m?.art);
+export const backdropOf = (item: Item | undefined) => (item?.kind === 'episode' ? (item.art.showBackdrop ?? item.art.backdrop) : item?.art.backdrop);
 
 /** `onFirst` runs once the first item is shown, e.g. to release the splash. */
-export function createHero(onFirst?: (item: Metadata) => void) {
+export function createHero(onFirst?: (item: Item) => void) {
   const [hero, setHero] = createSignal<HeroState>();
-  let wanted: Metadata | undefined;
+  let wanted: Item | undefined;
   let timer: ReturnType<typeof setTimeout> | undefined;
   // A season's own metadata rarely has a summary, so seasons use their show's.
-  const fullOf = (item: Metadata) =>
-    metadata(currentServer(), item.type === 'season' ? item.parentRatingKey! : item.ratingKey).catch(() => undefined);
+  const fullOf = (item: Item) =>
+    provider()
+      .item(item.kind === 'season' ? item.show!.id : item.id)
+      .catch(() => undefined);
 
   /** Show `item` after focus settles; `around` are neighbours to fetch ahead. */
-  const show = (item: Metadata, around: Metadata[] = []) => {
+  const show = (item: Item, around: Item[] = []) => {
     wanted = item;
     clearTimeout(timer);
     timer = setTimeout(
@@ -46,7 +47,7 @@ export function createHero(onFirst?: (item: Metadata) => void) {
         const [logo, full] = await Promise.all([
           logoReady(item),
           Promise.race([pending, new Promise<undefined>((done) => setTimeout(done, 350))]),
-          Promise.race([prepareBackdrop(backdropOf(item), item.UltraBlurColors), new Promise((done) => setTimeout(done, BACKDROP_WAIT))]),
+          Promise.race([prepareBackdrop(backdropOf(item), item.art.colors), new Promise((done) => setTimeout(done, BACKDROP_WAIT))]),
         ]);
         if (wanted !== item) return;
         setHero({ item, logo, full });
@@ -69,7 +70,7 @@ export function createHero(onFirst?: (item: Metadata) => void) {
     hero,
     show,
     art: () => backdropOf(hero()?.item),
-    colors: () => hero()?.item.UltraBlurColors ?? hero()?.full?.UltraBlurColors,
+    colors: () => hero()?.item.art.colors ?? hero()?.full?.art.colors,
   };
 }
 
@@ -96,7 +97,7 @@ export function HeroInfo(props: { hero: Hero }) {
 }
 
 /** Neighbours of `item` in `items` worth fetching before focus reaches them. */
-export function neighbours(items: Metadata[], item: Metadata): Metadata[] {
+export function neighbours(items: Item[], item: Item): Item[] {
   const at = items.indexOf(item);
   return [...items.slice(at + 1, at + 3), ...items.slice(Math.max(0, at - 2), at)];
 }

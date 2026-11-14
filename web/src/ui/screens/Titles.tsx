@@ -1,7 +1,7 @@
 import { createSignal, Show } from 'solid-js';
 import { open, playAll } from '../../actions';
 import { t } from '../../i18n';
-import type { MediaContainer } from '../../plex/types';
+import type { Item, Paged } from '../../media/model';
 import { Button, Message } from '../components/Controls';
 import { Grid } from '../components/Grid';
 import { DetailHead } from '../components/Status';
@@ -13,7 +13,7 @@ import './library.css';
 export function Titles(props: {
   title: string;
   key: string;
-  load: (start: number, size: number) => Promise<MediaContainer>;
+  load: (start: number, size: number) => Promise<Paged<Item>>;
   queue?: { collection: string } | { playlist: string };
 }) {
   const [total, setTotal] = createSignal<number>();

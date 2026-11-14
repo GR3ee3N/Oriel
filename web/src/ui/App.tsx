@@ -6,6 +6,7 @@ import { pop, top } from '../router';
 import { session, start } from '../session';
 import { adoptPlayback, playback } from '../player/playback';
 import { Osd, osdBack } from './Osd';
+import { Address } from './Address';
 import { Screens } from './Screens';
 import { Screensaver } from './Screensaver';
 import { SignIn } from './SignIn';
@@ -132,6 +133,9 @@ export function App() {
       <main class="browse">
         {/* The splash covers startup, connection attempts and errors. */}
         <Switch>
+          <Match when={session.phase === 'address'}>
+            <Address />
+          </Match>
           <Match when={session.phase === 'signin'}>
             <SignIn />
           </Match>

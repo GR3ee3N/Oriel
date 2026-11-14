@@ -1,0 +1,308 @@
+{
+ "ratingKey": "43398",
+ "key": "/library/metadata/43398",
+ "guid": "plex://movie/657ee30736510c5583cc4f13",
+ "studio": "MAPPA",
+ "type": "movie",
+ "title": "Chainsaw Man - The Movie: Reze Arc",
+ "librarySectionID": 6,
+ "contentRating": "R",
+ "summary": "Denji wurde zum „Kettensägenmann“, einem Jungen mit dem Herzen eines Teufels, und gehört nun zu den Teufelsjägern der Spezialabteilung 4. Nach einer Verabredung mit Makima, der Frau seiner Träume, sucht Denji Schutz vor dem Regen. Dort lernt er Reze kennen, ein Mädchen, das in einem Café arbeitet.",
+ "audienceRating": 9.8,
+ "year": 2025,
+ "tagline": "Lost Love, Flower, Chainsaw.",
+ "thumb": "/library/metadata/43398/thumb/1792384878",
+ "art": "/library/metadata/43398/art/1792384878",
+ "duration": 6015488,
+ "originallyAvailableAt": "2025-09-19",
+ "Media": [
+  {
+   "id": 80228,
+   "duration": 6015488,
+   "bitrate": 25491,
+   "audioChannels": 6,
+   "audioCodec": "eac3",
+   "videoCodec": "hevc",
+   "videoResolution": "4k",
+   "container": "mkv",
+   "Part": [
+    {
+     "id": 93250,
+     "key": "/library/parts/93250/1765285871/file.mkv",
+     "duration": 6015488,
+     "size": 19167609542,
+     "indexes": "sd",
+     "Stream": [
+      {
+       "id": 491899,
+       "streamType": 1,
+       "codec": "hevc",
+       "index": 0,
+       "languageTag": "en",
+       "languageCode": "eng",
+       "DOVIBLCompatID": 1,
+       "DOVIPresent": true,
+       "DOVIProfile": 8,
+       "colorTrc": "smpte2084",
+       "profile": "main 10",
+       "displayTitle": "4K DoVi/HDR10+"
+      },
+      {
+       "id": 491900,
+       "streamType": 2,
+       "selected": true,
+       "codec": "eac3",
+       "index": 1,
+       "channels": 6,
+       "languageTag": "de",
+       "languageCode": "deu",
+       "title": "Deutsch Surround",
+       "displayTitle": "Deutsch (EAC3 5.1)"
+      },
+      {
+       "id": 491901,
+       "streamType": 2,
+       "codec": "eac3",
+       "index": 2,
+       "channels": 6,
+       "languageTag": "ja",
+       "languageCode": "jpn",
+       "title": "Japanisch Surround",
+       "displayTitle": "日本語 (EAC3 5.1)"
+      },
+      {
+       "id": 491902,
+       "streamType": 3,
+       "forced": true,
+       "codec": "ass",
+       "index": 3,
+       "languageTag": "de",
+       "languageCode": "deu",
+       "title": "Deutsch Forced",
+       "displayTitle": "Deutsch Forced"
+      },
+      {
+       "id": 491903,
+       "streamType": 3,
+       "codec": "ass",
+       "index": 4,
+       "languageTag": "de",
+       "languageCode": "deu",
+       "title": "Deutsch Full",
+       "displayTitle": "Deutsch"
+      }
+     ]
+    }
+   ]
+  }
+ ],
+ "Image": [],
+ "UltraBlurColors": {
+  "topLeft": "5c0201",
+  "topRight": "851111",
+  "bottomRight": "782223",
+  "bottomLeft": "b20204"
+ },
+ "Genre": [
+  {
+   "id": 564,
+   "filter": "genre=564",
+   "tag": "Fantasy"
+  },
+  {
+   "id": 1294,
+   "filter": "genre=1294",
+   "tag": "Animation"
+  }
+ ],
+ "Director": [
+  {
+   "id": 30355,
+   "filter": "director=30355",
+   "tag": "Tatsuya Yoshihara"
+  }
+ ],
+ "Role": [
+  {
+   "id": 45653,
+   "filter": "actor=45653",
+   "tag": "Kikunosuke Toya",
+   "role": "Denji (voice)",
+   "thumb": "https://metadata-static.plex.tv/6/people/68bd7213f4f69a30e963cb2f4306cc57.jpg"
+  },
+  {
+   "id": 31270,
+   "filter": "actor=31270",
+   "tag": "Shiori Izawa",
+   "role": "Pochita (voice)",
+   "thumb": "https://metadata-static.plex.tv/5/people/5d1bc88410fffb1a9729df3418090300.jpg"
+  }
+ ],
+ "Chapter": [
+  {
+   "index": 1,
+   "startTimeOffset": 0,
+   "endTimeOffset": 424007,
+   "thumb": "/library/media/80228/chapterImages/1"
+  },
+  {
+   "index": 2,
+   "startTimeOffset": 424007,
+   "endTimeOffset": 722806,
+   "thumb": "/library/media/80228/chapterImages/2"
+  },
+  {
+   "index": 3,
+   "startTimeOffset": 722806,
+   "endTimeOffset": 1139720,
+   "thumb": "/library/media/80228/chapterImages/3"
+  }
+ ],
+ "Marker": [
+  {
+   "type": "credits",
+   "startTimeOffset": 5647939,
+   "endTimeOffset": 5761939
+  },
+  {
+   "type": "credits",
+   "startTimeOffset": 5777939,
+   "endTimeOffset": 5869939
+  },
+  {
+   "type": "credits",
+   "startTimeOffset": 5985939,
+   "endTimeOffset": 6015488,
+   "final": true
+  }
+ ],
+ "Extras": {
+  "Metadata": [
+   {
+    "ratingKey": "43399",
+    "key": "/library/metadata/43399",
+    "guid": "iva://api.internetvideoarchive.com/2.0/DataService/VideoAssets(695989)",
+    "type": "clip",
+    "title": "Gekijo-Ban Chenso Man Reze-Hen (German Trailer 1)",
+    "summary": "",
+    "index": 1,
+    "year": 2025,
+    "thumb": "/library/metadata/43399/thumb/1758066637",
+    "duration": 67000,
+    "originallyAvailableAt": "2025-09-16",
+    "extraType": 1,
+    "Media": [
+     {
+      "id": 80196,
+      "duration": 67000,
+      "bitrate": 5000,
+      "audioCodec": "aac",
+      "videoCodec": "h264",
+      "videoResolution": "1080",
+      "container": "mp4",
+      "Part": [
+       {
+        "id": 93218,
+        "duration": 67000,
+        "key": "/services/iva/assets/695989/video.mp4?fmt=4&bitrate=5000",
+        "Stream": [
+         {
+          "id": 491744,
+          "streamType": 1,
+          "codec": "h264",
+          "index": 0,
+          "displayTitle": "1080p"
+         },
+         {
+          "id": 491745,
+          "streamType": 2,
+          "selected": true,
+          "codec": "aac",
+          "index": 1,
+          "channels": 2,
+          "languageTag": "de",
+          "languageCode": "deu",
+          "displayTitle": "Deutsch (AAC Stereo)"
+         }
+        ]
+       }
+      ]
+     },
+     {
+      "id": 80197,
+      "duration": 67000,
+      "bitrate": 2500,
+      "audioCodec": "aac",
+      "videoCodec": "h264",
+      "videoResolution": "720",
+      "container": "mp4",
+      "Part": [
+       {
+        "id": 93219,
+        "duration": 67000,
+        "key": "/services/iva/assets/695989/video.mp4?fmt=4&bitrate=2500",
+        "Stream": [
+         {
+          "id": 491746,
+          "streamType": 1,
+          "codec": "h264",
+          "index": 0,
+          "displayTitle": "720p"
+         },
+         {
+          "id": 491747,
+          "streamType": 2,
+          "selected": true,
+          "codec": "aac",
+          "index": 1,
+          "channels": 2,
+          "languageTag": "de",
+          "languageCode": "deu",
+          "displayTitle": "Deutsch (AAC Stereo)"
+         }
+        ]
+       }
+      ]
+     },
+     {
+      "id": 80198,
+      "duration": 67000,
+      "bitrate": 750,
+      "audioCodec": "aac",
+      "videoCodec": "h264",
+      "videoResolution": "sd",
+      "container": "mp4",
+      "Part": [
+       {
+        "id": 93220,
+        "duration": 67000,
+        "key": "/services/iva/assets/695989/video.mp4?fmt=4&bitrate=750",
+        "Stream": [
+         {
+          "id": 491748,
+          "streamType": 1,
+          "codec": "h264",
+          "index": 0,
+          "displayTitle": "SD"
+         },
+         {
+          "id": 491749,
+          "streamType": 2,
+          "selected": true,
+          "codec": "aac",
+          "index": 1,
+          "channels": 2,
+          "languageTag": "de",
+          "languageCode": "deu",
+          "displayTitle": "Deutsch (AAC Stereo)"
+         }
+        ]
+       }
+      ]
+     }
+    ],
+    "Image": []
+   }
+  ]
+ }
+}

@@ -1,4 +1,5 @@
 import { render } from 'solid-js/web';
+import { PRODUCT } from './app';
 import { App } from './ui/App';
 import '@fontsource-variable/inter/wght.css';
 import './ui/emoji.css';
@@ -9,4 +10,5 @@ import './ui/styles.css';
 window.addEventListener('error', (e) => console.error(`error: ${e.message} at ${e.filename}:${e.lineno}`));
 window.addEventListener('unhandledrejection', (e) => console.error(`unhandled: ${e.reason?.stack ?? e.reason}`));
 
+document.title = PRODUCT;
 render(() => <App />, document.getElementById('root')!);

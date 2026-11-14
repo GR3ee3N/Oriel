@@ -1,0 +1,83 @@
+{
+ "hubIdentifier": "home.continue",
+ "key": "/hubs/home/continueWatching",
+ "title": "Continue Watching",
+ "type": "mixed",
+ "size": 1,
+ "Metadata": [
+  {
+   "ratingKey": "50199",
+   "key": "/library/metadata/50199",
+   "parentRatingKey": "50198",
+   "grandparentRatingKey": "45480",
+   "guid": "plex://episode/6a52f3a543dc41ac4a655a13",
+   "studio": "101 Studios",
+   "type": "episode",
+   "title": "Mehr Schein als Sein",
+   "librarySectionID": 4,
+   "grandparentTitle": "Marshals - A Yellowstone Story",
+   "parentTitle": "Season 2",
+   "contentRating": "de/16",
+   "summary": "Als Kayce erkennt, dass Tate als Geisel genommen wurde, handelt er auf eigene Faust und begibt sich auf eine verzweifelte Jagd, um seinen Sohn zu retten, während die Marshals eine mächtige kriminelle Organisation aufdecken, die mit der Landnahme im East Camp in Verbindung steht. Es kommt zu einem gewaltsamen Showdown, der alles, was Kayce am Herzen liegt, in Gefahr bringt.",
+   "index": 1,
+   "parentIndex": 2,
+   "audienceRating": 8.8,
+   "viewOffset": 79000,
+   "year": 2026,
+   "thumb": "/library/metadata/50199/thumb/1793761672",
+   "art": "/library/metadata/45480/art/1791205081",
+   "parentThumb": "/library/metadata/50198/thumb/1791344925",
+   "grandparentThumb": "/library/metadata/45480/thumb/1791205081",
+   "grandparentArt": "/library/metadata/45480/art/1791205081",
+   "duration": 2613216,
+   "originallyAvailableAt": "2026-10-04",
+   "Media": [
+    {
+     "id": 97318,
+     "duration": 2613216,
+     "bitrate": 8725,
+     "audioChannels": 6,
+     "audioCodec": "eac3",
+     "videoCodec": "hevc",
+     "videoResolution": "4k",
+     "container": "mkv",
+     "Part": [
+      {
+       "id": 110340,
+       "key": "/library/parts/110340/1791788745/file.mkv",
+       "duration": 2613216,
+       "size": 2850147238,
+       "indexes": "sd"
+      }
+     ]
+    }
+   ],
+   "Image": [
+    {
+     "alt": "Mehr Schein als Sein",
+     "type": "clearLogo",
+     "url": "/library/metadata/45480/clearLogo/1791205081"
+    }
+   ],
+   "UltraBlurColors": {
+    "topLeft": "42260d",
+    "topRight": "120303",
+    "bottomRight": "371a07",
+    "bottomLeft": "4d2304"
+   },
+   "Director": [
+    {
+     "tag": "Christopher Chulack"
+    }
+   ],
+   "Role": [
+    {
+     "tag": "Luke Grimes"
+    },
+    {
+     "tag": "Logan Marshall-Green"
+    }
+   ]
+  }
+ ]
+}

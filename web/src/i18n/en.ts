@@ -2,6 +2,11 @@
 // `{name}` placeholders are filled by t(); objects with `one`/`other` are
 // plural forms chosen by the `n` value.
 
+import { PRODUCT, SERVER } from '../app';
+
+/** What the error messages call the media server. */
+const MEDIA = SERVER === 'plex' ? 'Plex' : 'the server';
+
 export const en = {
   'nav.search': 'Search',
   'nav.home': 'Home',
@@ -68,6 +73,8 @@ export const en = {
   'hub.recentlyviewed': 'Recently Watched',
   'hub.startwatching': 'Start Watching',
   'hub.rediscover': 'Rediscover',
+  'hub.similar': 'More Like This',
+  'rows.latestIn': 'Recently Added in {library}',
 
   'library.recommended': 'Recommended',
   'library.library': 'Library',
@@ -108,6 +115,7 @@ export const en = {
   'details.version': 'Version',
   'details.subtitlesOff': 'Off',
   'details.trackHint': 'Saved for this title on {server}.',
+  'details.trackHintHere': `Used the next time this title plays on this box, until ${PRODUCT} closes.`,
   'details.specials': 'Specials',
   'details.noEpisodes': 'No episodes in {season}',
   'details.episodesFailed': "Couldn't load these episodes",
@@ -128,7 +136,7 @@ export const en = {
   'watchlist.loadFailed': "Couldn't load your Watchlist from plex.tv",
 
   'playlists.empty': 'No playlists',
-  'playlists.emptyHint': 'Video playlists made in Plex on another device appear here.',
+  'playlists.emptyHint': `Video playlists made in ${SERVER === 'plex' ? 'Plex' : 'Jellyfin'} on another device appear here.`,
 
   'search.placeholder': 'Search',
   'search.space': 'Space',
@@ -164,7 +172,7 @@ export const en = {
   'player.nextTag': 'Next',
   'player.position': '{n} of {total}',
   'player.shuffled': 'Shuffled · {n} of {total}',
-  'player.noDecoder': 'This box can’t decode {codec} video; Plex converts it',
+  'player.noDecoder': `This box can’t decode {codec} video; ${MEDIA} converts it`,
   'player.failed': 'Kodi couldn’t play this item',
 
   'settings.playback': 'Playback',
@@ -207,6 +215,18 @@ export const en = {
   'error.page': "Couldn't load titles",
 
   'start.signIn': 'Sign in to Plex',
+  'start.signInTo': 'Sign in to {server}',
+  'start.quickConnectHint': 'In a browser signed in to {server}, open Quick Connect in your user settings and enter this code:',
+  'start.quickConnectOff': '{server} has Quick Connect turned off. An administrator can turn it on in the dashboard, under General.',
+  'start.noUser': 'Nobody is signed in on this box.',
+  'start.signedOut': '{user} was signed out on the server. Add them again to sign in.',
+  'start.addUser': 'Add profile',
+  'address.title': 'Your server’s address',
+  'address.placeholder': 'Address',
+  'address.hint': 'Type the address you open the server at in a browser, for example media.example.com or 192.168.1.20:8096.',
+  'address.connect': 'Connect',
+  'address.checking': 'Looking for a server…',
+  'address.notFound': 'No Jellyfin server answers at {address}.',
   'start.signInHint': 'On your phone or computer, go to {site} and enter this code:',
   'start.whoWatching': "Who's watching?",
   'start.pin': 'PIN',
@@ -225,13 +245,13 @@ export const en = {
   'start.notAnswering': '{server} is not answering.',
   'start.fellBack': '{server} is not answering. Showing {other}.',
   'start.noneAnswering': 'None of your servers is answering ({servers}).',
-  'start.httpError': 'Plex answered with an error (HTTP {status}). Try again in a moment.',
-  'start.offline': "Oriel can't reach Plex. Check the box's network connection, then try again.",
+  'start.httpError': `${SERVER === 'plex' ? 'Plex' : 'The server'} answered with an error (HTTP {status}). Try again in a moment.`,
+  'start.offline': `${PRODUCT} can't reach ${MEDIA}. Check the box's network connection, then try again.`,
 
-  'exit.title': 'Exit Oriel?',
+  'exit.title': `Exit ${PRODUCT}?`,
   'exit.body': "You'll go back to Kodi.",
   'fonts.offerTitle': 'Unsupported characters detected',
-  'fonts.offerBody': "Some titles use characters Oriel's built-in fonts can't show. Showing them needs {size} MB of extra fonts, which also bring colour emoji. You can download them later in Settings, under Appearance.",
+  'fonts.offerBody': `Some titles use characters ${PRODUCT}'s built-in fonts can't show. Showing them needs {size} MB of extra fonts, which also bring colour emoji. You can download them later in Settings, under Appearance.`,
   'fonts.removeTitle': 'Remove the fonts?',
   'fonts.removeBody': 'Text in some languages shows as boxes and emoji lose their colour until you download the fonts again.',
 } as const;

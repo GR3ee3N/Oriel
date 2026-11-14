@@ -1,7 +1,7 @@
 import { createSignal, onCleanup } from 'solid-js';
 import { type Direction, focusOn } from '../../nav';
 import { t } from '../../i18n';
-import { hhmm } from '../../plex/format';
+import { hhmm } from '../../media/format';
 import { goHome } from '../../router';
 import { Button } from './Controls';
 import './rail.css';

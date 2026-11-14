@@ -1,0 +1,106 @@
+[
+ {
+  "Name": "Staffel 1",
+  "Id": "ca73d73ac1db35f27a515bc6fc56f155",
+  "PremiereDate": "2026-07-02T22:00:00.0000000Z",
+  "ProductionYear": 2026,
+  "IndexNumber": 1,
+  "IsFolder": true,
+  "Type": "Season",
+  "ParentLogoItemId": "28ba77109cd4c8f0b1809bd41be1773e",
+  "ParentBackdropItemId": "28ba77109cd4c8f0b1809bd41be1773e",
+  "ParentBackdropImageTags": [
+   "a9535b2e9ceb8e15b2495610415cd0df"
+  ],
+  "UserData": {
+   "PlayedPercentage": 0,
+   "UnplayedItemCount": 12,
+   "PlaybackPositionTicks": 0,
+   "PlayCount": 0,
+   "IsFavorite": false,
+   "Played": false,
+   "Key": "473423001",
+   "ItemId": "ca73d73ac1db35f27a515bc6fc56f155"
+  },
+  "SeriesName": "Chainsmoker Cat",
+  "SeriesId": "28ba77109cd4c8f0b1809bd41be1773e",
+  "SeriesPrimaryImageTag": "639fc2442824e63537a5b1b0578626b6",
+  "ImageTags": {
+   "Primary": "8f1a5151d71e4ef24a46cb5da062f0f9"
+  },
+  "BackdropImageTags": [],
+  "ParentLogoImageTag": "16b68b78ee720a512146422e3e2b9615",
+  "ImageBlurHashes": {
+   "Primary": {
+    "8f1a5151d71e4ef24a46cb5da062f0f9": "dOD9t|kE4Trp%$%2VWROE8xti]ad%1RkR%xYR%aLxuW=",
+    "639fc2442824e63537a5b1b0578626b6": "dPC%KktSDNRNyYt7Q+aJ9ixtnLRiWHRle,n~NeM|owof"
+   },
+   "Thumb": {
+    "6d8f8f10c242c926b99e40a151af2d59": "WGHezS?b.6_29G01%#%g%exuofWA9atktQx[xuM|_1-;x]f*Rjja"
+   },
+   "Backdrop": {
+    "a9535b2e9ceb8e15b2495610415cd0df": "WME:C*R:4TV=T0giyF%fQ,nNbwRoW]%2wYngXTNf.8ozRhMwxuxv"
+   }
+  },
+  "ParentThumbItemId": "28ba77109cd4c8f0b1809bd41be1773e",
+  "ParentThumbImageTag": "6d8f8f10c242c926b99e40a151af2d59",
+  "LocationType": "FileSystem",
+  "MediaType": "Unknown"
+ },
+ {
+  "Name": "Bad Girl",
+  "Id": "4f414450401246a3334e032f4ef1ebbb",
+  "PremiereDate": "2025-07-05T22:00:00.0000000Z",
+  "OfficialRating": "TV-14",
+  "CommunityRating": 6.7,
+  "RunTimeTicks": 14400000000,
+  "ProductionYear": 2025,
+  "IsFolder": true,
+  "Type": "Series",
+  "UserData": {
+   "PlayedPercentage": 0,
+   "UnplayedItemCount": 12,
+   "PlaybackPositionTicks": 0,
+   "PlayCount": 0,
+   "IsFavorite": false,
+   "Played": false,
+   "Key": "4f414450-4012-46a3-334e-032f4ef1ebbb",
+   "ItemId": "4f414450401246a3334e032f4ef1ebbb"
+  },
+  "Status": "Ended",
+  "AirTime": "01:00",
+  "AirDays": [
+   "Sunday"
+  ],
+  "ImageTags": {
+   "Primary": "7d2e4a96b986af396b1f6c9a50dae723",
+   "Banner": "9f89a179fa52ebdd5a955ca6da0eaec8",
+   "Thumb": "70d62640449f98db59a2f6ce0a0a7337",
+   "Logo": "30b04ef9e1be5eb3fc5acaba8b98ce09"
+  },
+  "BackdropImageTags": [
+   "77a9e2ba6c8e2703b64c9d7604ec4322"
+  ],
+  "ImageBlurHashes": {
+   "Backdrop": {
+    "77a9e2ba6c8e2703b64c9d7604ec4322": "WRKBOFL}NZNyV@x]~VWBrY%2M{Iow@I=w_xtNIr=-=R5SMNbWD%M"
+   },
+   "Primary": {
+    "7d2e4a96b986af396b1f6c9a50dae723": "dOMQt|~9.7^,-Y$+$|k7jpv:RBaM%zkqNFMxX.OStLk9"
+   },
+   "Banner": {
+    "9f89a179fa52ebdd5a955ca6da0eaec8": "H}O|R*-p?Gn$X9tSx]x]R%~Ws:t7odkBkDo#ozWA"
+   },
+   "Thumb": {
+    "70d62640449f98db59a2f6ce0a0a7337": "WXNU9Zh}Xl?^s,%g?bn5oNxboIbXW9w^xIt9aKR5?vr=nQjdWAfh"
+   },
+   "Logo": {
+    "30b04ef9e1be5eb3fc5acaba8b98ce09": "HbI;9Y;HRGw0NI_tm]PMSsnOXSV?oOW9oyf6bFs."
+   }
+  },
+  "LocationType": "FileSystem",
+  "MediaType": "Unknown",
+  "EndDate": "2025-01-20T23:09:00.0000000Z",
+  "OriginalLanguage": "ja"
+ }
+]

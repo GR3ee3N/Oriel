@@ -2,11 +2,10 @@ import { createResource, createSignal, For, Match, Show, Switch } from 'solid-js
 import { open, openPerson, play } from '../../actions';
 import { dataVersion, loaded } from '../../data';
 import { t } from '../../i18n';
-import { metadata, related } from '../../plex/api';
-import { badges, clean, duration, hubTitle, remaining } from '../../plex/format';
-import type { Metadata } from '../../plex/types';
+import { badges, clean, duration, hubTitle, remaining } from '../../media/format';
+import type { Item } from '../../media/model';
+import { provider } from '../../media/servers';
 import { push } from '../../router';
-import { currentServer } from '../../session';
 import { Backdrop } from '../components/Backdrop';
 import { Button, Message } from '../components/Controls';
 import { Reader } from '../components/Dialog';
@@ -27,7 +26,7 @@ export const DETAIL_LEAD = 588;
  * file and ignoring repeated presses. */
 export function usePlay() {
   const [starting, setStarting] = createSignal(false);
-  const start = (item: Metadata, fromStart = false) => {
+  const start = (item: Item, fromStart = false) => {
     if (starting()) return;
     setStarting(true);
     play(item, fromStart)
@@ -38,16 +37,16 @@ export function usePlay() {
 }
 
 /** Movie details, playback and watched controls, followed by cast, extras and recommendations. */
-export function Movie(props: { ratingKey: string }) {
+export function Movie(props: { id: string }) {
   const [meta, { refetch }] = createResource(
-    () => [props.ratingKey, dataVersion()] as const,
+    () => [props.id, dataVersion()] as const,
     async ([key]) => {
-      const m = await metadata(currentServer(), key);
-      if (!m) throw new Error(`no metadata for ${key}`);
-      return { item: m, logo: await logoReady(m) };
+      const item = await provider().item(key);
+      if (!item) throw new Error(`no metadata for ${key}`);
+      return { item, logo: await logoReady(item) };
     },
   );
-  const [more] = createResource(() => props.ratingKey, (key) => related(currentServer(), key).catch(() => []));
+  const [more] = createResource(() => props.id, (key) => provider().related(key).catch(() => []));
   const { starting, start } = usePlay();
   const [panel, setPanel] = createSignal<'more' | 'description' | null>(null);
   const current = loaded(meta);
@@ -59,22 +58,20 @@ export function Movie(props: { ratingKey: string }) {
     const m = item()!;
     return [
       ...(m.summary ? [{ label: t('action.description'), value: 'description', icon: 'info' as const }] : []),
-      ...(m.Collection ?? []).map((c) => ({ label: t('details.inCollection', { collection: c.tag }), value: `collection:${c.tag}`, icon: 'movie' as const })),
+      ...(m.collections ?? []).map((c) => ({ label: t('details.inCollection', { collection: c.title }), value: `collection:${c.title}`, icon: 'movie' as const })),
     ];
   };
   const onMore = (value: string) => {
     if (value === 'description') return setPanel('description');
     setPanel(null);
     const m = item()!;
-    const tag = m.Collection?.find((c) => `collection:${c.tag}` === value);
-    const filter = tag?.filter ?? (tag?.id !== undefined ? `collection=${tag.id}` : undefined);
-    if (tag && filter && m.librarySectionID !== undefined)
-      push({ screen: 'person', section: String(m.librarySectionID), filter, title: tag.tag });
+    const tag = m.collections?.find((c) => `collection:${c.title}` === value);
+    if (tag?.id && m.library) push({ screen: 'titles', section: m.library, title: tag.title, query: { collection: tag.id } });
   };
 
   return (
     <div class="details" classList={{ scrolled: scroll() > 0 }} style={{ '--detail-scroll': `${scroll()}px` }}>
-      <Backdrop art={item()?.art} colors={item()?.UltraBlurColors} />
+      <Backdrop art={item()?.art.backdrop} colors={item()?.art.colors} />
       <div class="scroll-dim" />
       <DetailHead />
       <Switch fallback={<DetailSkeleton />}>
@@ -90,21 +87,21 @@ export function Movie(props: { ratingKey: string }) {
                 <Info item={m().item} logo={m().logo} meta={metaFor(m().item, false)} badges={badges(m().item)} summary={m().item.tagline ? `${m().item.tagline}  ${m().item.summary ?? ''}` : m().item.summary}>
                   <p class="genres">
                     {[
-                      ...(m().item.Genre ?? []).slice(0, 3).map((g) => g.tag),
-                      ...(m().item.Director ?? []).slice(0, 1).map((d) => t('directedBy', { name: d.tag })),
+                      ...(m().item.genres ?? []).slice(0, 3),
+                      ...(m().item.directors ?? []).slice(0, 1).map((name) => t('directedBy', { name })),
                     ].join(' · ')}
                   </p>
                   <div class="actions">
                     <Button
                       icon="play"
-                      label={starting() ? t('action.starting') : m().item.viewOffset ? t('action.resume') : t('action.play')}
+                      label={starting() ? t('action.starting') : m().item.position ? t('action.resume') : t('action.play')}
                       sub={starting() ? undefined : remaining(m().item) || duration(m().item.duration)}
                       busy={starting()}
                       group="actions"
                       autofocus
                       onSelect={() => start(m().item)}
                     />
-                    <Show when={m().item.viewOffset}>
+                    <Show when={m().item.position}>
                       <Button icon="restart" label={t('action.fromStart')} group="actions" onSelect={() => start(m().item, true)} />
                     </Show>
                     <WatchlistButton item={m().item} />
@@ -119,16 +116,16 @@ export function Movie(props: { ratingKey: string }) {
                 </Info>
               </div>
               <Shelf class="details-shelf" lead={DETAIL_LEAD} onScroll={setScroll}>
-                <Show when={m().item.Role?.length}>
+                <Show when={m().item.cast?.length}>
                   <div>
-                    <People title={t('details.cast')} people={m().item.Role!.slice(0, 20)} group="cast" onSelect={(p) => openPerson(m().item, p)} />
+                    <People title={t('details.cast')} people={m().item.cast!.slice(0, 20)} group="cast" onSelect={(p) => openPerson(m().item, p)} />
                   </div>
                 </Show>
-                <Show when={m().item.Extras?.Metadata?.length}>
+                <Show when={m().item.extras?.length}>
                   <div>
                     <Row
                       title={t('details.extras')}
-                      items={m().item.Extras!.Metadata!}
+                      items={m().item.extras!}
                       shape="wide"
                       group="extras"
                       lines={(x) => [clean(x.title), duration(x.duration)]}
@@ -139,7 +136,7 @@ export function Movie(props: { ratingKey: string }) {
                 <For each={more()?.slice(0, 3)}>
                   {(hub) => (
                     <div>
-                      <Row title={hubTitle(hub)} items={hub.Metadata!} group={`related-${hub.hubIdentifier}`} onSelect={open} />
+                      <Row title={hubTitle(hub)} items={hub.items} group={`related-${hub.id}`} onSelect={open} />
                     </div>
                   )}
                 </For>

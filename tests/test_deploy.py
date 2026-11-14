@@ -41,6 +41,10 @@ else:
         self.assertNotIn("--enable", calls)
         self.assertNotIn("UpdateLocalAddons", calls)
 
+    def test_dormer_installs_under_its_own_id(self):
+        self.assertIn("installed script.oriel.dormer", self.command("tools/deploy.sh", "dormer"))
+        self.assertIn("--enable 'script.oriel.dormer'", (self.root / ".cache/ssh").read_text())
+
     def test_missing_framework_tools_stop_before_build(self):
         self.assertIn("no box tools", self.command("tools/deploy.sh", success=False, TEST_NO_BOX_TOOLS="1"))
         self.assertFalse((self.root / ".cache/commands").exists())
