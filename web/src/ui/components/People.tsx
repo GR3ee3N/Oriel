@@ -8,7 +8,7 @@ const SIZE = 150;
 const GAP = 36;
 
 /** Show cast portraits, names and roles; Select lists their titles in this library. */
-export function People(props: { title: string; people: Person[]; group: string; onSelect: (person: Person) => void }) {
+export function People(props: { title: string; people: Person[]; group: string; initial?: boolean; onSelect: (person: Person) => void }) {
   const [col, setCol] = createSignal(0);
   return (
     <section class="row people">
@@ -21,6 +21,7 @@ export function People(props: { title: string; people: Person[]; group: string; 
               ref={(el) =>
                 focusable(el, {
                   group: props.group,
+                  initial: props.initial,
                   get entry() {
                     return i() === col();
                   },

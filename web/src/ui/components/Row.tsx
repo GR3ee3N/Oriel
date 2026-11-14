@@ -18,6 +18,9 @@ export interface RowProps {
   autofocus?: boolean;
   /** Initial tile id to focus and scroll into view. */
   focusKey?: string;
+  /** Tile id that Up and Down enter the row at until it has had the focus;
+   * the row stays where it is and takes no focus. */
+  enterKey?: string;
   onFocus?: (item: Item) => void;
   onSelect: (item: Item) => void;
   /** Number of caption lines passed to Tile. */
@@ -29,10 +32,18 @@ export interface RowProps {
 /** Scroll the focused tile to the row's first slot; Up and Down enter the row there. */
 export function Row(props: RowProps) {
   const [col, setCol] = createSignal(Math.max(0, props.items?.findIndex((m) => m.id === props.focusKey) ?? 0));
+  const [visited, setVisited] = createSignal(false);
   const shape = () => props.shape ?? 'poster';
   const step = () => SIZES[shape()].w + GAP;
   const placeholders = () => Array.from<undefined>({ length: Math.ceil(window.innerWidth / step()) });
   let section!: HTMLElement;
+  // Read from key handlers through the tile's `entry` getter: a plain function,
+  // since a conditional written in the JSX would compile to a memo there.
+  const isEntry = (i: number, item: Item | undefined) => {
+    const key = props.enterKey;
+    if (!visited() && key && props.items?.some((m) => m.id === key)) return item?.id === key;
+    return i === col();
+  };
 
   let preloadTimer: ReturnType<typeof setTimeout> | undefined;
   onCleanup(() => clearTimeout(preloadTimer));
@@ -40,6 +51,7 @@ export function Row(props: RowProps) {
   let placeholder: number | undefined;
   const focused = (i: number, item: Item | undefined) => {
     setCol(i);
+    setVisited(true);
     placeholder = item ? undefined : i;
     if (!item || !props.items) return;
     props.onFocus?.(item);
@@ -108,7 +120,7 @@ export function Row(props: RowProps) {
               item={item()}
               shape={shape()}
               group={props.group}
-              entry={i === col()}
+              entry={isEntry(i, item())}
               autofocus={props.focusKey ? item()?.id === props.focusKey : props.autofocus && i === 0}
               index={i}
               lines={props.lines}

@@ -1,0 +1,116 @@
+/* Season screen. --season-top is where the details start: under the tabs,
+   or at the top with one season. The strip, buttons & cast follow at fixed
+   distances and move up together when Cast & crew has the focus. */
+.season-tabs { position: absolute; top: 60px; left: 104px; width: 1420px; overflow: hidden; z-index: 4; }
+.season-tabs-inner { display: flex; gap: 8px; transition: transform var(--move) var(--ease); }
+.season-ep { position: absolute; left: var(--detail-x); top: var(--season-top); width: 1000px; }
+.season-logo { height: 64px; display: flex; align-items: flex-end; }
+.season-logo img { display: block; max-height: 64px; max-width: 320px; }
+.season-logo b { font-size: var(--t-heading); font-weight: 750; }
+.season-ep h1 {
+  margin-top: 18px;
+  font-size: var(--t-title);
+  font-weight: 720;
+  line-height: 1.15;
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.season-ep .info-meta { margin-top: 14px; }
+.season-ep .seen { display: inline-flex; align-items: center; gap: 6px; color: var(--accent); font-weight: 600; }
+.season-ep .seen .icon { width: 22px; height: 22px; stroke-width: 3; }
+.season-ep .info-summary { -webkit-line-clamp: 3; }
+.season-ep .info-summary.removed { color: var(--ink-3); }
+.season-ep-skeleton .title { display: block; width: 620px; height: 46px; margin-top: 26px; }
+.season-ep-skeleton .meta { display: block; width: 460px; height: 26px; margin-top: 22px; }
+.season-ep-skeleton .line { display: block; width: 840px; height: 22px; margin-top: 22px; }
+.season-ep-skeleton .line.short { width: 700px; margin-top: 14px; }
+
+.season-body { position: absolute; left: 0; right: 0; top: 0; transition: transform var(--move) var(--ease); will-change: transform; }
+/* Clipped at the page's safe edge, so stills scrolled past leave the
+   page; the padding leaves room for the focus ring & zoom. */
+.season-strip {
+  position: absolute;
+  left: var(--safe-x);
+  right: 0;
+  top: calc(var(--season-top) + 370px - 24px);
+  padding: 24px calc(var(--detail-x) - var(--safe-x));
+  overflow: hidden;
+}
+.stills { display: flex; gap: 32px; transition: transform var(--move) var(--ease); will-change: transform; }
+.stills.skeleton i { flex: none; width: 400px; height: 225px; border-radius: var(--r-card); }
+.still { flex: none; width: 400px; }
+.still .art {
+  position: relative;
+  height: 225px;
+  border-radius: var(--r-card);
+  overflow: hidden;
+  background: var(--surface);
+  outline: var(--ring) solid transparent;
+  outline-offset: var(--ring-gap);
+  transition: transform var(--move) var(--ease);
+  will-change: transform;
+}
+.still .art img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.still.focused .art { outline-color: var(--accent); transform: var(--zoom); }
+/* With focus below the strip, the shown episode keeps a white ring and the others dim. */
+.season:is(.in-actions, .in-cast) .still.current .art { outline-color: rgba(255, 255, 255, 0.55); }
+.season:is(.in-actions, .in-cast) .still:not(.current) .art img { opacity: 0.4; }
+/* Square top-left and bottom-right corners come from the card's clipping. */
+.still .num {
+  position: absolute;
+  left: 0;
+  top: 0;
+  height: 40px;
+  min-width: 52px;
+  padding: 0 12px;
+  border-radius: 0 0 var(--r-card) 0;
+  background: rgba(10, 11, 16, 0.82);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: var(--t-caption);
+  font-weight: 750;
+  color: var(--ink);
+}
+.still .watched {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.72);
+  color: var(--accent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.still .watched .icon { width: 22px; height: 22px; stroke-width: 3; }
+.still .progress { position: absolute; left: 12px; right: 12px; bottom: 12px; height: 6px; border-radius: 3px; background: rgba(0, 0, 0, 0.6); overflow: hidden; }
+.still .progress div { height: 100%; background: var(--accent); transform-origin: left; }
+.season-message { padding-top: 10px; }
+.season-message > .icon { display: none; }
+.season-message h2 { margin-top: 0; }
+.season-strip .episode-empty { height: auto; }
+
+.season-actions { position: absolute; left: var(--detail-x); right: var(--safe-x); top: calc(var(--season-top) + 628px); display: flex; align-items: center; gap: 18px; }
+/* Audio, subtitle & version chips at the row's right end. */
+.season-tracks { margin-left: auto; display: flex; gap: 14px; }
+.button.quiet:not(.focused) { background: rgba(35, 40, 56, 0.7); }
+/* Buttons show their icon until focused, then their label as well. */
+.season-actions .button:not(.round) { min-width: 68px; padding: 0 20px; justify-content: center; }
+.season-actions .button > span { display: none; }
+.season-actions .button.focused:not(.round) { padding: 0 30px 0 24px; }
+.season-actions .button.focused > span { display: inline; animation: label-in var(--normal) var(--ease); }
+@keyframes label-in { from { opacity: 0; } }
+/* The cast row's top shows under the buttons until it has the focus. */
+.season-cast { position: absolute; left: var(--detail-x); right: 0; top: calc(var(--season-top) + 766px); }
+.season-cast .row h2 { color: var(--ink-2); }
+.season.scrolled .season-cast .row h2 { color: var(--ink); }
+
+/* With focus on Cast & crew, the details & tabs give way to the rows. */
+.season-tabs, .season-ep { transition: opacity var(--move) var(--ease); }
+.season.scrolled .season-tabs, .season.scrolled .season-ep { opacity: 0; }
+.season.scrolled .scroll-dim { opacity: 1; }

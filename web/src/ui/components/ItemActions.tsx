@@ -19,7 +19,7 @@ import { Panel } from './Panel';
 /** Toggle watched state. The target is captured on Select, so moving focus
  * while the server answers can't change which item is written. A whole
  * show asks first. */
-export function WatchedButton(props: { item: Item; group?: string }) {
+export function WatchedButton(props: { item: Item; group?: string; class?: string }) {
   const [busy, setBusy] = createSignal(false);
   const [asking, setAsking] = createSignal(false);
   const watched = () => isWatched(props.item);
@@ -45,6 +45,7 @@ export function WatchedButton(props: { item: Item; group?: string }) {
         label={watched() ? t('action.markUnwatched') : t('action.markWatched')}
         busy={busy()}
         group={props.group ?? 'actions'}
+        class={props.class}
         onSelect={select}
       />
       <Show when={asking()}>
@@ -68,7 +69,7 @@ export function WatchedButton(props: { item: Item; group?: string }) {
 }
 
 /** Add to or remove from the profile's Watchlist. */
-export function WatchlistButton(props: { item: Item; group?: string }) {
+export function WatchlistButton(props: { item: Item; group?: string; class?: string }) {
   const list = provider().watchlist;
   if (!list) return null;
   const [on, { mutate }] = createResource(
@@ -98,6 +99,7 @@ export function WatchlistButton(props: { item: Item; group?: string }) {
         on={on()}
         busy={busy()}
         group={props.group ?? 'actions'}
+        class={props.class}
         onSelect={toggle}
       />
     </Show>
@@ -109,35 +111,44 @@ export function WatchlistButton(props: { item: Item; group?: string }) {
 export const trackHint = () =>
   provider().features.savedTracks ? t('details.trackHint', { server: session.serverName ?? '' }) : t('details.trackHintHere');
 
-/** Audio and subtitle chips for the file Play starts. A choice is saved
- * where `trackHint` says, and used by the next Play. Hidden when there's nothing to choose. The tracks come from
- * the item's full details, as the player reads them. */
-export function TrackChips(props: { item: Item; group?: string }) {
+export type TrackPanel = 'audio' | 'subtitles' | 'version';
+
+/** Version, audio & subtitle choice for the file Play starts. A choice is
+ * saved where `trackHint` says, and used by the next Play. The tracks come
+ * from the item's full details, as the player reads them. `Panels` renders
+ * the list `open` asked for. */
+export function useTracks(item: () => Item | undefined) {
   const [details] = createResource(
-    () => [props.item.id, dataVersion()] as const,
+    () => {
+      const i = item();
+      return i ? ([i.id, dataVersion()] as const) : null;
+    },
     ([id]) => provider().item(id),
   );
-  const full = loaded(details);
+  const got = loaded(details);
+  const full = () => {
+    const d = got();
+    return d && d.id === item()?.id ? d : undefined;
+  };
   const versions = () => full()?.versions ?? [];
-  const version = () => Math.min(chosenVersion(props.item.id), Math.max(0, versions().length - 1));
+  const version = () => Math.min(chosenVersion(item()?.id ?? ''), Math.max(0, versions().length - 1));
   const file = () => versions()[version()];
   const audio = () => (file() ? audioTracks(file()!) : []);
   const subtitles = () => (file() ? subtitleTracks(file()!) : []);
-  const [panel, setPanel] = createSignal<'audio' | 'subtitles' | 'version' | null>(null);
+  const [panel, setPanel] = createSignal<TrackPanel | null>(null);
   const current = (tracks: Track[]) => tracks.find((x) => x.selected);
   const save = (kind: 'audio' | 'subtitles', id: number) => {
-    const item = full();
+    const f = full();
     setPanel(null);
-    if (!item || !file()) return;
+    if (!f || !file()) return;
     provider()
-      .playback.saveTrack(item, version(), kind === 'audio' ? 'audio' : 'subtitle', id)
+      .playback.saveTrack(f, version(), kind === 'audio' ? 'audio' : 'subtitle', id)
       .then(refresh)
       .catch((e) => {
         console.error(`tracks: ${e}`);
-        notice(t('details.writeFailed', { title: clean(props.item.title) }));
+        notice(t('details.writeFailed', { title: clean(f.title) }));
       });
   };
-  const describe = (x: Track) => x.detail || undefined;
   // Versions that share a label, such as two 4K Dolby Vision files, add their bitrate.
   const versionName = (i: number) => {
     const { label } = versionLabel(versions()[i]);
@@ -147,11 +158,8 @@ export function TrackChips(props: { item: Item; group?: string }) {
   };
   // Language and format, e.g. "German · DTS-HD MA 5.1".
   const audioLabel = (x: Track) => [x.label, x.detail.split(' · ')[0]].filter(Boolean).join(' · ');
-  return (
+  const Panels = () => (
     <>
-      <Show when={versions().length > 1}>
-        <Chip icon="version" label={t('details.version')} value={versionName(version())} group={props.group ?? 'tracks'} onSelect={() => setPanel('version')} />
-      </Show>
       <Show when={panel() === 'version'}>
         <Panel
           title={t('details.version')}
@@ -159,16 +167,11 @@ export function TrackChips(props: { item: Item; group?: string }) {
           selected={version()}
           onChoose={(i) => {
             setPanel(null);
-            chooseVersion(props.item.id, i);
+            const id = item()?.id;
+            if (id) chooseVersion(id, i);
           }}
           onClose={() => setPanel(null)}
         />
-      </Show>
-      <Show when={audio().length > 1}>
-        <Chip icon="audio" value={audioLabel(current(audio()) ?? audio()[0])} group={props.group ?? 'tracks'} onSelect={() => setPanel('audio')} />
-      </Show>
-      <Show when={subtitles().length > 0}>
-        <Chip icon="subtitles" label={t('details.subtitles')} value={current(subtitles())?.label ?? t('details.subtitlesOff')} group={props.group ?? 'tracks'} onSelect={() => setPanel('subtitles')} />
       </Show>
       <Show when={panel() === 'audio' || panel() === 'subtitles' ? (panel() as 'audio' | 'subtitles') : undefined}>
         {(kind) => {
@@ -177,7 +180,7 @@ export function TrackChips(props: { item: Item; group?: string }) {
             <Panel
               title={kind() === 'audio' ? t('details.audio') : t('details.subtitles')}
               hint={trackHint()}
-              options={tracks.map((x) => ({ label: x.label, value: x.id, detail: describe(x) }))}
+              options={tracks.map((x) => ({ label: x.label, value: x.id, detail: x.detail || undefined }))}
               selected={current(tracks)?.id ?? 0}
               onChoose={(id) => save(kind(), id)}
               onClose={() => setPanel(null)}
@@ -185,6 +188,32 @@ export function TrackChips(props: { item: Item; group?: string }) {
           );
         }}
       </Show>
+    </>
+  );
+  return {
+    /** Labels of the current choices; undefined when there's nothing to choose. */
+    versionValue: () => (versions().length > 1 ? versionName(version()) : undefined),
+    audioValue: () => (audio().length > 1 ? audioLabel(current(audio()) ?? audio()[0]) : undefined),
+    subtitlesValue: () => (subtitles().length > 0 ? (current(subtitles())?.label ?? t('details.subtitlesOff')) : undefined),
+    open: (which: TrackPanel) => setPanel(which),
+    Panels,
+  };
+}
+
+/** Version, audio and subtitle chips; hidden when there's nothing to choose. */
+export function TrackChips(props: { item: Item; group?: string }) {
+  const tracks = useTracks(() => props.item);
+  const group = () => props.group ?? 'tracks';
+  return (
+    <>
+      <Show when={tracks.versionValue()}>
+        {(v) => <Chip icon="version" label={t('details.version')} value={v()} group={group()} onSelect={() => tracks.open('version')} />}
+      </Show>
+      <Show when={tracks.audioValue()}>{(v) => <Chip icon="audio" value={v()} group={group()} onSelect={() => tracks.open('audio')} />}</Show>
+      <Show when={tracks.subtitlesValue()}>
+        {(v) => <Chip icon="subtitles" label={t('details.subtitles')} value={v()} group={group()} onSelect={() => tracks.open('subtitles')} />}
+      </Show>
+      <tracks.Panels />
     </>
   );
 }

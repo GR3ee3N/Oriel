@@ -50,6 +50,9 @@ export interface Playback {
 
 const [store, setStore] = createStore<{ current?: Playback; nextCancelled: boolean; queue?: Queue }>({ nextCancelled: false });
 export const playback = () => store.current;
+// The item played last, kept after it stops, so a page can show where viewing got to.
+const [lastPlayed, setLastPlayed] = createSignal<Item>();
+export { lastPlayed };
 /** The play queue the playing item belongs to; its loaded window only. */
 export const playQueue = () => store.queue;
 /** The entry after the playing one, which Next, Up Next & the end of the item start. */
@@ -235,6 +238,7 @@ async function prepare(
   previews?.then((b) => b?.dispose());
   previews = undefined;
   const sameQueue = !!queue && queue === store.queue;
+  setLastPlayed(item);
   setStore({
     nextCancelled: false,
     queue,

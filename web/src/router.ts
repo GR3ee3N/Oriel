@@ -12,7 +12,9 @@ export type Route =
   | { screen: 'playlists' }
   | { screen: 'settings' }
   | { screen: 'movie'; id: string }
-  | { screen: 'show'; id: string; season?: string; episode?: string }
+  | { screen: 'show'; id: string }
+  // A show's season with its episodes, open on `episode` or the season's next one.
+  | { screen: 'season'; show: string; season: string; episode?: string }
   | { screen: 'collection'; id: string; title: string }
   | { screen: 'playlist'; id: string; title: string }
   // A library's titles featuring one person or in one collection; the whole

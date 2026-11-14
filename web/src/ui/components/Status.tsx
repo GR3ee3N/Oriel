@@ -34,14 +34,14 @@ export function Status() {
 }
 
 /** Home button beside the clock at the top right of detail pages. Down returns to the
- * page's main button, or its first item on collection and cast pages,
- * rather than the nearest thing below the corner. */
+ * page's main button, its first item on collection and cast pages, or a
+ * season screen's current episode, rather than the nearest thing below the corner. */
 export function DetailHead() {
   let box!: HTMLDivElement;
   const down = (d: Direction) => {
     if (d !== 'down') return false;
     const page = box.parentElement;
-    const target = page?.querySelector<HTMLElement>('.details-info .actions .button, .detail-actions .button, .grid .tile');
+    const target = page?.querySelector<HTMLElement>('.details-info .actions .button, .detail-actions .button, .grid .tile, .season-strip .still.current');
     if (target) focusOn(target);
     return true;
   };

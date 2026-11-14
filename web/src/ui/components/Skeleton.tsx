@@ -21,18 +21,7 @@ export function SkeletonCards(props: { count: number; width: number; height: num
   );
 }
 
-/** A show page's season tabs. */
-export function SeasonsSkeleton() {
-  return (
-    <div class="seasons skeleton">
-      <i />
-      <i />
-      <i />
-    </div>
-  );
-}
-
-/** A detail page's info and buttons; a show's adds season tabs and episodes. */
+/** A detail page's info and buttons; a show's adds season posters. */
 export function DetailSkeleton(props: { show?: boolean }) {
   return (
     <>
@@ -53,8 +42,7 @@ export function DetailSkeleton(props: { show?: boolean }) {
       </div>
       <Show when={props.show}>
         <div class="skeleton episodes-skeleton">
-          <SeasonsSkeleton />
-          <SkeletonCards count={5} width={400} height={225} />
+          <SkeletonCards count={3} width={220} height={330} />
         </div>
       </Show>
     </>

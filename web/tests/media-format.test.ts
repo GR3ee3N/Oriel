@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { t } from '../src/i18n';
 import type { Item, Version } from '../src/media/model';
-import { ageRating, badges, clean, duration, hubTitle, isWatched, tileSubtitle, versionLabel } from '../src/media/format';
+import { ageRating, airDate, badges, clean, duration, hubTitle, isWatched, seasonName, tileSubtitle, versionLabel } from '../src/media/format';
 
 const item = (m: Partial<Item>): Item => ({ id: '1', kind: 'movie', title: 'A', art: {}, ...m });
 
@@ -97,5 +97,24 @@ describe('isWatched', () => {
   it('marks a played movie, but not a played playlist', () => {
     expect(isWatched(item({ plays: 1 }))).toBe(true);
     expect(isWatched(item({ kind: 'playlist', plays: 1 }))).toBe(false);
+  });
+});
+
+describe('airDate', () => {
+  it('writes the day, short month and year', () => {
+    expect(airDate('2021-11-06')).toBe('6 Nov 2021');
+    expect(airDate('2024-12-31T00:00:00Z')).toBe('31 Dec 2024');
+  });
+  it('leaves out a missing or malformed date', () => {
+    expect(airDate(undefined)).toBe('');
+    expect(airDate('2021-13-01')).toBe('');
+    expect(airDate('soon')).toBe('');
+  });
+});
+
+describe('seasonName', () => {
+  it('calls season 0 Specials', () => {
+    expect(seasonName(item({ kind: 'season', number: 0, title: 'Season 0' }))).toBe('Specials');
+    expect(seasonName(item({ kind: 'season', number: 2, title: 'Season 2' }))).toBe('Season 2');
   });
 });

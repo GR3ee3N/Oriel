@@ -118,6 +118,15 @@ export function focusOn(el: HTMLElement): void {
   focus(el);
 }
 
+/** Focus `el` now if its scope is active, else make it the element its
+ * scope returns to, such as a page under the player. */
+export function focusLater(el: HTMLElement): void {
+  const e = entries.get(el);
+  if (!e) return;
+  if (e.scope === activeScope()) return focusOn(el);
+  last.set(e.scope, el);
+}
+
 function entryOf(group: string, scope: string): HTMLElement | undefined {
   for (const [el, e] of entries) if (e.entry && e.group === group && e.scope === scope && el.isConnected) return el;
 }

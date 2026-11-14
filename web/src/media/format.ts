@@ -48,6 +48,18 @@ export function ageRating(rating: Item['ageRating']): string {
   return rating.country === 'de' ? `FSK ${rating.value}` : rating.value;
 }
 
+/** A YYYY-MM-DD date as "6 Nov 2021"; blank when absent or malformed. */
+export function airDate(date: string | undefined): string {
+  const m = date?.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  const month = m && t('date.months').split(' ')[Number(m[2]) - 1];
+  return m && month ? t('date.day', { day: Number(m[3]), month, year: m[1] }) : '';
+}
+
+/** A season's name: Specials for season 0, else the server's title. */
+export function seasonName(item: Item): string {
+  return item.number === 0 ? t('details.specials') : clean(item.title);
+}
+
 /** Local time in 24-hour HH:MM format. */
 export function hhmm(d: Date): string {
   return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;

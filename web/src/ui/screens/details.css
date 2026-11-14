@@ -17,10 +17,9 @@
 .scroll-dim { position: absolute; inset: 0; background: rgba(11, 13, 18, 0.88); opacity: 0; transition: opacity var(--move) var(--ease); }
 .details.scrolled .scroll-dim { opacity: 1; }
 
-/* Show page: season tabs above the episode row. */
+/* Show page: seasons, or one season's episodes, under the info. */
 .show-info .info-summary { -webkit-line-clamp: 2; }
 .shelf.show-shelf { top: 160px; left: 96px; --shelf-left: 24px; }
-.seasons { display: flex; gap: 8px; margin: 0 0 22px -22px; }
 .episode-empty { height: 300px; padding-top: 20px; font-size: var(--t-meta); color: var(--ink-2); }
 
 /* Loading blocks at the info's and the show page's line positions. */
@@ -34,5 +33,6 @@
 .detail-skeleton.show-info .buttons { margin-top: 41px; }
 .detail-skeleton .buttons i { width: 68px; height: 68px; border-radius: 34px; }
 .detail-skeleton .buttons .play { width: 280px; }
-.episodes-skeleton { position: absolute; left: 120px; top: 588px; }
-.seasons.skeleton i { width: 140px; height: 52px; border-radius: 26px; }
+.episodes-skeleton { position: absolute; left: 120px; top: 622px; }
+/* The next row starts below the screen while the first row has the focus. */
+.show-shelf .shelf-inner > :first-child { min-height: 520px; }

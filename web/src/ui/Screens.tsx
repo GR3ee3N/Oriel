@@ -6,6 +6,7 @@ import { Home } from './screens/Home';
 import { Library } from './screens/Library';
 import { Movie } from './screens/Movie';
 import { Search } from './screens/Search';
+import { Season } from './screens/Season';
 import { Settings } from './screens/Settings';
 import { Show } from './screens/Show';
 import { Titles } from './screens/Titles';
@@ -55,8 +56,9 @@ function Screen(props: { entry: Entry }) {
       </Match>
       <Match when={r.screen === 'movie' && r}>{(m) => <Movie id={m().id} />}</Match>
       <Match when={r.screen === 'show' && r}>
-        {(s) => <Show id={s().id} season={s().season} episode={s().episode} />}
+        {(s) => <Show id={s().id} />}
       </Match>
+      <Match when={r.screen === 'season' && r}>{(s) => <Season show={s().show} season={s().season} episode={s().episode} />}</Match>
       <Match when={r.screen === 'collection' && r}>
         {(c) => (
           <Titles

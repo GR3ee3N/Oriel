@@ -14,10 +14,12 @@ export function open(item: Item): void {
       return push({ screen: 'movie', id: item.id });
     case 'show':
       return push({ screen: 'show', id: item.id });
+    // Seasons & episodes open on their season; Back returns to where they were.
     case 'season':
-      return push({ screen: 'show', id: item.show!.id, season: item.id });
+      return push({ screen: 'season', show: item.show!.id, season: item.id });
     case 'episode':
-      return push({ screen: 'show', id: item.show!.id, season: item.season?.id, episode: item.id });
+      if (!item.season) return push({ screen: 'show', id: item.show!.id });
+      return push({ screen: 'season', show: item.show!.id, season: item.season.id, episode: item.id });
     case 'collection':
       return push({ screen: 'collection', id: item.id, title: clean(item.title) });
     case 'playlist':
@@ -31,6 +33,12 @@ export function open(item: Item): void {
  * season that isn't Specials. */
 export function firstSeason(seasons: Item[] | undefined, nextSeason?: string): string | undefined {
   return nextSeason ?? (seasons?.find((s) => s.number !== 0) ?? seasons?.[0])?.id;
+}
+
+/** The episode a season opens on: part-watched, else the first unwatched,
+ * else the first. */
+export function nextEpisode(episodes: Item[] | undefined): Item | undefined {
+  return episodes?.find((e) => e.position) ?? episodes?.find((e) => !e.plays) ?? episodes?.[0];
 }
 
 let prefetchTimer: ReturnType<typeof setTimeout> | undefined;
@@ -87,8 +95,7 @@ export async function play(item: Item, fromStart = false): Promise<void> {
     return;
   }
   if (item.kind === 'season') {
-    const episodes = await provider().children(item.id);
-    const next = episodes.find((e) => !e.plays) ?? episodes[0];
+    const next = nextEpisode(await provider().children(item.id));
     if (next) return play(next, fromStart);
     return;
   }
