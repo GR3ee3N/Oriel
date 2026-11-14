@@ -8,6 +8,7 @@ import { createSignal } from 'solid-js';
 import { t } from '../i18n';
 import { hidesUnwatched } from '../prefs';
 import { session } from '../session';
+import { clean } from './format';
 import type { Item } from './model';
 
 type Episode = Pick<Item, 'id' | 'kind' | 'plays'>;
@@ -23,6 +24,12 @@ export function hidden(item: Episode | undefined): boolean {
 /** Episode title as shown. */
 export function episodeTitle(item: Episode & Pick<Item, 'title'>): string {
   return hidden(item) ? t('episode.spoilers') : item.title;
+}
+
+/** An episode's heading on its own screen: its title, or its number while
+ * its title is removed. */
+export function episodeHeading(item: Episode & Pick<Item, 'title' | 'number'>): string {
+  return hidden(item) ? t('episode.number', { n: item.number ?? '' }) : clean(item.title);
 }
 
 /** An episode's summary or chapter name as shown; absent text stays absent. */

@@ -1,9 +1,10 @@
-import { createSignal, For, type JSX, Show } from 'solid-js';
+import { For, type JSX, Show } from 'solid-js';
 import { t } from '../../i18n';
 import { ageRating, clean, duration, episodeCode, remaining, seasonCount } from '../../media/format';
 import type { Item } from '../../media/model';
 import { provider } from '../../media/servers';
 import { preload } from '../preload';
+import { createImage } from './image';
 import { episodeTitle } from '../../media/spoilers';
 import './info.css';
 
@@ -100,15 +101,15 @@ export interface InfoProps {
 /** Shared logo/title, metadata, badges and summary for Home and detail screens. */
 export function Info(props: InfoProps) {
   const size = () => props.size ?? 'page';
-  const [failedLogo, setFailedLogo] = createSignal<string>();
+  const logo = createImage(() => props.logo);
   return (
     <div class={`info info-${size()}`}>
       <div class="info-head">
         <Show
-          when={props.logo !== failedLogo() ? props.logo : undefined}
+          when={logo.src()}
           fallback={<Title text={props.title ?? clean(props.item.title)} />}
         >
-          {(src) => <img class="info-logo" src={src()} alt="" onError={() => setFailedLogo(src())} />}
+          {(src) => <img class="info-logo" src={src()} alt="" onError={() => logo.fail(src())} />}
         </Show>
       </div>
       <Show when={props.meta || props.badges?.length}>

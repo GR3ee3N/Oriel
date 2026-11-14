@@ -1,4 +1,4 @@
-import { createSignal, Show } from 'solid-js';
+import { Show } from 'solid-js';
 import { play, prefetch } from '../../actions';
 import type { Item } from '../../media/model';
 import { provider } from '../../media/servers';
@@ -6,6 +6,7 @@ import { isWatched, progress, tileSubtitle, tileTitle, unwatched } from '../../m
 import { type Direction, focusable } from '../../nav';
 import { episodeTitle, hidden } from '../../media/spoilers';
 import { Icon } from './Icon';
+import { createImage } from './image';
 import './tile.css';
 
 export type TileShape = 'poster' | 'wide';
@@ -55,12 +56,7 @@ export interface TileProps {
 export function Tile(props: TileProps) {
   const shape = () => props.shape ?? 'poster';
   const size = () => SIZES[shape()];
-  // The URL that failed, so a placeholder or a reused tile's new item still loads.
-  const [failed, setFailed] = createSignal<string>();
-  const src = () => {
-    const url = props.item && tileImageUrl(props.item, shape());
-    return url !== failed() ? url : undefined;
-  };
+  const image = createImage(() => props.item && tileImageUrl(props.item, shape()));
   const lines = (item: Item): [string, string] =>
     props.lines?.(item) ?? [tileTitle(item), tileSubtitle(hidden(item) ? { ...item, title: episodeTitle(item) } : item, shape() === 'wide')];
   return (
@@ -90,8 +86,8 @@ export function Tile(props: TileProps) {
         <Show when={props.item}>
           {(item) => (
             <>
-              <Show when={src()} keyed fallback={<div class="noimg">{tileTitle(item())}</div>}>
-                {(s) => <img src={s} alt="" decoding="async" onError={() => setFailed(s)} />}
+              <Show when={image.src()} keyed fallback={<div class="noimg">{tileTitle(item())}</div>}>
+                {(s) => <img src={s} alt="" decoding="async" onError={() => image.fail(s)} />}
               </Show>
               <Show when={progress(item()) > 0}>
                 <div class="progress">

@@ -29,10 +29,11 @@ export function open(item: Item): void {
   }
 }
 
-/** The season a show page opens on: the next episode's, else the first
- * season that isn't Specials. */
-export function firstSeason(seasons: Item[] | undefined, nextSeason?: string): string | undefined {
-  return nextSeason ?? (seasons?.find((s) => s.number !== 0) ?? seasons?.[0])?.id;
+/** The season a show page opens on: its next episode's, else the first
+ * season that isn't Specials. Specials only when nothing else is there. */
+export function firstSeason(seasons: Item[] | undefined, next?: Item): string | undefined {
+  const id = next?.season?.id;
+  return (seasons?.find((s) => s.id === id && s.number !== 0) ?? seasons?.find((s) => s.number !== 0) ?? seasons?.[0])?.id;
 }
 
 /** The episode a season opens on: part-watched, else the first unwatched,
@@ -59,7 +60,7 @@ export function prefetch(item: Item): void {
     if (season) return void quiet(server.children(season));
     void details.then(async (s) => {
       const next = s?.next;
-      const key = firstSeason(next ? undefined : await seasons, next?.season?.id);
+      const key = next ? next.season?.id : firstSeason(await seasons);
       if (key) await quiet(server.children(key));
     });
   }, 300);
@@ -82,6 +83,20 @@ export const chosenVersion = (id: string): number => versions()[versionKey(id)] 
 
 export function chooseVersion(id: string, index: number): void {
   setVersions((v) => ({ ...v, [versionKey(id)]: index }));
+}
+
+/** Start playback, showing "Starting…" on the button until Kodi has the
+ * file and ignoring repeated presses. */
+export function usePlay() {
+  const [starting, setStarting] = createSignal(false);
+  const start = (item: Item, fromStart = false) => {
+    if (starting()) return;
+    setStarting(true);
+    play(item, fromStart)
+      .catch((e) => console.error(`play: ${e}`))
+      .finally(() => setStarting(false));
+  };
+  return { starting, start };
 }
 
 /** Resume movies and episodes unless `fromStart` is set; an episode plays

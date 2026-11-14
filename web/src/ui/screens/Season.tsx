@@ -1,10 +1,10 @@
 import { createEffect, createResource, createSignal, For, Index, Match, on, onCleanup, Show as When, Switch } from 'solid-js';
-import { nextEpisode, openPerson } from '../../actions';
+import { nextEpisode, openPerson, usePlay } from '../../actions';
 import { dataVersion, loaded } from '../../data';
 import { t } from '../../i18n';
 import { airDate, badges, clean, duration, episodeCode, isWatched, progress, remaining, seasonName } from '../../media/format';
 import type { Item } from '../../media/model';
-import { episodeText, hidden, setRevealed } from '../../media/spoilers';
+import { episodeHeading, episodeText, hidden, setRevealed } from '../../media/spoilers';
 import { provider } from '../../media/servers';
 import { type Direction, focusable, focused, focusGroup, focusLater, focusOn } from '../../nav';
 import { lastPlayed } from '../../player/playback';
@@ -12,6 +12,7 @@ import { Backdrop } from '../components/Backdrop';
 import { Button, Message, Tab } from '../components/Controls';
 import { Reader } from '../components/Dialog';
 import { Icon } from '../components/Icon';
+import { createImage } from '../components/image';
 import { logoFor, Meta } from '../components/Info';
 import { TrackChips, WatchedButton, WatchlistButton } from '../components/ItemActions';
 import { Panel } from '../components/Panel';
@@ -19,7 +20,7 @@ import { People } from '../components/People';
 import { DetailHead } from '../components/Status';
 import { tileImageUrl } from '../components/Tile';
 import { pop, push, stack } from '../../router';
-import { usePlay } from './Movie';
+import { createItem } from './item';
 import './details.css';
 import './season.css';
 
@@ -51,11 +52,7 @@ function Still(props: {
   onSelect: () => void;
   onArrow: (d: Direction) => boolean;
 }) {
-  const [failed, setFailed] = createSignal<string>();
-  const src = () => {
-    const url = tileImageUrl(props.item, 'wide');
-    return url !== failed() ? url : undefined;
-  };
+  const image = createImage(() => tileImageUrl(props.item, 'wide'));
   return (
     <div
       class="still"
@@ -75,8 +72,8 @@ function Still(props: {
       }
     >
       <div class="art">
-        <When when={src()} keyed>
-          {(s) => <img src={s} alt="" decoding="async" onError={() => setFailed(s)} />}
+        <When when={image.src()} keyed>
+          {(s) => <img src={s} alt="" decoding="async" onError={() => image.fail(s)} />}
         </When>
         <When when={props.item.number !== undefined}>
           <div class="num">{props.item.number}</div>
@@ -101,15 +98,9 @@ function Still(props: {
  * show, with the show's cast below. Opens on `episode`, else the season's part-watched,
  * first unwatched or first episode. */
 export function Season(props: { show: string; season: string; episode?: string }) {
-  const [show, { refetch: refetchShow }] = createResource(
-    () => [props.show, dataVersion()] as const,
-    async ([key]) => {
-      const item = await provider().item(key);
-      if (!item) throw new Error(`no metadata for ${key}`);
-      return item;
-    },
-  );
-  const showItem = loaded(show);
+  const [show, { refetch: refetchShow }] = createItem(() => props.show);
+  const loadedShow = loaded(show);
+  const showItem = () => loadedShow()?.item;
   const [seasons] = createResource(
     () => [props.show, dataVersion()] as const,
     ([key]) => provider().children(key),
@@ -279,8 +270,7 @@ export function Season(props: { show: string; season: string; episode?: string }
   const top = () => (tabbed() ? 150 : 96);
   const scrolled = () => zone() === 'cast';
   const shift = () => (scrolled() ? top() + STRIP - SCROLLED_TOP : 0);
-  const logo = () => logoFor(showItem());
-  const [failedLogo, setFailedLogo] = createSignal<string>();
+  const logo = createImage(() => logoFor(showItem()));
 
   return (
     <div
@@ -321,8 +311,8 @@ export function Season(props: { show: string; season: string; episode?: string }
         </When>
         <div class="season-ep">
           <div class="season-logo">
-            <When when={logo() !== failedLogo() ? logo() : undefined} fallback={<b>{clean(showItem()?.title)}</b>}>
-              {(src) => <img src={src()} alt="" onError={() => setFailedLogo(src())} />}
+            <When when={logo.src()} fallback={<b>{clean(showItem()?.title)}</b>}>
+              {(src) => <img src={src()} alt="" onError={() => logo.fail(src())} />}
             </When>
           </div>
           <When
@@ -338,7 +328,7 @@ export function Season(props: { show: string; season: string; episode?: string }
           >
             {(e) => (
               <>
-                <h1>{hidden(e()) ? t('episode.number', { n: e().number ?? '' }) : clean(e().title)}</h1>
+                <h1>{episodeHeading(e())}</h1>
                 <div class="info-meta">
                   <Meta
                     parts={[
@@ -448,7 +438,7 @@ export function Season(props: { show: string; season: string; episode?: string }
           </When>
         </div>
         <When when={panel() === 'more' && shown()}>
-          {(e) => <Panel title={`${episodeCode(e())} · ${hidden(e()) ? t('episode.number', { n: e().number ?? '' }) : clean(e().title)}`} options={moreOptions()} focus={moreFocus()} onChoose={onMore} onClose={() => setPanel(null)} />}
+          {(e) => <Panel title={`${episodeCode(e())} · ${episodeHeading(e())}`} options={moreOptions()} focus={moreFocus()} onChoose={onMore} onClose={() => setPanel(null)} />}
         </When>
         <When when={panel() === 'description' && shown()}>
           {(e) => <Reader title={clean(e().title)} text={e().summary ?? ''} onClose={() => setPanel('more')} />}

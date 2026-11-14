@@ -1,5 +1,5 @@
 import { createEffect, createResource, createSignal, For, Match, on, Show as When, Switch } from 'solid-js';
-import { firstSeason, nextEpisode, open, openPerson } from '../../actions';
+import { firstSeason, nextEpisode, open, openPerson, usePlay } from '../../actions';
 import { dataVersion, loaded } from '../../data';
 import { t } from '../../i18n';
 import { badges, clean, duration, hubTitle, remaining, seasonName, shortCode } from '../../media/format';
@@ -11,7 +11,7 @@ import { push, top } from '../../router';
 import { Backdrop } from '../components/Backdrop';
 import { Button, Message } from '../components/Controls';
 import { Reader } from '../components/Dialog';
-import { Info, logoReady, metaFor } from '../components/Info';
+import { Info, metaFor } from '../components/Info';
 import { WatchedButton, WatchlistButton } from '../components/ItemActions';
 import { Panel } from '../components/Panel';
 import { People } from '../components/People';
@@ -19,19 +19,13 @@ import { Row } from '../components/Row';
 import { Shelf } from '../components/Shelf';
 import { DetailSkeleton } from '../components/Skeleton';
 import { DetailHead } from '../components/Status';
-import { usePlay } from './Movie';
 import { lastSeason } from './Season';
+import { createItem } from './item';
 import './details.css';
 
 // The first row's heading sits at y=566 under the info and stays there while
 // the row has the focus; rows below scroll up to y=182.
 const SHOW_LEAD = 384;
-
-/** Season of a show's next episode, never Specials while there are other seasons. */
-function seasonOf(seasons: Item[] | undefined, next: Item | undefined): string | undefined {
-  const id = next?.season?.id;
-  return (seasons?.find((s) => s.id === id && s.number !== 0) ?? seasons?.find((s) => s.number !== 0) ?? seasons?.[0])?.id;
-}
 
 /** "2 of 9 watched", or "9 episodes" before any is watched. */
 function seasonCaption(season: Item): string {
@@ -45,14 +39,7 @@ function seasonCaption(season: Item): string {
  * first season's part-watched or first unwatched one, else its first. A
  * show with one season lists its episodes in place of a single poster. */
 export function Show(props: { id: string }) {
-  const [show, { refetch: refetchShow }] = createResource(
-    () => [props.id, dataVersion()] as const,
-    async ([key]) => {
-      const item = await provider().item(key);
-      if (!item) throw new Error(`no metadata for ${key}`);
-      return { item, logo: await logoReady(item) };
-    },
-  );
+  const [show, { refetch: refetchShow }] = createItem(() => props.id, { logo: true });
   const current = loaded(show);
   const [seasons, { refetch: refetchSeasons }] = createResource(
     () => [props.id, dataVersion()] as const,
@@ -185,7 +172,7 @@ export function Show(props: { id: string }) {
                         items={seasonList()}
                         group="seasons"
                         autofocus={false}
-                        enterKey={seasonOf(seasonList(), next())}
+                        enterKey={firstSeason(seasonList(), next())}
                         lines={(se) => [seasonName(se), seasonCaption(se)]}
                         onSelect={(se) => openSeason(se)}
                       />
