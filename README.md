@@ -13,9 +13,6 @@ Two Kodi add-ons build from this repository: **Oriel** for Plex and
 **Dormer** for Jellyfin 10.10 or later. They share one interface and
 player. Each signs in on its own, so a box can have both installed.
 
-Dormer has no Watchlist, and its libraries have no Collections tab or HDR
-filter. Jellyfin's box sets span the whole server; Search finds them.
-
 ## Status
 
 > [!WARNING]
