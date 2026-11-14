@@ -30,7 +30,8 @@ vi.mock('../src/plex/bif', () => ({ Bif: {} }));
 vi.mock('../src/plex/playqueue', () => ({ createQueue: vi.fn(async () => Promise.reject(new Error('no queue'))), loadQueue: vi.fn() }));
 
 const bridge = await import('../src/bridge');
-const { dismiss, introIn, playback, prompt, startPlayback } = await import('../src/player/playback');
+const { playback, startPlayback } = await import('../src/player/playback');
+const { dismiss, introIn, prompt } = await import('../src/player/prompts');
 const send = vi.mocked(bridge.send);
 
 /** Episode fixture with an intro marker from 10 s to 70 s. */

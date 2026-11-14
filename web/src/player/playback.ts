@@ -18,6 +18,7 @@ import { type ChapterMark, chaptersFor } from './chapters';
 import { after, merge } from './queue';
 import { HARDWARE_CODECS } from '../media/codecs';
 import { ORIGINAL, QUALITIES, quality } from './quality';
+import { hidePrompt, resetPrompts, startPrompts } from './prompts';
 import { audioTracks, kodiSubtitle, subtitleTracks, SUBTITLES_OFF, type Track } from './tracks';
 
 export interface Playback {
@@ -57,43 +58,6 @@ export { lastPlayed };
 export const playQueue = () => store.queue;
 /** The entry after the playing one, which Next, Up Next & the end of the item start. */
 export const nextEntry = () => after(store.queue, store.current?.entry);
-
-/** Prompt displayed when playback opens the OSD without a key press. */
-export type Prompt = 'intro' | 'next' | null;
-const [prompt, setPrompt] = createSignal<Prompt>(null);
-export { prompt };
-
-/** Automatic intro skip delay in seconds; pausing also pauses the countdown. */
-export const INTRO_AFTER = 5;
-/** Remaining playback milliseconds, last performance.now() tick and countdown timer. */
-let introLeft: number | undefined;
-let introSince: number | undefined;
-let introTimer: ReturnType<typeof setInterval> | undefined;
-const [introIn, setIntroIn] = createSignal<number>();
-/** Remaining intro countdown in seconds, undefined when inactive. */
-export { introIn };
-
-/** Up next counts down this many seconds of playback in the final credits,
- * then starts the next entry; Back cancels that. Without a credits marker
- * it shows NEXT_BEFORE_END s before the end and the next entry follows the end. */
-const NEXT_AFTER = 10;
-const NEXT_BEFORE_END = 30;
-/** In the credits: milliseconds of playback left, when they last ran down
- * (performance.now()) and the timer running them, as for Skip intro. */
-let nextLeft: number | undefined;
-let nextSince: number | undefined;
-let nextTimer: ReturnType<typeof setInterval> | undefined;
-/** A credits countdown starts the next entry before this one ends. */
-let nextOnCredits = false;
-let nextStarted = false;
-const [nextIn, setNextIn] = createSignal<number>();
-const [nextShare, setNextShare] = createSignal<number>();
-const [nextTimed, setNextTimed] = createSignal(false);
-/** Seconds until the next entry starts, and the share of the countdown
- * left (0–1); undefined while Up next isn't showing. `nextTimed`: the
- * countdown runs on the clock (credits), updating every 100 ms rather than
- * with Kodi's position. */
-export { nextIn, nextShare, nextTimed };
 
 let previews: Promise<Thumbs | undefined> | undefined;
 /** The server the playing item comes from. */
@@ -262,9 +226,7 @@ async function prepare(
       version: index,
     },
   });
-  setPrompt(null);
-  dismissed.clear();
-  skipped.clear();
+  resetPrompts();
   lastReport = { state: '', at: 0 };
   // A new queue arrives with its window; moving along one refreshes it.
   if (sameQueue) loadAround(entry);
@@ -445,29 +407,10 @@ function restart(p: Playback): Promise<void> | undefined {
   return store.current?.id === p.id ? launch(state.player.time) : undefined;
 }
 
-/** Accept the active prompt: skip the intro or start the next queue entry. */
-export function acceptPrompt(): void {
-  const p = store.current;
-  const which = prompt();
-  if (!p || !which) return;
-  dismiss();
-  if (which === 'intro' && p.intro) seekTo(p.intro.end / 1000);
-  if (which === 'next') playNextNow(true);
-}
-
 /** Start the next entry; `fromCredits` reports this one complete. */
 export function playNextNow(fromCredits = false): void {
   const next = nextEntry();
   if (next) playEntry(next, fromCredits);
-}
-
-/** Dismiss the prompt and cancel its countdown; Up next also cancels autoplay. */
-export function dismiss(): void {
-  const which = prompt();
-  if (!which) return;
-  dismissed.add(which);
-  if (which === 'next') setStore('nextCancelled', true);
-  setPrompt(null);
 }
 
 const warn = (what: string) => (e: unknown) => console.error(`playback: ${what}: ${e}`);
@@ -481,36 +424,6 @@ async function ensureWatched(s: Provider, p: Playback): Promise<void> {
 }
 
 let lastReport = { state: '', at: 0 };
-const dismissed = new Set<Prompt>();
-/** Skip each marker once so seeking back allows it to play. */
-const skipped = new Set<Marker>();
-
-/** Subtract elapsed playing time from the intro countdown. */
-function runIntroDown(): void {
-  if (introLeft === undefined || introSince === undefined) return;
-  const now = performance.now();
-  introLeft = Math.max(0, introLeft - (now - introSince));
-  introSince = now;
-}
-
-/** Subtract elapsed playing time from Up next's credits countdown. */
-function runNextDown(): void {
-  if (nextLeft === undefined || nextSince === undefined) return;
-  const now = performance.now();
-  nextLeft = Math.max(0, nextLeft - (now - nextSince));
-  nextSince = now;
-}
-
-/** Show Skip intro within the marker, excluding its last 3 s. `t` is in ms. */
-function duringIntro(p: Playback, t: number): boolean {
-  return !!p.intro && t >= p.intro.start && t < p.intro.end - 3000;
-}
-
-/** Treat a final flag or a marker ending within 5 s of the duration as final credits. */
-function finalCredits(m: Marker, p: Playback): boolean {
-  const end = (p.item.duration ?? 0) - 5000;
-  return !!m.final || (end > 0 && m.end >= end);
-}
 /** The entry to start once Kodi has stopped the playing one. */
 let playAfterStop: { entry: QueueEntry; request: number } | undefined;
 /** Report a stop during final credits as completion; long credits can start
@@ -576,7 +489,7 @@ createRoot(() => {
             if (finished && s) return ensureWatched(s, p);
           })
           .catch(warn('watched'));
-        setPrompt(null);
+        hidePrompt();
         // Delay transcode cleanup until Kodi releases the stream; a late reconnect
         // would otherwise start the stopped transcode again.
         const ending = source;
@@ -595,133 +508,15 @@ createRoot(() => {
     ),
   );
 
-  // Use markers for Skip intro and Up next; without credits, offer the next
-  // queue entry during the final 30 s.
-  createEffect(() => {
-    const p = store.current;
-    const t = state.player.time * 1000;
-    if (!p || state.player.session !== p.id || state.player.state === 'idle' || state.player.state === 'loading') return;
-    // Automatic final-credit skipping replaces Up next. If only intermediate
-    // credits exist, offer Up next during the final 30 s.
-    const auto = prefs.autoSkipCredits;
-    const autoNext = auto && p.allCredits.some((m) => finalCredits(m, p));
-    const credits = auto ? undefined : p.credits;
-    const inIntro = duringIntro(p, t);
-    const duration = state.player.duration;
-    const creditsAt = credits?.start ?? (duration === null ? Infinity : (duration - NEXT_BEFORE_END) * 1000);
-    const inCredits = !autoNext && duration !== null && t >= creditsAt;
-    // Leaving the intro or the credits clears Back on its prompt, so seeking
-    // back shows it again; for Up next that brings the autoplay back too.
-    if (!inIntro) dismissed.delete('intro');
-    if (!inCredits && dismissed.delete('next')) setStore('nextCancelled', false);
-    const want: Prompt = inIntro && !dismissed.has('intro') ? 'intro' : inCredits && nextEntry() && !dismissed.has('next') ? 'next' : null;
-    if (want === prompt()) return;
-    if (want === 'intro') {
-      introLeft = prefs.autoSkipIntro ? INTRO_AFTER * 1000 : undefined;
-      introSince = undefined;
-    }
-    if (want === 'next') {
-      nextOnCredits = !!credits;
-      setNextTimed(nextOnCredits);
-      nextLeft = credits ? NEXT_AFTER * 1000 : undefined;
-      nextSince = undefined;
-      nextStarted = false;
-    }
-    setPrompt(want);
-    if (want && state.mode === 'video') send({ cmd: 'osd-on' });
-  });
-
-  // Use elapsed playing time so the countdown matches the button animation;
-  // Kodi's whole-second position jumps on seeks. Pause freezes both timers.
-  // Recheck the marker before skipping because seek effects can run in either order.
-  createEffect(() => {
-    const counting = prompt() === 'intro' && introLeft !== undefined;
-    const playing = state.player.state === 'playing';
-    runIntroDown();
-    clearInterval(introTimer);
-    introSince = undefined;
-    if (!counting) {
-      setIntroIn(undefined);
-      return;
-    }
-    setIntroIn(Math.ceil(introLeft! / 1000));
-    if (!playing) return;
-    introSince = performance.now();
-    introTimer = setInterval(() => {
-      runIntroDown();
-      setIntroIn(Math.ceil(introLeft! / 1000));
-      const p = store.current;
-      if (introLeft === 0 && p && duringIntro(p, state.player.time * 1000)) {
-        clearInterval(introTimer);
-        introLeft = undefined;
-        console.log('playback: skipping the intro');
-        acceptPrompt();
-      }
-    }, 100);
-  });
-
-  // Skip credits only while playing. Preserve scenes after intermediate credits;
-  // final credits complete the item and start the next queue entry when available.
-  createEffect(() => {
-    const p = store.current;
-    const t = state.player.time * 1000;
-    if (!p || state.player.session !== p.id || state.player.state !== 'playing') return;
-    const inside = (m: Marker) => t >= m.start && t < m.end - 3000 && !skipped.has(m);
-    const credits = prefs.autoSkipCredits ? p.allCredits.find(inside) : undefined;
-    if (!credits) return;
-    skipped.add(credits);
-    if (!finalCredits(credits, p)) {
-      console.log('playback: skipping credits');
-      seekTo(credits.end / 1000);
-    } else if (nextEntry()) {
-      console.log('playback: skipping the final credits to the next entry');
-      playNextNow(true);
-    } else {
-      console.log('playback: skipping the final credits to the end');
+  startPrompts({
+    playing: () => store.current,
+    hasNext: () => !!nextEntry(),
+    cancelNext: (cancelled) => setStore('nextCancelled', cancelled),
+    seekTo,
+    playNext: playNextNow,
+    finish: () => {
       stopFinished = true;
       send({ cmd: 'stop' });
-    }
-  });
-
-  // Up next in the credits counts playback on the clock, as Skip intro
-  // does, so seeks don't stretch or cut it and pausing stops it. Without a
-  // credits marker it counts Kodi's position to the end, where the next
-  // entry follows.
-  createEffect(() => {
-    const showing = prompt() === 'next';
-    const playing = state.player.state === 'playing';
-    runNextDown();
-    clearInterval(nextTimer);
-    nextSince = undefined;
-    if (!showing) {
-      setNextIn(undefined);
-      setNextShare(undefined);
-      return;
-    }
-    if (!nextOnCredits) return;
-    const publish = () => {
-      setNextIn(Math.ceil(nextLeft! / 1000));
-      setNextShare(nextLeft! / (NEXT_AFTER * 1000));
-    };
-    publish();
-    if (!playing) return;
-    nextSince = performance.now();
-    nextTimer = setInterval(() => {
-      runNextDown();
-      publish();
-      if (nextLeft === 0 && !nextStarted) {
-        clearInterval(nextTimer);
-        nextStarted = true;
-        dismiss();
-        playNextNow(true);
-      }
-    }, 100);
-  });
-  createEffect(() => {
-    const { time, duration } = state.player;
-    if (prompt() !== 'next' || nextOnCredits || duration === null) return;
-    const left = Math.max(0, duration - time);
-    setNextIn(Math.ceil(left));
-    setNextShare(Math.min(1, left / NEXT_BEFORE_END));
+    },
   });
 });

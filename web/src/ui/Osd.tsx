@@ -17,27 +17,19 @@ import { currentChapter } from '../player/chapters';
 import { more, position } from '../player/queue';
 import { QUALITIES, quality } from '../player/quality';
 import {
-  acceptPrompt,
   chooseAudio,
   chooseQuality,
   chooseSubtitle,
-  dismiss,
-  INTRO_AFTER,
-  introIn,
   loadAround,
   nextEntry,
-  nextIn,
-  nextShare,
-  nextTimed,
   playback,
   playEntry,
   playNextNow,
   playQueue,
-  prompt,
-  type Prompt,
   seekTo,
   thumbs,
 } from '../player/playback';
+import { acceptPrompt, dismiss, INTRO_AFTER, introIn, nextIn, nextShare, nextTimed, prompt, type Prompt } from '../player/prompts';
 import { SUBTITLES_OFF, type Track } from '../player/tracks';
 import { trackHint } from './components/ItemActions';
 import { Menu } from './components/Menu';

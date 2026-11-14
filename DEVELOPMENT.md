@@ -127,9 +127,10 @@ Each adapter builds play queues its own way: Plex keeps them on the server
 (`plex/playqueue.ts`), Dormer builds them from a show's episodes or a
 collection's items (`jellyfin/playback.ts`). `player/queue.ts` joins
 windows of a queue by entry id, so a title can appear more than once.
-`player/playback.ts` controls the playing entry, Up Next & the reports to
-the server. The strip below the OSD controls shows chapters for the
-selected media version & the play queue.
+`player/playback.ts` controls the playing entry & the reports to the
+server; `player/prompts.ts` decides when Skip intro and Up Next show and
+runs their countdowns. The strip below the OSD controls shows chapters for
+the selected media version & the play queue.
 
 Interface text lives in `src/i18n/en.ts`. Use `t()` with named placeholders;
 plural entries use `one` & `other`, selected by `n`. English is the only

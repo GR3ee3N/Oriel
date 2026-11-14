@@ -34,7 +34,8 @@ vi.mock('../src/plex/playqueue', () => ({
 }));
 
 const bridge = await import('../src/bridge');
-const { dismiss, nextEntry, nextIn, playback, prompt, startPlayback } = await import('../src/player/playback');
+const { nextEntry, playback, startPlayback } = await import('../src/player/playback');
+const { dismiss, nextIn, prompt } = await import('../src/player/prompts');
 const send = vi.mocked(bridge.send);
 
 /** Episode with final credits from 1700 s to the end at 1800 s. */
