@@ -1,32 +1,14 @@
-// Jellyfin requests the provider makes, with a short cache like Plex's, and
+// Jellyfin requests the provider makes, kept briefly in the shared cache, and
 // image URLs. Lists ask for few fields; details ask for files, tracks,
 // people and chapters.
 
+import { createCache } from '../media/cache';
 import type { ArtRef } from '../media/model';
 import type { Server } from './client';
 
-/** Replies are reused for a minute; refresh() drops them sooner. */
-const MAX_AGE = 60_000;
-const cache = new Map<string, { at: number; value: Promise<unknown> }>();
+const { cached, clear: invalidate } = createCache();
 
-export function cached<T>(key: string, load: () => Promise<T>): Promise<T> {
-  const now = Date.now();
-  const hit = cache.get(key);
-  if (hit && now - hit.at < MAX_AGE) return hit.value as Promise<T>;
-  for (const [k, entry] of cache) {
-    if (now - entry.at < MAX_AGE) break;
-    cache.delete(k);
-  }
-  const value = load();
-  cache.delete(key);
-  cache.set(key, { at: now, value });
-  value.catch(() => cache.get(key)?.value === value && cache.delete(key));
-  return value;
-}
-
-export function invalidate(): void {
-  cache.clear();
-}
+export { invalidate };
 
 /** Fields for tiles & rows: images, counts and what the hero shows. */
 export const LIST = 'ImageBlurHashes,ChildCount,RecursiveItemCount,Overview,Genres';

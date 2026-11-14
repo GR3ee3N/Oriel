@@ -1,38 +1,15 @@
 // Typed Plex endpoints. Keep X-Plex-Container-Start/Size in the query string
 // to avoid CORS preflights, as with client identity in client.ts.
 
+import { createCache } from '../media/cache';
+import type { Page } from '../media/model';
 import type { Server } from './client';
 import type { Directory, Hub, MediaContainer, Metadata } from './types';
 
-export interface Page {
-  start: number;
-  size: number;
-}
-
-// Cache browse responses for one minute to reuse them on return navigation.
-// Invalidate after playback changes watched state or progress.
-const cache = new Map<string, { at: number; value: Promise<unknown> }>();
-const MAX_AGE = 60_000;
-
-function cached<T>(key: string, load: () => Promise<T>): Promise<T> {
-  const now = Date.now();
-  const hit = cache.get(key);
-  if (hit && now - hit.at < MAX_AGE) return hit.value as Promise<T>;
-  // Deleting expired entries before reinsertion keeps the map in age order.
-  for (const [k, entry] of cache) {
-    if (now - entry.at < MAX_AGE) break;
-    cache.delete(k);
-  }
-  const value = load();
-  cache.set(key, { at: now, value });
-  value.catch(() => cache.delete(key));
-  return value;
-}
+const { cached, clear: invalidate } = createCache();
 
 /** Clear browse responses after changes such as playback or watched-state updates. */
-export function invalidate(): void {
-  cache.clear();
-}
+export { invalidate };
 
 const paging = (page?: Page) =>
   page ? { 'X-Plex-Container-Start': page.start, 'X-Plex-Container-Size': page.size } : {};
