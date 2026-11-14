@@ -103,9 +103,9 @@ export function jellyfinProvider(server: Server): Provider {
   return {
     server: { id: server.id, name: server.name, local: server.local, address: server.address },
     mediaSource: () => ({ base: server.address, headers: { Authorization: authorization(server.token) } }),
-    // Box sets span the server, Jellyfin has no HDR filter, and track choices
-    // stay on this box.
-    features: { collectionsPerLibrary: false, hdrFilter: false, savedTracks: false },
+    // Jellyfin has no HDR filter, and track choices stay on this box. Its box
+    // sets span the server, so it lists no collections per library.
+    features: { hdrFilter: false, savedTracks: false },
     libraries: views,
     invalidate,
     home: async () => {
@@ -156,7 +156,6 @@ export function jellyfinProvider(server: Server): Provider {
       const sizes = await Promise.all([count({ ...base, NameLessThan: 'A' }), ...LETTERS.map((l) => count({ ...base, NameStartsWith: l }))]);
       return ['#', ...LETTERS].map((key, i) => ({ key, size: sizes[i] })).filter((l) => l.size > 0);
     },
-    collections: async (library, page) => paged(await list('/Items', { IncludeItemTypes: 'BoxSet', Recursive: true, SortBy: 'SortName', ...paging(page) }), page, library),
     collection: async (id, page) => paged(await list('/Items', { ParentId: id, SortBy: 'PremiereDate,SortName', ...paging(page) }), page),
     playlists: async (page) => paged(await list('/Items', { IncludeItemTypes: 'Playlist', Recursive: true, MediaTypes: 'Video', SortBy: 'SortName', ...paging(page) }), page),
     playlist: async (id, page) => paged(await list(`/Playlists/${id}/Items`, paging(page)), page),

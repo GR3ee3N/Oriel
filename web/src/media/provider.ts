@@ -27,8 +27,9 @@ export interface Provider {
   filterValues(library: string, field: Exclude<FilterField, 'hdr'>): Promise<Choice[]>;
   /** Title counts by first character, for titles sorted by title. */
   letters(library: string, q: TitleQuery): Promise<{ key: string; size: number }[]>;
-  /** A library's collections, in the server's order. */
-  collections(library: string, page?: Page): Promise<Paged<Item>>;
+  /** A library's own collections, in the server's order; absent when the
+   * server's collections span its libraries. */
+  collections?(library: string, page?: Page): Promise<Paged<Item>>;
   collection(id: string, page?: Page): Promise<Paged<Item>>;
   playlists(page?: Page): Promise<Paged<Item>>;
   playlist(id: string, page?: Page): Promise<Paged<Item>>;
@@ -49,10 +50,9 @@ export interface Provider {
 }
 
 /** What a server supports beyond the Provider's calls. Screens leave out
- * what it lacks; a server without a Watchlist has no `watchlist`. */
+ * what it lacks; a server without a Watchlist has no `watchlist`, and one
+ * without per-library collections has no `collections`. */
 export interface Features {
-  /** Each library has its own collections, which its Collections tab lists. */
-  collectionsPerLibrary: boolean;
   /** Titles can be filtered by HDR. */
   hdrFilter: boolean;
   /** Track choices are saved on the server, for every client that plays the title. */

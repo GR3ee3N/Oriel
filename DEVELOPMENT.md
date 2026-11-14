@@ -119,8 +119,9 @@ Screens & the player reach a server only through `media/`: the model in
 `account.ts`. `plex/` and `jellyfin/` implement them, and
 `media/servers.ts` loads the one the build names.
 `tests/boundary.test.ts` fails when any other file imports from either
-folder. `Provider.features` says which optional parts a server supports, such as
-per-library collections; screens leave out the rest.
+folder. Optional parts of a server are the `collections` and `watchlist`
+members of `Provider`, present only when the server has them, and the flags
+in `Provider.features`; screens leave out what's missing.
 
 Each adapter builds play queues its own way: Plex keeps them on the server
 (`plex/playqueue.ts`), Dormer builds them from a show's episodes or a

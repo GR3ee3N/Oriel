@@ -39,7 +39,7 @@ export function plexProvider(server: Server): Provider {
   return {
     server: { id: server.id, name: server.name, local: server.local, address: server.uri },
     mediaSource: () => ({ base: server.uri, headers: { 'X-Plex-Token': server.token } }),
-    features: { collectionsPerLibrary: true, hdrFilter: true, savedTracks: true },
+    features: { hdrFilter: true, savedTracks: true },
     libraries: async () => (await api.sections(server)).flatMap((d) => library(d) ?? []),
     invalidate: () => api.invalidate(),
     titles: async (library, q, page) =>

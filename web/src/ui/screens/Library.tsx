@@ -63,12 +63,14 @@ export function Library(props: { section: string; title: string; type?: string }
     setState(next);
     saveLibraryState(stateKey, next);
   };
+  const collections = provider().collections?.bind(provider());
   const [collectionCount] = createResource(
-    () => provider().features.collectionsPerLibrary && props.section,
-    (section) => provider().collections(section, { start: 0, size: 0 }).then((p) => p.total),
+    () => collections && props.section,
+    (section) => collections!(section, { start: 0, size: 0 }).then((p) => p.total),
   );
   const hero = createHero();
-  const view = () => state().view;
+  // A saved Collections view means nothing on a server that has none.
+  const view = () => (state().view === 'collections' && !collections ? 'library' : state().view);
 
   return (
     <div class="library">
@@ -104,7 +106,7 @@ export function Library(props: { section: string; title: string; type?: string }
         <Match when={view() === 'collections'}>
           <Grid
             key={`collections/${props.section}`}
-            load={(start, size) => provider().collections(props.section, { start, size })}
+            load={(start, size) => collections!(props.section, { start, size })}
             onSelect={open}
             empty={<Message icon="movie" title={t('library.noCollections', { library: props.title })} body={t('library.noCollectionsHint')} />}
             class="lib-grid"
