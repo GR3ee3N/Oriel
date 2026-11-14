@@ -235,6 +235,8 @@ export const en = {
   'address.connect': 'Connect',
   'address.checking': 'Looking for a server…',
   'address.notFound': 'No Jellyfin server answers at {address}.',
+  'address.found': 'On this network',
+  'address.typeHint': 'Or type the address you open the server at in a browser.',
   'start.signInHint': 'On your phone or computer, go to {site} and enter this code:',
   'start.whoWatching': "Who's watching?",
   'start.pin': 'PIN',

@@ -12,7 +12,7 @@
 import { createStore } from 'solid-js/store';
 import { call } from './bridge';
 import { tab } from './router';
-import type { Account, Profile, ServerChoice, SignInCode } from './media/account';
+import type { Account, FoundServer, Profile, ServerChoice, SignInCode } from './media/account';
 import { ServerError, Unreachable } from './media/errors';
 import type { Library } from './media/model';
 import type { Provider } from './media/provider';
@@ -143,6 +143,13 @@ export async function signIn(): Promise<void> {
  * for the address screen when nothing answers there. */
 export async function setAddress(text: string): Promise<void> {
   await account!.address!.set(text);
+  await signIn();
+}
+
+/** Keep a server found on the network, then sign in to it. Throws a
+ * sentence for the address screen when it doesn't answer. */
+export async function setFoundServer(server: FoundServer): Promise<void> {
+  await account!.address!.choose(server);
   await signIn();
 }
 

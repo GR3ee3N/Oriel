@@ -1,5 +1,6 @@
 import { createBridge, IDLE, type VideoCommand, type VideoState } from '@oriel/web';
 import { createStore, reconcile } from 'solid-js/store';
+import type { FoundServer } from './media/account';
 import type { PlaybackNote } from './player/playback';
 
 /** The optional fonts' download (addon/fonts.py); null when the build has none. */
@@ -15,14 +16,21 @@ export interface Fonts {
   scripts: string[];
 }
 
+/** Jellyfin servers that answered on the box's network (addon/discovery.py). */
+export interface Discovery {
+  searching: boolean;
+  servers: FoundServer[];
+}
+
 export type State = VideoState<PlaybackNote> & {
   /** Enables page-side key handling for the simulated add-on in tools/desktop.py. */
   desktop?: boolean;
   fonts: Fonts | null;
+  discovery: Discovery | null;
 };
-export type Command = VideoCommand<PlaybackNote> | { cmd: 'fonts-install' } | { cmd: 'fonts-remove' };
+export type Command = VideoCommand<PlaybackNote> | { cmd: 'fonts-install' } | { cmd: 'fonts-remove' } | { cmd: 'discover' };
 
-const bridge = createBridge<State, Command>({ mode: 'browse', player: IDLE, decoders: null, fonts: null });
+const bridge = createBridge<State, Command>({ mode: 'browse', player: IDLE, decoders: null, fonts: null, discovery: null });
 const [store, setStore] = createStore<State>(bridge.state());
 bridge.onState((next) => setStore(reconcile(next)));
 

@@ -1,12 +1,13 @@
-// A Jellyfin server's users as an Account. The user names the server first;
-// each person then signs in with Quick Connect: Dormer shows a code, and
+// A Jellyfin server's users as an Account. The user picks a server found on
+// the network or types its address; each person then signs in with Quick
+// Connect: Dormer shows a code, and
 // they approve it in a browser where they're signed in to the server. Servers
 // can hide their user list, so the profiles are the users who signed in on
 // this box, each with its own token; signing in again adds another.
 
 import { runId } from '../bridge';
 import { t } from '../i18n';
-import type { Account, Profile } from '../media/account';
+import type { Account, FoundServer, Profile } from '../media/account';
 import { ServerError } from '../media/errors';
 import { load, type Saved, save } from '../store';
 import { JellyfinError, request, Server, type ServerInfo, setDeviceId } from './client';
@@ -65,20 +66,29 @@ export async function jellyfinAccount(clientId: string): Promise<Account> {
     }
   };
 
+  /** Keep the first address that answers as a Jellyfin server, as server
+   * `id` when given; whether one did. */
+  const reach = async (addresses: string[], id?: string): Promise<boolean> => {
+    for (const address of addresses) {
+      const info = await request<ServerInfo>(address, '/System/Info/Public', { timeout: 5000 }).catch(() => undefined);
+      if (!info?.Id || (id && info.Id !== id)) continue;
+      if (server?.id !== info.Id) users = [];
+      server = { address, id: info.Id, name: info.ServerName };
+      await keep({ server, users });
+      return true;
+    }
+    return false;
+  };
+
   return {
     addsProfiles: true,
     address: {
       known: () => !!server,
       set: async (text) => {
-        for (const address of candidates(text)) {
-          const info = await request<ServerInfo>(address, '/System/Info/Public', { timeout: 5000 }).catch(() => undefined);
-          if (!info?.Id) continue;
-          if (server?.id !== info.Id) users = [];
-          server = { address, id: info.Id, name: info.ServerName };
-          await keep({ server, users });
-          return;
-        }
-        throw new Error(t('address.notFound', { address: text.trim() }));
+        if (!(await reach(candidates(text)))) throw new Error(t('address.notFound', { address: text.trim() }));
+      },
+      choose: async (found: FoundServer) => {
+        if (!(await reach(found.addresses, found.id))) throw new Error(t('start.notAnswering', { server: found.name }));
       },
     },
     restore: async () => {

@@ -69,3 +69,11 @@ test('Quick Connect signs in whoever approves the code, and each sign-in adds a 
   expect(await account.resume(false)).toMatchObject({ id: 'u2' });
   vi.useRealTimers();
 });
+
+test('a server found on the network is kept at the first of its addresses that answers as that server', async () => {
+  const account = await jellyfinAccount('device-1');
+  await expect(account.address!.choose({ id: 'elsewhere', name: 'Den', addresses: ['https://media.example.com'] })).rejects.toThrow('Den is not answering.');
+  expect(store.data.server).toBeUndefined();
+  await account.address!.choose({ id: 'srv', name: 'Home', addresses: ['http://172.17.0.2:8096', 'https://media.example.com'] });
+  expect(store.data.server).toEqual({ address: 'https://media.example.com', id: 'srv', name: 'Home' });
+});

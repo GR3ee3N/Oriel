@@ -22,6 +22,14 @@ export interface Profile {
   protected?: boolean;
 }
 
+/** A server that answered discovery on the box's network. */
+export interface FoundServer {
+  id: string;
+  name: string;
+  /** Addresses to try in order. */
+  addresses: string[];
+}
+
 export interface ServerChoice {
   id: string;
   name: string;
@@ -37,6 +45,9 @@ export interface Account {
     /** Check that `text` reaches a server and keep it; throws a sentence
      * when it doesn't. */
     set(text: string): Promise<void>;
+    /** Keep a server found on the network, at the first of its addresses
+     * that answers as that server; throws a sentence when none does. */
+    choose(server: FoundServer): Promise<void>;
   };
   /** `signIn` adds a profile beside the saved ones, so the picker offers it. */
   addsProfiles?: boolean;

@@ -1,34 +1,66 @@
-import { createSignal, For, onCleanup, onMount, Show } from 'solid-js';
+import { createEffect, createSignal, For, on, onCleanup, onMount, Show } from 'solid-js';
+import { send, state } from '../bridge';
 import { t } from '../i18n';
-import { focusable, onBack } from '../nav';
-import { setAddress } from '../session';
+import type { FoundServer } from '../media/account';
+import { focusable, focused, focusOn, onBack } from '../nav';
+import { setAddress, setFoundServer } from '../session';
 import { Backdrop } from './components/Backdrop';
+import { Button } from './components/Controls';
 import { Icon } from './components/Icon';
 import { askExit } from './exit';
 import './screens/library.css';
 import './screens/search.css';
 
 const KEYS = [...'abcdefghijklmnopqrstuvwxyz1234567890.:/-'];
+/** Servers can start after the screen opens, so the search repeats. */
+const SEARCH_EVERY = 10_000;
 
-/** The server's address, typed on an on-screen keyboard like Search's. */
+/** Host and port of a server's first address, for its button. */
+function where(server: FoundServer): string {
+  return server.addresses[0].replace(/^https?:\/\//, '');
+}
+
+/** The server's address, typed on an on-screen keyboard like Search's, or
+ * one of the servers found on the box's network. */
 export function Address() {
   const [text, setText] = createSignal('');
   const [busy, setBusy] = createSignal(false);
   const [error, setError] = createSignal('');
   onBack(askExit);
 
-  const connect = async () => {
-    if (busy() || !text().trim()) return;
+  const servers = () => state.discovery?.servers ?? [];
+  onMount(() => {
+    send({ cmd: 'discover' });
+    const timer = setInterval(() => send({ cmd: 'discover' }), SEARCH_EVERY);
+    onCleanup(() => clearInterval(timer));
+  });
+
+  const attempt = async (step: () => Promise<void>) => {
+    if (busy()) return;
     setBusy(true);
     setError('');
     try {
-      await setAddress(text());
+      await step();
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
     } finally {
       setBusy(false);
     }
   };
+  const connect = () => text().trim() && attempt(() => setAddress(text()));
+
+  // The first server found takes the focus until the user starts typing.
+  let firstKey: HTMLElement | undefined;
+  let list: HTMLDivElement | undefined;
+  createEffect(
+    on(
+      () => servers().length > 0,
+      (any) => {
+        const button = list?.querySelector<HTMLElement>('.button');
+        if (any && button && !text() && focused() === firstKey) focusOn(button);
+      },
+    ),
+  );
   const type = (k: string) => {
     if (k === 'go') return void connect();
     setError('');
@@ -43,7 +75,14 @@ export function Address() {
   onCleanup(() => document.removeEventListener('keydown', onKey));
 
   const key = (k: string, label: string, wide = false) => (
-    <div class="key" classList={{ wide }} ref={(el) => focusable(el, { group: 'keyboard', area: 'keyboard', autofocus: k === 'a', onSelect: () => type(k) })}>
+    <div
+      class="key"
+      classList={{ wide }}
+      ref={(el) => {
+        if (k === 'a') firstKey = el;
+        focusable(el, { group: 'keyboard', area: 'keyboard', autofocus: k === 'a', onSelect: () => type(k) });
+      }}
+    >
       {label}
     </div>
   );
@@ -73,7 +112,17 @@ export function Address() {
           </div>
         </div>
         <div class="search-note">
-          <Show when={busy()} fallback={<h2>{error() || t('address.hint')}</h2>}>
+          <Show when={servers().length}>
+            <div class="found" ref={list}>
+              <p>{t('address.found')}</p>
+              <For each={servers()}>
+                {(server) => (
+                  <Button icon="server" label={server.name} sub={where(server)} group="found" onSelect={() => attempt(() => setFoundServer(server))} />
+                )}
+              </For>
+            </div>
+          </Show>
+          <Show when={busy()} fallback={<h2>{error() || t(servers().length ? 'address.typeHint' : 'address.hint')}</h2>}>
             <h2>{t('address.checking')}</h2>
           </Show>
         </div>
