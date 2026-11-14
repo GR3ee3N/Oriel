@@ -12,7 +12,7 @@ import { badges, clean, duration as length, episodeCode, hhmm, remaining } from 
 import type { Item } from '../media/model';
 import type { Frame } from '../media/provider';
 import { provider } from '../media/servers';
-import { episodeText, episodeTitle, hidden } from '../media/spoilers';
+import { episodeText, episodeTitle, hidden } from '../spoilers';
 import { currentChapter } from '../player/chapters';
 import { more, position } from '../player/queue';
 import { QUALITIES, quality } from '../player/quality';

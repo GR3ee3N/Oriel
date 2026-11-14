@@ -24,7 +24,6 @@ import { loadPrefs, prefs } from './prefs';
 import { load, save } from './store';
 import { resetHomeReady } from './boot';
 import { uuid } from './uuid';
-import type { MenuOption } from './ui/components/Menu';
 
 export type { ServerChoice };
 
@@ -261,7 +260,7 @@ async function useProfile(user: Profile, want?: string): Promise<void> {
 }
 
 /** Server choices shared by the account menu, Settings and error screen. */
-export function serverOptions(): MenuOption<string>[] {
+export function serverOptions(): { label: string; value: string }[] {
   return session.servers.map((s) => ({ label: s.owner ? `${s.name} · ${s.owner}` : s.name, value: s.id }));
 }
 

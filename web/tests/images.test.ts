@@ -17,7 +17,7 @@ vi.mock('../src/actions', () => ({ play: vi.fn() }));
 vi.mock('../src/nav', () => ({ focusable: vi.fn() }));
 
 import { tileImageUrl } from '../src/ui/components/Tile';
-import { setRevealed } from '../src/media/spoilers';
+import { setRevealed } from '../src/spoilers';
 
 beforeEach(() => setRevealed(undefined));
 

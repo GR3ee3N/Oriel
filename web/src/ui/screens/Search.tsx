@@ -3,7 +3,7 @@ import { activeScope, focusable, useScope } from '../../nav';
 import { open } from '../../actions';
 import { type Key, t } from '../../i18n';
 import { clean, episodeCode, hubTitle } from '../../media/format';
-import { episodeTitle } from '../../media/spoilers';
+import { episodeTitle } from '../../spoilers';
 import { provider } from '../../media/servers';
 import { session } from '../../session';
 import { Button } from '../components/Controls';

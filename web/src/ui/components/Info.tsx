@@ -5,7 +5,7 @@ import type { Item } from '../../media/model';
 import { provider } from '../../media/servers';
 import { preload } from '../preload';
 import { createImage } from './image';
-import { episodeTitle } from '../../media/spoilers';
+import { episodeTitle } from '../../spoilers';
 import './info.css';
 
 const LOGO = { w: 720, h: 240 };

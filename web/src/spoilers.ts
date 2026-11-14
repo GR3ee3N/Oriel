@@ -5,11 +5,11 @@
 // for one episode until focus leaves it.
 
 import { createSignal } from 'solid-js';
-import { t } from '../i18n';
-import { hidesUnwatched } from '../prefs';
-import { session } from '../session';
-import { clean } from './format';
-import type { Item } from './model';
+import { t } from './i18n';
+import { hidesUnwatched } from './prefs';
+import { session } from './session';
+import { clean } from './media/format';
+import type { Item } from './media/model';
 
 type Episode = Pick<Item, 'id' | 'kind' | 'plays'>;
 

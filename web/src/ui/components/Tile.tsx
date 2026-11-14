@@ -4,7 +4,7 @@ import type { Item } from '../../media/model';
 import { provider } from '../../media/servers';
 import { isWatched, progress, tileSubtitle, tileTitle, unwatched } from '../../media/format';
 import { type Direction, focusable } from '../../nav';
-import { episodeTitle, hidden } from '../../media/spoilers';
+import { episodeTitle, hidden } from '../../spoilers';
 import { Icon } from './Icon';
 import { createImage } from './image';
 import './tile.css';

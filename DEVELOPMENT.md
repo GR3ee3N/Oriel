@@ -137,7 +137,7 @@ in `i18n/index.ts`, a matching plural rule & the language sent to Plex.
 Fonts for metadata in other scripts are a separate download.
 
 Spoiler protection is saved per profile, a Plex Home profile or a Jellyfin
-user. `media/spoilers.ts` checks whether an episode is unwatched or
+user. `spoilers.ts` checks whether an episode is unwatched or
 explicitly revealed. `episodeTitle` and `episodeText` put
 "[Spoilers removed]" in place of its title, summary and chapter names, and
 the server blurs its images (`plex/images.ts`, `jellyfin/api.ts`). Use

@@ -4,7 +4,7 @@ import { dataVersion, loaded } from '../../data';
 import { t } from '../../i18n';
 import { airDate, badges, clean, duration, episodeCode, isWatched, progress, remaining, seasonName } from '../../media/format';
 import type { Item } from '../../media/model';
-import { episodeHeading, episodeText, hidden, setRevealed } from '../../media/spoilers';
+import { episodeHeading, episodeText, hidden, setRevealed } from '../../spoilers';
 import { provider } from '../../media/servers';
 import { type Direction, focusable, focused, focusGroup, focusLater, focusOn } from '../../nav';
 import { lastPlayed } from '../../player/playback';

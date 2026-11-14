@@ -4,7 +4,7 @@ import { dataVersion, loaded } from '../../data';
 import { t } from '../../i18n';
 import { badges, clean, duration, hubTitle, remaining, seasonName, shortCode } from '../../media/format';
 import type { Item } from '../../media/model';
-import { episodeTitle } from '../../media/spoilers';
+import { episodeTitle } from '../../spoilers';
 import { provider } from '../../media/servers';
 import { focused, focusOn, useScope } from '../../nav';
 import { push, top } from '../../router';

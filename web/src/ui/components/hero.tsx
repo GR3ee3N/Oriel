@@ -7,7 +7,7 @@ import { createSignal, onCleanup, Show } from 'solid-js';
 import { badges, tileTitle } from '../../media/format';
 import type { Item } from '../../media/model';
 import { provider } from '../../media/servers';
-import { episodeText } from '../../media/spoilers';
+import { episodeText } from '../../spoilers';
 import { prepareBackdrop } from './Backdrop';
 import { Info, logoReady, metaFor } from './Info';
 

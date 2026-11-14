@@ -5,7 +5,7 @@ const session = vi.hoisted(() => ({ user: { id: 'test' } }));
 vi.mock('../src/session', () => ({ session }));
 vi.mock('../src/prefs', () => ({ hidesUnwatched: (profile: string) => profile === 'test' }));
 
-import { episodeText, episodeTitle, hidden, setRevealed } from '../src/media/spoilers';
+import { episodeText, episodeTitle, hidden, setRevealed } from '../src/spoilers';
 
 const episode: Item = { id: '1', kind: 'episode', title: 'The real title', art: { image: '/episode.jpg' } };
 
