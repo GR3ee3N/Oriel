@@ -21,10 +21,13 @@ apps/<app>/     each app's add-on files: oriel or dormer
 web/            web interface; VITE_SERVER=plex or jellyfin picks the app
   src/i18n/     interface text, placeholders and plural forms
   src/nav/      remote navigation: focus, focus scopes and Back handlers
-  src/media/    the model, Provider & Account interfaces, and the server in use
-  src/plex/     Plex API: sign-in, servers, libraries and images
-  src/jellyfin/ Jellyfin API, for Dormer
-  src/player/   playback, tracks, transcoding and episode prompts
+  src/media/    the model, Provider & Account interfaces, the server in use &
+                the cache and converter helpers the adapters share
+  src/plex/     Plex adapter: sign-in, servers, libraries, play queues,
+                transcoding & images
+  src/jellyfin/ Jellyfin adapter, for Dormer
+  src/player/   playback, tracks, play queue windows & the Skip intro and
+                Up next prompts
   src/ui/       screens and components
 build/          packaging, license notices, font package and version settings
   versions.env  VERSION and FRAMEWORK_VERSION
@@ -96,10 +99,10 @@ Run `tools/desktop.py` and, in a second terminal, run `npm run dev` in
 to 1920×1080. For Dormer, run `tools/desktop.py --app dormer` with
 `npm run dev:dormer` and open `http://localhost:5174/`. Arrows, Enter and Escape act as remote keys.
 
-Sign-in, browsing, artwork and settings use your Plex servers. Playback
+Sign-in, browsing, artwork and settings use your Plex or Jellyfin servers. Playback
 is simulated: the player state advances so you can test the OSD, pause,
 seek and end of playback, but no media plays. The server logs command
-names. Settings, including Plex tokens, are stored in
+names. Settings, including server tokens, are stored in
 `.cache/desktop-store.json`, or `.cache/desktop-store-dormer.json` for Dormer. The optional fonts download from a package built
 from `web/node_modules` into `.cache/desktop-files`.
 
@@ -222,10 +225,10 @@ Test profile's live library, so its Home rows change as the library does.
 
 ## Releases
 
-Both apps release together. Bump `VERSION`, write release notes in the
-`<news>` element of `apps/oriel/addon.xml` (and Dormer's, for Kodi's
-add-on page), and commit. From a clean working tree, with `gh`
-authenticated to an account that can publish releases, run:
+Both apps release together. Bump `VERSION` in a commit of its own, named
+"Oriel <version>", and leave `<news>` in both `addon.xml` files empty. From a
+clean working tree, with `gh` authenticated to an account that can publish
+releases, run:
 
 ```sh
 tools/release.sh
@@ -234,9 +237,10 @@ tools/release.sh
 The script checks and builds a snapshot of the committed source. It
 packages and validates both add-on ZIPs, one Kodi index listing both, their
 artwork and checksums, then tags `v<version>` and uploads a draft GitHub
-release, including the font ZIP both apps download. Oriel's `<news>` text
-becomes the release notes. Kodi's repository add-on reads the latest
-release's index, so it offers both apps.
+release, including the font ZIP both apps download. The release notes list
+the commits since the previous release, so each commit subject has to read
+as a line of the changelog. Kodi's repository add-on reads the latest
+release's index, so it offers both apps. You publish the draft by hand.
 
 Release files are in `.cache/release/files`.
 `.cache/release/COMMIT` records the source commit.
