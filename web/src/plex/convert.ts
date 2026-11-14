@@ -19,6 +19,7 @@ import type {
   Version,
   VideoStream,
 } from '../media/model';
+import { channelLayout, compact } from '../media/convert';
 import type { Details } from './api';
 import type { Chapter, Directory, Hub, Marker, Media, MediaContainer, Metadata, Role, Stream, Tag } from './types';
 
@@ -61,8 +62,7 @@ export function item(m: Details): Item {
   out.chapters = m.Chapter?.map(chapter);
   out.extras = m.Extras?.Metadata?.map(item);
   if (m.OnDeck?.Metadata) out.next = item(m.OnDeck.Metadata);
-  for (const key of Object.keys(out) as (keyof Item)[]) if (out[key] === undefined) delete out[key];
-  return out;
+  return compact(out);
 }
 
 export function row(hub: Hub): Row {
@@ -91,8 +91,7 @@ function artwork(m: Metadata): Item['art'] {
   }
   art.logo = m.Image?.find((i) => i.type === 'clearLogo')?.url;
   art.colors = m.UltraBlurColors;
-  for (const key of Object.keys(art) as (keyof typeof art)[]) if (art[key] === undefined) delete art[key];
-  return art;
+  return compact(art);
 }
 
 /** "de/12" is Plex's German FSK 12; ratings without a country stay as they are. */
@@ -207,10 +206,7 @@ function channelsOf(s: Stream): string {
   return named ?? channelLabel(s.channels);
 }
 
-function channelLabel(channels: number | undefined): string {
-  if (!channels) return '';
-  return { 1: '1.0', 2: '2.0', 6: '5.1', 7: '6.1', 8: '7.1' }[channels] ?? `${channels} ch`;
-}
+const channelLabel = (channels: number | undefined) => channelLayout(channels) ?? '';
 
 /** "Deutsch (EAC3 5.1)" names the language, then the format in brackets. */
 const nameOf = (s: Stream) => s.displayTitle?.replace(/\s*\(.*\)$/, '') || undefined;

@@ -13,6 +13,7 @@ import type {
   Version,
   VideoStream,
 } from '../media/model';
+import { channelLayout, compact } from '../media/convert';
 import { corners } from './blurhash';
 import type { BaseItem, MediaSource, MediaStream } from './types';
 
@@ -86,8 +87,7 @@ export function item(j: BaseItem, library?: string): Item {
   out.chapters = j.Chapters?.map(
     (c, i): MediaChapter => ({ title: c.Name, start: ms(c.StartPositionTicks) ?? 0, image: c.ImageTag ? `${j.Id}/Chapter/${i}/${c.ImageTag}` : undefined }),
   );
-  for (const key of Object.keys(out) as (keyof Item)[]) if (out[key] === undefined) delete out[key];
-  return out;
+  return compact(out);
 }
 
 function artwork(j: BaseItem): Item['art'] {
@@ -106,8 +106,7 @@ function artwork(j: BaseItem): Item['art'] {
   if (j.Type === 'Episode') art.seasonImage = ref(j.ParentPrimaryImageItemId, 'Primary', j.ParentPrimaryImageTag);
   const hash = j.ImageBlurHashes?.Backdrop?.[backdropTag ?? parentBackdrop ?? ''];
   art.colors = corners(hash);
-  for (const key of Object.keys(art) as (keyof typeof art)[]) if (art[key] === undefined) delete art[key];
-  return art;
+  return compact(art);
 }
 
 /** Jellyfin's codec names where they differ from FFmpeg's, as the rest of
@@ -181,13 +180,12 @@ function videoStream(s: MediaStream): VideoStream {
 }
 
 const LAYOUTS: Record<string, string> = { mono: '1.0', stereo: '2.0' };
-const COUNTS: Record<number, string> = { 1: '1.0', 2: '2.0', 6: '5.1', 7: '6.1', 8: '7.1' };
 
 function channels(s: MediaStream): string | undefined {
   const layout = s.ChannelLayout?.toLowerCase().replace(/\(.*\)$/, '');
   if (layout && LAYOUTS[layout]) return LAYOUTS[layout];
   if (layout && /^\d\.\d$/.test(layout)) return layout;
-  return s.Channels ? (COUNTS[s.Channels] ?? `${s.Channels} ch`) : undefined;
+  return channelLayout(s.Channels);
 }
 
 function audioStream(s: MediaStream, preferred: number | undefined): AudioStream {
