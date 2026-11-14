@@ -29,6 +29,7 @@ def fake_gh(args):
         # Model the draft left on GitHub by an interrupted upload.
         directory.mkdir()
         data["releases"][tag] = "--draft" in args
+        data.setdefault("notes", {})[tag] = args[args.index("--notes") + 1]
         state.write_text(json.dumps(data))
         for file in (Path(arg) for arg in args[3:] if not arg.startswith("-") and Path(arg).is_file()):
             if data.get("fail_upload") == file.name:
@@ -160,6 +161,19 @@ printf 'check\\n' >> "$TEST_ROOT/.cache/commands"
         self.commit("Bump")
         self.release()
         self.assertEqual(self.data()["releases"], {self.tag: False, "v1.99.0": True})
+
+    def test_notes_list_the_commits_since_the_last_release(self):
+        self.release()
+        self.assertEqual(self.data()["notes"][self.tag], "## Changes")
+        self.publish()
+        (self.root / "CHANGES").write_text("fix")
+        self.commit("fix the thing")
+        fix = self.command("git", "rev-parse", "--short", "HEAD")
+        path = self.root / "build/versions.env"
+        path.write_text(path.read_text().replace(f"\nVERSION={self.v}", "\nVERSION=1.99.0"))
+        self.commit("Oriel 1.99.0")
+        self.release()
+        self.assertEqual(self.data()["notes"]["v1.99.0"], f"## Changes\n- fix the thing ({fix})")
 
     def test_source_changes_during_build_prevent_upload(self):
         for change in ("dirty", "commit"):

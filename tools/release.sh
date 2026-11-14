@@ -12,8 +12,15 @@ source build/versions.env
 TAG=v$VERSION
 COMMIT=$(git rev-parse HEAD)
 git fetch -q --tags origin
-PREVIOUS=$(git describe --tags --abbrev=0 --match 'v*' "$COMMIT^")
-NOTES=$(printf '## Changes\n'; git log --reverse --format='- %s (%h)' "$PREVIOUS..$COMMIT^")
+# This version's own tag can mark an earlier draft, so it never starts the list.
+if PREVIOUS=$(git describe --tags --abbrev=0 --match 'v*' --exclude "$TAG" "$COMMIT^" 2>/dev/null); then
+    CHANGES="$PREVIOUS..$COMMIT^"
+elif git rev-parse -q --verify "$COMMIT^" >/dev/null; then
+    CHANGES="$COMMIT^"
+else
+    CHANGES=
+fi
+NOTES=$(printf '## Changes\n'; [[ -z $CHANGES ]] || git log --reverse --format='- %s (%h)' "$CHANGES")
 [[ -z $(git status --porcelain) ]] || { echo "commit first; the tree is not clean" >&2; exit 2; }
 mkdir -p .cache
 mkdir .cache/release.lock 2>/dev/null || { echo "another release is running; check .cache/release.lock" >&2; exit 1; }
