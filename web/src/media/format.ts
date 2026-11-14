@@ -65,6 +65,13 @@ export function hhmm(d: Date): string {
   return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
 }
 
+/** A position in playback as H:MM:SS, or M:SS under an hour. */
+export function clock(seconds: number): string {
+  const s = Math.max(0, Math.floor(seconds));
+  const hms = [Math.floor(s / 3600), Math.floor(s / 60) % 60, s % 60];
+  return (hms[0] ? hms : hms.slice(1)).map((n, i) => (i ? String(n).padStart(2, '0') : n)).join(':');
+}
+
 /** Season and episode code, e.g. "S2 · E5". */
 export function episodeCode(item: Item): string {
   return item.season?.number !== undefined && item.number !== undefined

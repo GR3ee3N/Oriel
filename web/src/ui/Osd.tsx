@@ -6,24 +6,20 @@
 
 import { createEffect, createMemo, createSignal, For, type JSX, on, onCleanup, onMount, Show } from 'solid-js';
 import { send, state } from '../bridge';
-import { type Direction, focusable, focused, focusOn, onBack } from '../nav';
+import { focusable, focusOn } from '../nav';
 import { t } from '../i18n';
-import { badges, clean, duration as length, episodeCode, hhmm, remaining } from '../media/format';
-import type { Item } from '../media/model';
+import { badges, clock, hhmm } from '../media/format';
 import type { Frame } from '../media/provider';
 import { provider } from '../media/servers';
-import { episodeText, episodeTitle, hidden } from '../spoilers';
-import { currentChapter } from '../player/chapters';
-import { more, position } from '../player/queue';
+import { hidden } from '../spoilers';
+import { position } from '../player/queue';
 import { QUALITIES, quality } from '../player/quality';
 import {
   chooseAudio,
   chooseQuality,
   chooseSubtitle,
-  loadAround,
   nextEntry,
   playback,
-  playEntry,
   playNextNow,
   playQueue,
   seekTo,
@@ -34,13 +30,9 @@ import { SUBTITLES_OFF, type Track } from '../player/tracks';
 import { trackHint } from './components/ItemActions';
 import { Menu } from './components/Menu';
 import { Panel } from './components/Panel';
+import { CHEVRON, CHEVRONS, Icon, AUDIO, NEXT, PAUSE, PLAY, QUALITY, SKIP, SUBTITLES } from './OsdIcon';
+import { entryLine, entryTitle, Strip, type StripPage, still } from './OsdStrip';
 import './osd.css';
-
-function clock(seconds: number): string {
-  const s = Math.max(0, Math.floor(seconds));
-  const hms = [Math.floor(s / 3600), Math.floor(s / 60) % 60, s % 60];
-  return (hms[0] ? hms : hms.slice(1)).map((n, i) => (i ? String(n).padStart(2, '0') : n)).join(':');
-}
 
 /** Idle timeout in ms; disabled while paused, scrubbing, in a menu or showing a prompt. */
 const HIDE_AFTER = 5000;
@@ -53,7 +45,7 @@ export function Osd() {
   const [target, setTarget] = createSignal<number | null>(null);
   const [thumb, setThumb] = createSignal<Frame>();
   const [menu, setMenu] = createSignal<'audio' | 'subtitles' | 'quality' | null>(null);
-  const [strip, setStrip] = createSignal<Page | null>(null);
+  const [strip, setStrip] = createSignal<StripPage | null>(null);
   // The button Down opened the strip from, where focus returns.
   let stripFrom: HTMLElement | undefined;
   let held = 0;
@@ -139,7 +131,7 @@ export function Osd() {
   const trackLabel = (tracks: Track[], id: number, none: string) => tracks.find((t) => t.id === id)?.label ?? none;
   // The same list as on the detail pages: language, then format and kind.
   const trackOption = <T extends Track>(t: T) => ({ label: t.label, value: t, detail: t.detail || undefined });
-  const pages = (): Page[] => {
+  const pages = (): StripPage[] => {
     const p = playback();
     return [...(p?.chapters.length ? ['chapters' as const] : []), ...((playQueue()?.total ?? 0) > 1 ? ['queue' as const] : [])];
   };
@@ -375,209 +367,10 @@ export function Osd() {
   );
 }
 
-type Page = 'chapters' | 'queue';
-
-// Strip cards: 304 px wide with 24 px between them; five fit the panel.
-const PITCH = 328;
-const SHOWN = 5;
-
-/** Show or movie title of a queue entry. */
-const entryTitle = (m: Item) => clean(m.kind === 'episode' ? m.show?.title : m.title);
-/** An episode's number & title, or a movie's
- * year & length; with `left`, the number or year & the time left. */
-function entryLine(m: Item, left = false): string {
-  const episode = m.kind === 'episode';
-  const parts = left ? [episode ? episodeCode(m) : m.year, remaining(m)] : episode ? [episodeCode(m), clean(episodeTitle(m))] : [m.year, length(m.duration)];
-  return parts.filter(Boolean).join(' · ');
-}
-/** A 16:9 picture of an entry: an episode's still, a movie's backdrop. */
-const still = (m: Item) => (m.kind === 'episode' ? m.art.image : (m.art.backdrop ?? m.art.image));
-
-/** One page of chapters or queue entries under the OSD controls, under its
- * name, with a Down chevron when another page follows. It opens on the
- * current chapter or the playing entry; Left/Right move along it, Up and Down
- * change page, and Up from the first page or Back closes it. */
-function Strip(props: { page: Page; pages: Page[]; onPage: (page: Page) => void; onClose: () => void }) {
-  const p = playback()!;
-  const server = provider();
-  const cards: HTMLElement[] = [];
-  const [first, setFirst] = createSignal(0);
-  onBack(props.onClose);
-
-  const at = props.pages.indexOf(props.page);
-  const arrow = (el: HTMLElement) => (d: Direction) => {
-    if (d === 'left' || d === 'right') {
-      // The neighbouring card, which stays right as queue entries load before the window.
-      const to = d === 'left' ? el.previousElementSibling : el.nextElementSibling;
-      if (to) focusOn(to as HTMLElement);
-    } else if (d === 'up') {
-      if (at > 0) props.onPage(props.pages[at - 1]);
-      else props.onClose();
-    } else if (props.pages[at + 1]) props.onPage(props.pages[at + 1]);
-    return true;
-  };
-  // Keep the focused card in view with one card of context on either side.
-  const place = (i: number) => setFirst((f) => (i <= f ? Math.max(0, i - 1) : i >= f + SHOWN - 1 ? i - SHOWN + 2 : f));
-  const card = (i: () => number, onSelect: () => void, onFocus?: () => void) => (el: HTMLElement) => {
-    cards[i()] = el;
-    // Entries loaded before the window move the focused card along; keep it where it is on screen.
-    createEffect(on(i, (n, was) => focused() === el && setFirst((f) => f + n - was!), { defer: true }));
-    focusable(el, {
-      scope: 'osd',
-      group: 'osd-strip',
-      onSelect,
-      onArrow: arrow(el),
-      onFocus: () => {
-        place(i());
-        onFocus?.();
-      },
-    });
-  };
-  const open = (i: number) =>
-    onMount(() => {
-      setFirst(Math.max(0, i - 1));
-      if (cards[i]) focusOn(cards[i]);
-    });
-
-  if (props.page === 'chapters') {
-    const now = () => currentChapter(p.chapters, state.player.time);
-    open(Math.max(0, now()));
-    return (
-      <div class="strip">
-        <StripHead pages={props.pages} page={props.page} count={t('player.position', { n: Math.max(1, now() + 1), total: p.chapters.length })} />
-        <div class="strip-row" style={{ transform: `translateX(${-first() * PITCH}px)` }}>
-          <For each={p.chapters}>
-            {(c, i) => (
-              <div
-                class="s-card"
-                ref={card(i, () => {
-                  seekTo(c.start);
-                  props.onClose();
-                })}
-              >
-                <div class="pic">
-                  <Show when={c.thumb} fallback={<div class="num">{c.n}</div>}>
-                    {(thumb) => <img src={server.image(thumb(), 304, 171, { blur: hidden(p.item) })} alt="" />}
-                  </Show>
-                  <Show when={i() === now()}>
-                    <span class="tag">{t('player.now')}</span>
-                  </Show>
-                </div>
-                <b>{episodeText(p.item, c.title) || t('player.chapter', { n: c.n })}</b>
-                <span>{clock(c.start)}</span>
-              </div>
-            )}
-          </For>
-        </div>
-      </div>
-    );
-  }
-
-  const q = () => playQueue()!;
-  const playingAt = () => q().entries.findIndex((e) => e.entry === p.entry);
-  const count = () => {
-    const n = position(q(), p.entry) ?? 1;
-    return t(q().shuffled ? 'player.shuffled' : 'player.position', { n, total: q().total });
-  };
-  // Load more of the queue as focus nears either end of the loaded window.
-  const near = (i: number) => {
-    const entries = q().entries;
-    if (i >= entries.length - 4 && more(q(), 'after')) loadAround(entries[entries.length - 1].entry);
-    if (i <= 3 && more(q(), 'before')) loadAround(entries[0].entry);
-  };
-  open(Math.max(0, playingAt()));
-  return (
-    <div class="strip">
-      <StripHead pages={props.pages} page={props.page} count={count()} />
-      <div class="strip-row" style={{ transform: `translateX(${-first() * PITCH}px)` }}>
-        <For each={q().entries}>
-          {(e, i) => {
-            const m = e.item;
-            const playing = () => e.entry === p.entry;
-            const progress = () => (playing() ? state.player.time / (state.player.duration || 1) : m.position && m.duration ? m.position / m.duration : 0);
-            return (
-              <div class="s-card" ref={card(i, () => (playing() ? props.onClose() : playEntry(e)), () => near(i()))}>
-                <div class="pic">
-                  <Show when={still(m)} fallback={<div class="num">{m.kind === 'episode' ? `E${m.number ?? ''}` : ''}</div>}>
-                    {(path) => <img src={server.image(path(), 304, 171, { blur: hidden(m) })} alt="" />}
-                  </Show>
-                  <Show when={playing()}>
-                    <span class="tag">{t('player.playing')}</span>
-                  </Show>
-                  <Show when={i() === playingAt() + 1}>
-                    <span class="tag soft">{t('player.nextTag')}</span>
-                  </Show>
-                  <Show when={progress() > 0}>
-                    <div class="bar">
-                      <i style={{ transform: `scaleX(${progress()})` }} />
-                    </div>
-                  </Show>
-                </div>
-                <b>{entryTitle(m)}</b>
-                <span>{entryLine(m, !playing() && !!m.position)}</span>
-              </div>
-            );
-          }}
-        </For>
-        <Show when={more(q(), 'after')}>
-          <div class="s-card skel">
-            <div class="pic" />
-          </div>
-        </Show>
-      </div>
-    </div>
-  );
-}
-
-/** The page's name and count; the chevron at the panel's foot shows while a
- * page follows. */
-function StripHead(props: { pages: Page[]; page: Page; count: string }) {
-  const more = props.pages.indexOf(props.page) < props.pages.length - 1;
-  return (
-    <>
-      <div class="strip-head">
-        <b>{t(props.page === 'chapters' ? 'player.chapters' : 'player.queue')}</b>
-        <small>{props.count}</small>
-      </div>
-      <Show when={more}>
-        <Icon d={CHEVRON} class="strip-hint" />
-      </Show>
-    </>
-  );
-}
-
 /** Hide the OSD and dismiss any prompt, including Up next autoplay. */
 export function osdBack(): void {
   if (prompt()) dismiss();
   send({ cmd: 'osd-off' });
-}
-
-const PLAY = 'M7 4.5v15a1 1 0 0 0 1.5.86l12.5-7.5a1 1 0 0 0 0-1.72L8.5 3.64A1 1 0 0 0 7 4.5z';
-const PAUSE = 'M7 4h2.5a1.2 1.2 0 0 1 1.2 1.2v13.6a1.2 1.2 0 0 1-1.2 1.2H7a1.2 1.2 0 0 1-1.2-1.2V5.2A1.2 1.2 0 0 1 7 4zm7.5 0H17a1.2 1.2 0 0 1 1.2 1.2v13.6A1.2 1.2 0 0 1 17 20h-2.5a1.2 1.2 0 0 1-1.2-1.2V5.2A1.2 1.2 0 0 1 14.5 4z';
-const NEXT = 'M5 5.5v13a1 1 0 0 0 1.53.85L16 13.2V18a1 1 0 0 0 2 0V6a1 1 0 0 0-2 0v4.8L6.53 4.65A1 1 0 0 0 5 5.5z';
-const SKIP = 'M3 6.2v11.6a.8.8 0 0 0 1.25.66L12 13.1v4.7a.8.8 0 0 0 1.25.66l8.2-5.8a.8.8 0 0 0 0-1.32l-8.2-5.8A.8.8 0 0 0 12 6.2v4.7L4.25 5.54A.8.8 0 0 0 3 6.2z';
-const AUDIO = 'M2.5 10v4M6.5 6.5v11M10.5 3.5v17M14.5 8v8M18.5 5.5v13M22 10v4';
-const SUBTITLES = 'M4.5 5h15a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2h-15a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2zM7 15h4M14 15h3M7 11h2M12 11h5';
-const QUALITY = 'M12 14.5l4-4.5M3.4 19a10 10 0 1 1 17.2 0';
-const CHEVRON = 'M6 9.5l6 5 6-5';
-const CHEVRONS = 'm7 9 5-5 5 5M7 15l5 5 5-5';
-
-/** Render a 24×24 icon, filled for playback actions or outlined for settings. */
-function Icon(props: { d: string; fill?: boolean; class?: string }) {
-  return (
-    <svg
-      class={props.class}
-      viewBox="0 0 24 24"
-      fill={props.fill ? 'currentColor' : 'none'}
-      stroke={props.fill ? 'none' : 'currentColor'}
-      stroke-width="2.2"
-      stroke-linecap="round"
-      stroke-linejoin="round"
-      aria-hidden="true"
-    >
-      <path d={props.d} />
-    </svg>
-  );
 }
 
 /** A scrub preview. A tile of a sheet shows through a window the size of one

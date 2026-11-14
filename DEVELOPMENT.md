@@ -129,8 +129,9 @@ collection's items (`jellyfin/playback.ts`). `player/queue.ts` joins
 windows of a queue by entry id, so a title can appear more than once.
 `player/playback.ts` controls the playing entry & the reports to the
 server; `player/prompts.ts` decides when Skip intro and Up Next show and
-runs their countdowns. The strip below the OSD controls shows chapters for
-the selected media version & the play queue.
+runs their countdowns. The strip below the OSD controls
+(`ui/OsdStrip.tsx`) shows chapters for the selected media version & the
+play queue.
 
 Interface text lives in `src/i18n/en.ts`. Use `t()` with named placeholders;
 plural entries use `one` & `other`, selected by `n`. English is the only
