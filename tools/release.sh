@@ -1,16 +1,19 @@
 #!/bin/bash
 # Draft a GitHub release of both apps, Oriel and Dormer, at VERSION from
 # build/versions.env. Kodi's repository add-on reads the latest release's
-# addons.xml, which lists both.
+# addons.xml, which lists both. The description lists the commits since the
+# last release, leaving out this release's own version commit.
 set -euo pipefail
 REPO=$(cd "$(dirname "$0")/.." && pwd)
 cd "$REPO"
 [[ $# = 0 ]] || { echo "usage: tools/release.sh" >&2; exit 2; }
 export GH_REPO=GR3ee3N/Oriel
 source build/versions.env
-NOTES=$(python3 -c 'import xml.etree.ElementTree as E; print(E.parse("apps/oriel/addon.xml").find("extension/news").text)')
 TAG=v$VERSION
 COMMIT=$(git rev-parse HEAD)
+git fetch -q --tags origin
+PREVIOUS=$(git describe --tags --abbrev=0 --match 'v*' "$COMMIT^")
+NOTES=$(printf '## Changes\n'; git log --reverse --format='- %s (%h)' "$PREVIOUS..$COMMIT^")
 [[ -z $(git status --porcelain) ]] || { echo "commit first; the tree is not clean" >&2; exit 2; }
 mkdir -p .cache
 mkdir .cache/release.lock 2>/dev/null || { echo "another release is running; check .cache/release.lock" >&2; exit 1; }
